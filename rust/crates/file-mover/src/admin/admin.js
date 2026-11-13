@@ -114,11 +114,14 @@
   // ---- Plain-language vocabulary (technical value kept in hover text) ----
   var ATTENTION = {
     AwaitingClaims: ["Waiting for files", "blue"], Ready: ["Ready to deliver", "blue"],
-    Retrying: ["Retrying delivery", "blue"], ReviewRequired: ["Needs review", "amber"]
+    Retrying: ["Retrying delivery", "blue"], ReviewRequired: ["Needs review", "amber"],
+    CancellationPending: ["Cancelling", "amber"], Cancelled: ["Cancelled", "grey"]
   };
   var ACTIVITY = {
     Committed: "Delivered", AwaitingClaims: "Waiting for the source files",
-    Ready: "Ready to deliver", Retrying: "Retrying delivery", ReviewRequired: "Needs review"
+    Ready: "Ready to deliver", Retrying: "Retrying delivery", ReviewRequired: "Needs review",
+    CancellationPending: "Cancelling: stopping work on this job",
+    Cancelled: "Cancelled: no further work; files stay where they are"
   };
   var FILE_STATUS = {
     Pending: "Waiting", Claimed: "Acquired", Verified: "Verified",

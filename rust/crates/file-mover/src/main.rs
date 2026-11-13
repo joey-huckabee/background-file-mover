@@ -153,10 +153,10 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         ]);
         // Preview validates lexical/local placement, without creating output.
         mover_fs::BackupOutput::check_location(&output, &excluded)?;
-        if !confirm || version == 14 {
+        if !confirm || version == 15 {
             println!(
                 "{}",
-                serde_json::json!({"schema_version":version,"target_schema":14,"conversion_required":version<14,"converted":false,"preview":!confirm,"backup_directory":output,"pairing_state":pairing,"payload_filesystem_inspected":false})
+                serde_json::json!({"schema_version":version,"target_schema":15,"conversion_required":version<15,"converted":false,"preview":!confirm,"backup_directory":output,"pairing_state":pairing,"payload_filesystem_inspected":false})
             );
             return Ok(());
         }
@@ -214,13 +214,29 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             state
         };
+        let state = if state.summary().schema_version == 13 {
+            state
+                .upgrade_job_problems(&config.state_database, |stage| {
+                    checkpoint(match stage {
+                        "before_create" => "problems_before_create",
+                        "after_create" => "problems_after_create",
+                        "before_commit" => "problems_before_commit",
+                        _ => "problems_after_commit",
+                    })
+                })
+                .map_err(failed)?;
+            mover_store::StateInspection::open(&config.state_database)?
+        } else {
+            state
+        };
+        // 14 -> 15 adds the empty admin cancellation table.
         let summary = state
-            .upgrade_job_problems(&config.state_database, |stage| {
+            .upgrade_cancellations(&config.state_database, |stage| {
                 checkpoint(match stage {
-                    "before_create" => "problems_before_create",
-                    "after_create" => "problems_after_create",
-                    "before_commit" => "problems_before_commit",
-                    _ => "problems_after_commit",
+                    "before_create" => "cancellations_before_create",
+                    "after_create" => "cancellations_after_create",
+                    "before_commit" => "cancellations_before_commit",
+                    _ => "cancellations_after_commit",
                 })
             })
             .map_err(failed)?;

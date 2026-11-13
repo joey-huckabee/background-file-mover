@@ -200,6 +200,9 @@ impl Store {
                 RetryOutcome::Failed
             } else if job.recording.is_committed() {
                 RetryOutcome::Skipped
+            } else if cancellations::requested(&tx, o.job_id)? {
+                // A cancelled (or cancelling) job is ineligible for retry.
+                RetryOutcome::Failed
             } else {
                 let current = operators::epoch(&tx, o.job_id)?;
                 let failure: Option<(u32, i64, String)> = tx

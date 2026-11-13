@@ -1,4 +1,9 @@
-# Offline state migration (schema 11, 12 or 13 to schema 14)
+# Offline state migration (schema 11-14 to schema 15)
+
+**Update, [increment140](RUST-INCREMENT-140.md):** the current schema is 15. The
+same `--migrate-state` command converts 14 -> 15 (it adds the empty admin
+cancellation table) and chains 11 -> 12 -> 13 -> 14 -> 15. Preview reports
+`target_schema: 15`; checkpoint names for the new step are `cancellations_*`.
 
 **Update, [increment139](RUST-INCREMENT-139.md):** the current schema is 14. The
 same `--migrate-state` command converts 13 -> 14 (it adds the empty per-job
@@ -52,7 +57,7 @@ See [increment 115](RUST-INCREMENT-115.md) for actual qualification and limits.
 
    No backup directory or job-data changes are made. Local guard/lifetime
    metadata may be written. Schemas 11 and 12 report conversion_required:true;
-   current schema 14 reports false (schema 13 reports true since increment139). Preview does not prove free capacity,
+   current schema 15 reports false (13 and 14 report true). Preview does not prove free capacity,
    output-parent permissions or successful writes; apply checks these again.
 5. Apply explicitly, using that same unused directory:
 

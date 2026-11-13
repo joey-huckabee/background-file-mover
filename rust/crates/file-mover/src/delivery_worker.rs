@@ -28,6 +28,21 @@ impl std::fmt::Display for DestinationCapacity {
     }
 }
 impl std::error::Error for DestinationCapacity {}
+/// The job was cancelled; delivery stopped between steps. Not a failure.
+#[derive(Debug)]
+pub(crate) struct DeliveryCancelled;
+impl std::fmt::Display for DeliveryCancelled {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("delivery stopped: job cancelled")
+    }
+}
+impl std::error::Error for DeliveryCancelled {}
+fn stop_if_cancelled(store: &Store, id: i64) -> Result<()> {
+    if store.cancellation_requested(id)? {
+        return Err(Box::new(DeliveryCancelled));
+    }
+    Ok(())
+}
 #[derive(Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 enum FailureClass {
@@ -341,6 +356,7 @@ pub(crate) fn deliver(
     let result = deliver_steps(store, id, guard, stop, &mut session, &mut file);
     if let Err(error) = &result
         && !stop.load(Ordering::Relaxed)
+        && !error.is::<DeliveryCancelled>()
     {
         let diagnostic = session
             .as_mut()
@@ -366,6 +382,7 @@ fn deliver_steps(
     file: &mut Option<usize>,
 ) -> Result<bool> {
     let job = store.get(id)?.ok_or("unknown job")?;
+    stop_if_cancelled(store, id)?;
     if job.recording.handoff() != Handoff::Ready202
         || job.context.policy.group_by_generator
         || !guard.matches_path(&job.context.source_root_path)
@@ -411,6 +428,7 @@ fn deliver_steps(
     }
     for index in 0..job.recording.submission().files().len() {
         *file = Some(index);
+        stop_if_cancelled(store, id)?;
         let c = claim(store, id, index)?;
         let existing = store.transfer(id, index)?;
         let mut t = match existing {
@@ -530,6 +548,7 @@ fn deliver_steps(
     // Recheck every published file before constructing the recording commitment.
     for index in 0..job.recording.submission().files().len() {
         *file = Some(index);
+        stop_if_cancelled(store, id)?;
         let c = claim(store, id, index)?;
         let t = store.transfer(id, index)?.ok_or("missing published file")?;
         if session.transfer(
@@ -544,6 +563,7 @@ fn deliver_steps(
         }
     }
     *file = None;
+    stop_if_cancelled(store, id)?;
     let expected = mover_fs::expected_manifest(store, id)?;
     let mut m = match store.manifest(id)? {
         Some(m) => m,

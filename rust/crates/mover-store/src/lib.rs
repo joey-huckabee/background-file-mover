@@ -17,7 +17,9 @@ use std::{
     time::Duration,
 };
 mod admin_retry;
+mod cancellations;
 mod problems;
+pub use cancellations::{CancelOutcome, CancelState, Cancellation};
 pub use problems::{JobProblem, ProblemStage, valid_diagnostic};
 mod history;
 mod inspection;
@@ -34,7 +36,7 @@ pub use retention::RetentionSnapshot;
 pub use source_ownership::SourceOwnership;
 
 const APPLICATION_ID: i64 = 0x42464d52;
-const SCHEMA_VERSION: i64 = 14;
+const SCHEMA_VERSION: i64 = 15;
 
 #[derive(Debug)]
 pub enum StoreError {
@@ -63,6 +65,8 @@ pub enum StoreError {
     AuditFull,
     /// Retry receipt storage for this job is full; refuse rather than evict.
     ReceiptCapacity,
+    /// The job has a cancellation; no new claim, delivery or operator action.
+    Cancelled,
 }
 
 impl fmt::Display for StoreError {
@@ -72,11 +76,15 @@ impl fmt::Display for StoreError {
             Self::Io(error) => write!(f, "I/O: {error}"),
             Self::UnsupportedSchema => write!(
                 f,
-                "UnsupportedSchema: schema 14 mover state required; automatic upgrades are disabled. Preserve original state and use compatible software; do not reinitialize or restore a stale database."
+                "UnsupportedSchema: schema 15 mover state required; automatic upgrades are disabled. Preserve original state and use compatible software; do not reinitialize or restore a stale database."
+            ),
+            Self::Cancelled => write!(
+                f,
+                "Cancelled: the job was cancelled; no further work starts"
             ),
             Self::MigrationRequired => write!(
                 f,
-                "MigrationRequired: older state is preserved; explicit offline migration to schema 14 is required (file-mover --migrate-state); normal startup never applies it. Do not reinitialize or replace original state."
+                "MigrationRequired: older state is preserved; explicit offline migration to schema 15 is required (file-mover --migrate-state); normal startup never applies it. Do not reinitialize or replace original state."
             ),
             Self::UnsupportedIdentity => write!(
                 f,
@@ -206,6 +214,8 @@ pub struct JobStatus {
     pub latest_missing_reset: Option<MissingResetAudit>,
     /// Latest recorded claim/delivery problem (informational).
     pub problem: Option<JobProblem>,
+    /// Admin cancellation, if requested.
+    pub cancellation: Option<Cancellation>,
 }
 
 fn status_in(tx: &rusqlite::Transaction<'_>, job_id: i64) -> Result<Option<JobStatus>> {
@@ -248,6 +258,7 @@ fn status_in(tx: &rusqlite::Transaction<'_>, job_id: i64) -> Result<Option<JobSt
     let missing_review_epoch = missing_resets::epoch(tx, job_id)?;
     let latest_missing_reset = missing_resets::latest(tx, job_id)?;
     let problem = problems::latest(tx, job_id)?;
+    let cancellation = cancellations::get(tx, job_id)?;
     Ok(Some(JobStatus {
         job,
         transfers,
@@ -259,6 +270,7 @@ fn status_in(tx: &rusqlite::Transaction<'_>, job_id: i64) -> Result<Option<JobSt
         missing_review_epoch,
         latest_missing_reset,
         problem,
+        cancellation,
     }))
 }
 
@@ -669,7 +681,7 @@ impl Store {
     pub fn delivery_candidates(&self, now: i64, limit: u32) -> Result<Vec<i64>> {
         self.call(move|db| {
             if now<0 || limit==0 || limit>64 {return Err(StoreError::InvalidContext);}
-            let mut s=db.connection.prepare("SELECT j.job_id FROM jobs j LEFT JOIN manifests m ON m.job_id=j.job_id LEFT JOIN delivery_failures d ON d.job_id=j.job_id WHERE j.file_count=(SELECT count(*) FROM claims c WHERE c.job_id=j.job_id AND c.done=1) AND coalesce(m.phase,0)<4 AND coalesce(d.failures,0)<3 AND coalesce(d.retry_after,0)<=?1 ORDER BY j.job_id LIMIT ?2")?;
+            let mut s=db.connection.prepare("SELECT j.job_id FROM jobs j LEFT JOIN manifests m ON m.job_id=j.job_id LEFT JOIN delivery_failures d ON d.job_id=j.job_id WHERE NOT EXISTS(SELECT 1 FROM cancellations x WHERE x.job_id=j.job_id) AND j.file_count=(SELECT count(*) FROM claims c WHERE c.job_id=j.job_id AND c.done=1) AND coalesce(m.phase,0)<4 AND coalesce(d.failures,0)<3 AND coalesce(d.retry_after,0)<=?1 ORDER BY j.job_id LIMIT ?2")?;
             Ok(s.query_map(params![now,limit],|r|r.get(0))?.collect::<std::result::Result<Vec<_>,_>>()?)
         })
     }
@@ -726,10 +738,18 @@ impl Drop for Store {
     }
 }
 
-/// Current schema (14): schema 13 plus the per-job problem record.
+/// Current schema (15): schema 14 plus admin cancellations.
 fn create_tables(connection: &Connection) -> Result<()> {
+    create_tables_v14(connection)?;
+    create_cancellation_tables(connection)
+}
+/// Schema 14: schema 13 plus the per-job problem record.
+fn create_tables_v14(connection: &Connection) -> Result<()> {
     create_tables_v13(connection)?;
     create_problem_tables(connection)
+}
+fn create_cancellation_tables(connection: &Connection) -> Result<()> {
+    Ok(connection.execute_batch(include_str!("cancellations.sql"))?)
 }
 /// Schema 13: schema 12 tables plus the admin retry receipts.
 fn create_tables_v13(connection: &Connection) -> Result<()> {
@@ -798,7 +818,8 @@ fn validate_schema_for(connection: &Connection, version: i64) -> Result<()> {
         }
         12 => create_tables_v12(&reference)?,
         13 => create_tables_v13(&reference)?,
-        14 => create_tables(&reference)?,
+        14 => create_tables_v14(&reference)?,
+        15 => create_tables(&reference)?,
         _ => return Err(StoreError::UnsupportedSchema),
     }
     if schema_definitions(connection)? != schema_definitions(&reference)? {
@@ -931,7 +952,7 @@ impl Database {
         let version: i64 = connection.pragma_query_value(None, "user_version", |r| r.get(0))?;
         let application: i64 =
             connection.pragma_query_value(None, "application_id", |r| r.get(0))?;
-        if (11..=13).contains(&version) && application == APPLICATION_ID {
+        if (11..=14).contains(&version) && application == APPLICATION_ID {
             return Err(StoreError::MigrationRequired);
         }
         if history_clear && (version != SCHEMA_VERSION || application != APPLICATION_ID) {
@@ -999,6 +1020,9 @@ impl Database {
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
         let job = load(&tx, intent.job_id)?.ok_or(StoreError::InvalidContext)?;
         validate_claim(&job, intent)?;
+        if cancellations::requested(&tx, intent.job_id)? {
+            return Err(StoreError::Cancelled);
+        }
         if let Some((prior, _)) = load_claim(&tx, intent.job_id, intent.file_index)? {
             if prior != *intent {
                 return Err(StoreError::CorruptState);

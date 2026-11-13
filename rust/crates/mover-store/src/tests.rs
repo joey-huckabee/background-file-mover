@@ -2126,7 +2126,7 @@ fn compatibility_checks_all_unsupported_versions_without_initializing() {
     );
     std::fs::remove_file(recovery).unwrap();
     drop(Store::open(f.db()).unwrap());
-    for version in (1..=13).chain([15, 99]) {
+    for version in (1..=14).chain([16, 99]) {
         let c = Connection::open(f.db()).unwrap();
         c.pragma_update(None, "user_version", version).unwrap();
         drop(c);
@@ -2266,6 +2266,10 @@ fn schema_twelve_rebuilt_fixture_preserves_legacy_rows_indices_and_next_id() {
         .unwrap()
         .upgrade_job_problems(f.db(), |_| Ok(()))
         .unwrap();
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_cancellations(f.db(), |_| Ok(()))
+        .unwrap();
     Store::check_compatibility(f.db(), false).unwrap();
     let store = Store::open(f.db()).unwrap();
     let job = store.get(7).unwrap().unwrap();
@@ -2329,6 +2333,10 @@ fn schema_twelve_empty_rebuild_preserves_unallocated_and_cleared_sequences() {
         StateInspection::open(f.db())
             .unwrap()
             .upgrade_job_problems(f.db(), |_| Ok(()))
+            .unwrap();
+        StateInspection::open(f.db())
+            .unwrap()
+            .upgrade_cancellations(f.db(), |_| Ok(()))
             .unwrap();
         let store = Store::open(f.db()).unwrap();
         assert_eq!(
@@ -2563,7 +2571,7 @@ fn inspection_refuses_missing_empty_foreign_changed_and_unsupported_state() {
             match case {
                 "foreign"=>c.pragma_update(None,"application_id",123).unwrap(),
                 "old"=>c.pragma_update(None,"user_version",10).unwrap(),
-                "future"=>c.pragma_update(None,"user_version",15).unwrap(),
+                "future"=>c.pragma_update(None,"user_version",16).unwrap(),
                 "trigger"=>c.execute_batch("CREATE TRIGGER sqliteXblock AFTER INSERT ON jobs BEGIN SELECT RAISE(ABORT,'blocked'); END;").unwrap(),
                 "sequence"=>{c.execute("UPDATE sqlite_sequence SET seq=1 WHERE name='jobs'",[]).unwrap();},
                 "uuid"=>{rebuild_schema_twelve_fixture(&mut c); insert_uuid_fixture(&c,"g",rusqlite::types::Value::Blob(vec![1;16]),rusqlite::types::Value::Integer(1),rusqlite::types::Value::Blob(vec![2;32])).unwrap();},
@@ -2594,7 +2602,7 @@ fn migration_history_fixture(path: &Path) {
     target.pragma_update(None, "foreign_keys", "OFF").unwrap();
     let tx = target.transaction().unwrap();
     for (table, values) in &mut rows {
-        if table.starts_with("retry_") || table == "job_problems" {
+        if table.starts_with("retry_") || table == "job_problems" || table == "cancellations" {
             assert!(
                 values.is_empty(),
                 "schema 13/14 rows cannot be copied into schema 11"
@@ -2645,6 +2653,10 @@ fn explicit_migration_preserves_all_tables_manifest_phases_replay_and_high_water
     StateInspection::open(f.db())
         .unwrap()
         .upgrade_job_problems(f.db(), |_| Ok(()))
+        .unwrap();
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_cancellations(f.db(), |_| Ok(()))
         .unwrap();
     assert_eq!(summary.schema_version, 13);
     let target = Connection::open(f.db()).unwrap();
@@ -2730,6 +2742,10 @@ fn explicit_migration_preserves_empty_sequence_absence_and_cleared_high_water() 
         StateInspection::open(f.db())
             .unwrap()
             .upgrade_job_problems(f.db(), |_| Ok(()))
+            .unwrap();
+        StateInspection::open(f.db())
+            .unwrap()
+            .upgrade_cancellations(f.db(), |_| Ok(()))
             .unwrap();
         assert_eq!(
             Store::open(f.db())
@@ -3174,7 +3190,7 @@ fn schema_twelve_requires_the_guarded_receipt_upgrade() {
     // Reconstruct a schema-12 database: same rows, no receipt tables.
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
-        "DROP TABLE job_problems; DROP TABLE retry_outcomes; DROP TABLE retry_contexts; PRAGMA user_version=12;",
+        "DROP TABLE cancellations; DROP TABLE job_problems; DROP TABLE retry_outcomes; DROP TABLE retry_contexts; PRAGMA user_version=12;",
     )
     .unwrap();
     drop(c);
@@ -3211,6 +3227,10 @@ fn schema_twelve_requires_the_guarded_receipt_upgrade() {
         .unwrap()
         .upgrade_job_problems(f.db(), |_| Ok(()))
         .unwrap();
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_cancellations(f.db(), |_| Ok(()))
+        .unwrap();
     assert_eq!(summary.schema_version, 14);
     let s = Store::open(f.db()).unwrap();
     assert_eq!(s.status(j.job_id).unwrap().unwrap().delivery.unwrap().0, 3);
@@ -3218,7 +3238,7 @@ fn schema_twelve_requires_the_guarded_receipt_upgrade() {
     drop(s);
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
-        "DROP TABLE job_problems; DROP TABLE retry_outcomes; DROP TABLE retry_contexts; PRAGMA user_version=12;",
+        "DROP TABLE cancellations; DROP TABLE job_problems; DROP TABLE retry_outcomes; DROP TABLE retry_contexts; PRAGMA user_version=12;",
     )
     .unwrap();
     drop(c);
@@ -3422,7 +3442,7 @@ fn schema_thirteen_requires_the_guarded_problem_upgrade_and_snapshots_cover_it()
     drop(state);
     // Reconstruct schema 13: same rows, no problem table.
     let c = Connection::open(f.db()).unwrap();
-    c.execute_batch("DROP TABLE job_problems; PRAGMA user_version=13;")
+    c.execute_batch("DROP TABLE cancellations; DROP TABLE job_problems; PRAGMA user_version=13;")
         .unwrap();
     drop(c);
     assert!(matches!(
@@ -3468,8 +3488,238 @@ fn schema_thirteen_requires_the_guarded_problem_upgrade_and_snapshots_cover_it()
             "after_commit"
         ]
     );
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_cancellations(f.db(), |_| Ok(()))
+        .unwrap();
     let s = Store::open(f.db()).unwrap();
     let status = s.status(j.job_id).unwrap().unwrap();
     assert_eq!(status.delivery.unwrap().0, 3);
     assert_eq!(status.problem, None);
+}
+
+trait CancelForTest {
+    fn cancel_job_for_test(&self, id: i64, principal: &str, now: i64) -> CancelOutcome;
+}
+impl CancelForTest for Store {
+    fn cancel_job_for_test(&self, id: i64, principal: &str, now: i64) -> CancelOutcome {
+        self.admin_cancel(id, principal, now).unwrap()
+    }
+}
+
+fn cancel_state(s: &Store, id: i64) -> Option<(CancelState, Option<i64>)> {
+    s.status(id)
+        .unwrap()
+        .unwrap()
+        .cancellation
+        .map(|c| (c.state, c.stopped_at))
+}
+
+#[test]
+fn admin_cancel_outcomes_settlement_and_stopped_work() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = ready_job(&s);
+    let principal = "a".repeat(64);
+    assert_eq!(
+        s.cancel_job_for_test(j.job_id, &principal, 100),
+        CancelOutcome::Accepted
+    );
+    assert_eq!(
+        cancel_state(&s, j.job_id),
+        Some((CancelState::Pending, None))
+    );
+    // A still-pending duplicate fails; it never re-requests or undoes anything.
+    assert_eq!(
+        s.cancel_job_for_test(j.job_id, &principal, 101),
+        CancelOutcome::Failed
+    );
+    // Missing jobs skip.
+    assert_eq!(
+        s.cancel_job_for_test(999_999, &principal, 101),
+        CancelOutcome::Skipped
+    );
+    // No delivery pickup, no retry, no operator resume while pending.
+    assert!(s.delivery_candidates(1_000, 64).unwrap().is_empty());
+    assert!(s.cancellation_requested(j.job_id).unwrap());
+    review(&s, j.job_id);
+    assert!(matches!(
+        s.resume_delivery(j.job_id, &resume_request(0), 120),
+        Err(StoreError::Cancelled)
+    ));
+    let retry = retry_occurrence(&s, j.job_id, Some(0), 'c', 0);
+    assert_eq!(
+        s.admin_retry(&retry, 120).unwrap().outcome,
+        RetryOutcome::Failed
+    );
+    // Settlement waits while a claim is in flight, then confirms the stop.
+    assert_eq!(s.settle_cancellations(130, || true).unwrap(), 0);
+    assert_eq!(
+        cancel_state(&s, j.job_id),
+        Some((CancelState::Pending, None))
+    );
+    assert_eq!(s.settle_cancellations(130, || false).unwrap(), 1);
+    assert_eq!(
+        cancel_state(&s, j.job_id),
+        Some((CancelState::Cancelled, Some(130)))
+    );
+    assert_eq!(s.settle_cancellations(140, || false).unwrap(), 0);
+    // Once cancelled, a repeat skips (lost-response replay is harmless).
+    assert_eq!(
+        s.cancel_job_for_test(j.job_id, &principal, 150),
+        CancelOutcome::Skipped
+    );
+    assert!(s.delivery_candidates(1_000, 64).unwrap().is_empty());
+    // Survives restart.
+    drop(s);
+    let s = Store::open(f.db()).unwrap();
+    assert_eq!(
+        cancel_state(&s, j.job_id),
+        Some((CancelState::Cancelled, Some(130)))
+    );
+    // Bad input is refused before storage.
+    assert!(matches!(
+        s.admin_cancel(j.job_id, "", 1),
+        Err(StoreError::InvalidContext)
+    ));
+    assert!(matches!(
+        s.admin_cancel(j.job_id, "x", -1),
+        Err(StoreError::InvalidContext)
+    ));
+}
+
+#[test]
+fn admin_cancel_refuses_new_claims_and_reset_missing() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = s
+        .accept(&input("g", "operator", "data"), &context())
+        .unwrap();
+    // First file claimed before the request; the second is refused after it.
+    let first = intent_for(&j, 0, 3);
+    s.begin_claim(&first).unwrap();
+    s.finish_claim(&first).unwrap();
+    assert_eq!(
+        s.admin_cancel(j.job_id, "operator", 100).unwrap(),
+        CancelOutcome::Accepted
+    );
+    let second = intent_for(&j, 1, u64::MAX);
+    assert!(matches!(s.begin_claim(&second), Err(StoreError::Cancelled)));
+    s.note_missing(j.job_id, 1, 100).unwrap();
+    assert!(matches!(
+        s.reset_missing(
+            j.job_id,
+            &MissingResetRequest {
+                command_id: "reset".into(),
+                review_epoch: 0,
+                file_index: 1,
+                retry_window_seconds: 10,
+                actor: "test".into(),
+                reason: "Inspected original recording".into(),
+            },
+            500,
+        ),
+        Err(StoreError::Cancelled)
+    ));
+    // The claimed file stays exactly as it was (cancel never moves files).
+    let status = s.status(j.job_id).unwrap().unwrap();
+    assert_eq!(
+        status.job.recording.file_phase(0),
+        Some(mover_core::FilePhase::Claimed)
+    );
+}
+
+#[test]
+fn delivery_that_committed_first_drops_the_pending_request() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt")
+        .unwrap();
+    let done = history_job(&s, "cancel-race", 4);
+    // Completed jobs skip.
+    assert_eq!(
+        s.admin_cancel(done.job_id, "operator", 100).unwrap(),
+        CancelOutcome::Skipped
+    );
+    // A request accepted while delivery was finishing (simulated row).
+    drop(s);
+    let c = Connection::open(f.db()).unwrap();
+    c.execute(
+        "INSERT INTO cancellations VALUES(?1,'Pending','operator',100,NULL)",
+        [done.job_id],
+    )
+    .unwrap();
+    drop(c);
+    let s = Store::open(f.db()).unwrap();
+    assert_eq!(s.settle_cancellations(200, || false).unwrap(), 1);
+    assert_eq!(
+        cancel_state(&s, done.job_id),
+        None,
+        "delivered, not cancelled"
+    );
+    // History clear removes any cancellation row with the job.
+    s.admin_cancel(done.job_id, "operator", 300).unwrap();
+    drop(s);
+    let s = Store::open_for_history_clear(f.db()).unwrap();
+    assert_eq!(s.clear_completed_history(&[done.job_id]).unwrap(), 1);
+}
+
+#[test]
+fn schema_fourteen_requires_the_guarded_cancellation_upgrade_and_snapshots_cover_it() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = ready_job(&s);
+    s.admin_cancel(j.job_id, "operator", 100).unwrap();
+    drop(s);
+    let state = StateInspection::open(f.db()).unwrap();
+    let backup = f.0.join("cancellations.sqlite");
+    state.snapshot_into(backup.to_str().unwrap()).unwrap();
+    state.verify_snapshot(&backup).unwrap();
+    let c = Connection::open(&backup).unwrap();
+    c.execute("UPDATE cancellations SET principal='someone-else'", [])
+        .unwrap();
+    drop(c);
+    assert!(state.verify_snapshot(&backup).is_err());
+    drop(state);
+    // Reconstruct schema 14 without any cancellation.
+    let c = Connection::open(f.db()).unwrap();
+    c.execute_batch("DELETE FROM cancellations; DROP TABLE cancellations; PRAGMA user_version=14;")
+        .unwrap();
+    drop(c);
+    assert!(matches!(
+        Store::open(f.db()),
+        Err(StoreError::MigrationRequired)
+    ));
+    let state = StateInspection::open(f.db()).unwrap();
+    assert!(
+        state
+            .upgrade_cancellations(f.db(), |stage| if stage == "before_commit" {
+                Err(std::io::Error::other("injected"))
+            } else {
+                Ok(())
+            })
+            .is_err()
+    );
+    let state = StateInspection::open(f.db()).unwrap();
+    assert_eq!(state.summary().schema_version, 14);
+    let mut stages = Vec::new();
+    let summary = state
+        .upgrade_cancellations(f.db(), |stage| {
+            stages.push(stage);
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(summary.schema_version, 15);
+    assert_eq!(
+        stages,
+        [
+            "before_create",
+            "after_create",
+            "before_commit",
+            "after_commit"
+        ]
+    );
+    let s = Store::open(f.db()).unwrap();
+    assert_eq!(cancel_state(&s, j.job_id), None);
+    assert_eq!(s.delivery_candidates(1_000, 64).unwrap(), vec![j.job_id]);
 }

@@ -985,7 +985,7 @@
         "requested_at",
         "stopped_at"
       ],
-      "x-status": "proposed not implemented",
+      "x-status": "implemented increment140 (state schema 15); admin confirmation and route follow in increment141",
       "x-semantic-rules": [
         "Cancelled only after confirmed safe stop/reconciliation. Restart is not cancellation. File disposition stays unchanged.",
         "Pending and terminal commitment races must preserve verified output and original custody; no success from mere request acceptance."

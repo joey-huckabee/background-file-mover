@@ -4668,7 +4668,7 @@ fn offline_history_epoch_helper() {
 #[test]
 fn incompatible_database_refuses_before_bootstrap_for_every_effect_entry_point() {
     let exe = std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap();
-    for case in (1..=13).chain([15, 99, 100, 101]) {
+    for case in (1..=14).chain([16, 99, 100, 101]) {
         let f = Fixture::uninitialized(300);
         let database = f.root.join("state/jobs.sqlite");
         drop(mover_store::Store::open(&database).unwrap());
@@ -4723,7 +4723,7 @@ fn incompatible_database_refuses_before_bootstrap_for_every_effect_entry_point()
             assert!(
                 log.contains(if case == 101 {
                     "file is not a database"
-                } else if (11..=13).contains(&case) {
+                } else if (11..=14).contains(&case) {
                     "MigrationRequired"
                 } else {
                     "UnsupportedSchema"
@@ -4797,7 +4797,7 @@ fn offline_inspection_and_backup_preserve_original_recovery_without_payload_root
     let result = check.wait_with_output().unwrap();
     assert!(result.status.success(), "{result:?}");
     let report: Value = serde_json::from_slice(&result.stdout).unwrap();
-    assert_eq!(report["schema_version"], 14);
+    assert_eq!(report["schema_version"], 15);
     assert_eq!(report["retained_jobs"], 1);
     assert_eq!(report["pairing_state"], "RecordedActive");
     let epoch: Value =
@@ -4972,7 +4972,7 @@ fn migration_cli_refuses_live_owner_bad_arguments_and_missing_state_then_validat
         assert!(result.status.success(), "{result:?}");
         let value: Value = serde_json::from_slice(&result.stdout).unwrap();
         assert_eq!(value["converted"], false);
-        assert_eq!(value["schema_version"], 14);
+        assert_eq!(value["schema_version"], 15);
         assert!(!backup.exists());
     }
     for args in [
@@ -5573,6 +5573,85 @@ fn exited_claim_worker_without_receipt_is_retryable_pending_and_recovers_origina
     assert_eq!(
         std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
         b"retained original"
+    );
+    f.stop();
+}
+
+fn wait_condition(f: &Fixture, id: &str, condition: &str) -> Value {
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        let (_, body) = status(f, id);
+        if body["details"]["condition"] == condition {
+            return body;
+        }
+        assert!(Instant::now() < deadline, "{id}: {body}");
+        std::thread::sleep(Duration::from_millis(20));
+    }
+}
+#[test]
+fn cancelled_jobs_stop_claims_and_delivery_and_keep_their_files() {
+    let mut f = Fixture::new(300);
+    // Job 1: waiting for a missing file (handoff not complete).
+    f.write("first", b"retained");
+    let waiting = f.input("cancel-waiting", json!(["first", "missing"]));
+    assert_eq!(f.post(&waiting).1["error"], "source_file_missing");
+    // Job 2: fully handed off; delivery waits for the destination.
+    f.write("data", b"abc");
+    let ready = f.input("cancel-ready", json!(["data"]));
+    assert_eq!(f.post(&ready).0, 202);
+    f.stop();
+    {
+        let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        for id in [1, 2] {
+            assert_eq!(
+                s.admin_cancel(id, "dashboard-account", 100).unwrap(),
+                mover_store::CancelOutcome::Accepted
+            );
+        }
+    }
+    provision_destination(&f);
+    f.start();
+    // Settled once no worker is on the jobs.
+    let one = wait_condition(&f, "1", "Cancelled");
+    assert_eq!(one["details"]["cancellation"]["state"], "Cancelled");
+    assert_eq!(one["details"]["cancellation"]["requested_at"], 100);
+    assert!(
+        one["details"]["cancellation"]["stopped_at"]
+            .as_i64()
+            .unwrap()
+            >= 100
+    );
+    wait_condition(&f, "2", "Cancelled");
+    // Resubmitting the unfinished request honors the cancellation, even now
+    // that the missing file arrived; nothing more is taken over.
+    f.write("missing", b"arrived");
+    let (code, refused) = f.post(&waiting);
+    assert_eq!(
+        (code, refused["error"].as_str()),
+        (409, Some("recording_cancelled"))
+    );
+    assert_eq!(refused["retryable"], false);
+    assert!(f.root.join("source/current/missing").exists());
+    // The completed handoff keeps its original meaning on replay.
+    assert_eq!(f.post(&ready).0, 202);
+    // Delivery never runs for the cancelled job, though the destination is ready.
+    std::thread::sleep(Duration::from_millis(600));
+    assert!(!f.destination("2", "COMMITTED.json").exists());
+    assert_eq!(status(&f, "2").1["details"]["manifest_phase"], Value::Null);
+    // Files already taken over stay where they are.
+    assert!(f.root.join("source/.file-mover/1-0/data").exists());
+    assert_eq!(
+        std::fs::read(f.root.join("source/.file-mover/2-0/data")).unwrap(),
+        b"abc"
+    );
+    // Operator resume is refused for a cancelled job.
+    let (code, body) = f.raw(&resume_bytes(
+        "2",
+        &json!({"command_id":"r","expected_review_epoch":0,"reason":"x"}).to_string(),
+    ));
+    assert_eq!(
+        (code, body["error"].as_str()),
+        (409, Some("recording_cancelled"))
     );
     f.stop();
 }

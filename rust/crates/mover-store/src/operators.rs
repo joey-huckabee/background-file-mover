@@ -53,6 +53,7 @@ impl Store {
                 return Ok(ResumeReceipt{review_epoch:review_epoch+1,replay:true});
             }
             let job = load(&tx,id)?.ok_or(StoreError::NotFound)?;
+            if super::cancellations::requested(&tx,id)? {return Err(StoreError::Cancelled);}
             if job.recording.handoff()!=mover_core::Handoff::Ready202 || job.recording.is_committed() {return Err(StoreError::ReviewConflict);}
             let current_epoch = epoch(&tx,id)?;
             if current_epoch>=64 {return Err(StoreError::AuditFull);}

@@ -351,6 +351,10 @@ impl Worker {
                     let _ = reply.send(response);
                 }
             })?;
+        // Set while the claim thread processes a submission; cancellation
+        // settlement reads it inside its store transaction (see Store docs).
+        let claim_active = Arc::new(AtomicBool::new(false));
+        let settle_claim_active = claim_active.clone();
         let delivery_stop = stop.clone();
         let delivery_store = store.clone();
         let delivery_guard = guard.clone();
@@ -359,6 +363,15 @@ impl Worker {
             .spawn(move || {
                 while !delivery_stop.load(Ordering::Relaxed) {
                     if delivery_guard.instance().and_then(|g| g.validate()).is_err() {
+                        delivery_stop.store(true, Ordering::Relaxed);
+                        break;
+                    }
+                    // Between jobs no delivery is in progress: settle cancellations.
+                    let active = settle_claim_active.clone();
+                    if let Err(error) = delivery_store
+                        .settle_cancellations(now(), move || active.load(Ordering::SeqCst))
+                    {
+                        eprintln!("Cancellation settlement failed: {error}");
                         delivery_stop.store(true, Ordering::Relaxed);
                         break;
                     }
@@ -387,6 +400,10 @@ impl Worker {
                                     )
                                 {
                                     eprintln!("Delivery {id} problem record failed: {error}");
+                                }
+                                if matches!(&result, Err(error) if error.is::<delivery_worker::DeliveryCancelled>()) {
+                                    eprintln!("Delivery {id} stopped: job cancelled");
+                                    continue;
                                 }
                                 if matches!(&result, Err(error) if error.is::<delivery_worker::DestinationBindingRefused>()) {
                                     if let Err(error)=delivery_store.destination_binding_refused(id,now()) {
@@ -448,6 +465,7 @@ impl Worker {
                             continue;
                         }
                     };
+                    claim_active.store(true, Ordering::SeqCst);
                     let result = process(
                         &store,
                         &guard,
@@ -457,6 +475,7 @@ impl Worker {
                         &admission,
                         check_expected_sizes,
                     );
+                    claim_active.store(false, Ordering::SeqCst);
                     if let Some(permit) = permit {
                         permit.finish(result.error != Some("source_space_unavailable"));
                     }
@@ -510,6 +529,9 @@ fn claim_error(failure: mover_fs::ClaimError, id: i64) -> Response {
         }
         mover_fs::ClaimError::Store(StoreError::AdmissionFull) => {
             error(503, "retention_capacity", true, Some(id))
+        }
+        mover_fs::ClaimError::Store(StoreError::Cancelled) => {
+            error(409, "recording_cancelled", false, Some(id))
         }
         mover_fs::ClaimError::Store(_) => error(503, "storage_unavailable", true, Some(id)),
         _ => error(409, "recording_blocked", false, Some(id)),
@@ -566,6 +588,12 @@ fn process(
         Err(_) => return error(503, "storage_unavailable", true, None),
     };
     if job.recording.handoff() != Handoff::Ready202 {
+        // Contract: an exact unfinished request first honors cancellation.
+        match store.cancellation_requested(job.job_id) {
+            Ok(false) => (),
+            Ok(true) => return error(409, "recording_cancelled", false, Some(job.job_id)),
+            Err(_) => return error(503, "storage_unavailable", true, Some(job.job_id)),
+        }
         match store.claim_blocked(job.job_id, now()) {
             Ok(false) => (),
             Ok(true) => return error(409, "recording_blocked", false, Some(job.job_id)),
@@ -637,6 +665,20 @@ fn problem_view(problem: &mover_store::JobProblem) -> serde_json::Value {
         "recorded_at": problem.recorded_at,
     })
 }
+/// Contract CancellationStatus; NotRequested when there is no request.
+fn cancellation_view(c: Option<&mover_store::Cancellation>) -> serde_json::Value {
+    match c {
+        None => serde_json::json!({"state":"NotRequested","requested_at":null,"stopped_at":null}),
+        Some(c) => serde_json::json!({
+            "state": match c.state {
+                mover_store::CancelState::Pending => "Pending",
+                mover_store::CancelState::Cancelled => "Cancelled",
+            },
+            "requested_at": c.requested_at,
+            "stopped_at": c.stopped_at,
+        }),
+    }
+}
 fn status_response(store: &Store, id: i64) -> Response {
     let snapshot = match store.status(id) {
         Ok(Some(s)) => s,
@@ -677,8 +719,13 @@ fn job_view(snapshot: &mover_store::JobStatus) -> JobView {
     let missing: Vec<_> = snapshot.missing.iter().map(|(i, deadline, blocked)| serde_json::json!({
         "file_id":i.to_string(),"deadline":deadline,"blocked":blocked,"deadline_elapsed":now()>=*deadline
     })).collect();
+    let cancel_state = snapshot.cancellation.as_ref().map(|c| c.state);
     let condition = if committed {
         "Committed"
+    } else if cancel_state == Some(mover_store::CancelState::Cancelled) {
+        "Cancelled"
+    } else if cancel_state == Some(mover_store::CancelState::Pending) {
+        "CancellationPending"
     } else if snapshot.missing.iter().any(|(_, d, b)| *b || now() >= *d)
         || snapshot.delivery.as_ref().is_some_and(|(n, _, _)| *n >= 3)
     {
@@ -695,6 +742,12 @@ fn job_view(snapshot: &mover_store::JobStatus) -> JobView {
         "latest_missing_reset":snapshot.latest_missing_reset.as_ref().map(|a|serde_json::json!({"command_id":a.request.command_id,"review_epoch":a.request.review_epoch,"file_id":a.request.file_index.to_string(),"retry_window_seconds":a.request.retry_window_seconds,"actor":a.request.actor,"reason":a.request.reason,"recorded_at":a.recorded_at,"prior_deadline":a.prior_deadline,"prior_blocked":a.prior_blocked,"new_deadline":a.new_deadline})),
         "latest_resume":snapshot.latest_resume.as_ref().map(|a|serde_json::json!({"command_id":a.command_id,"review_epoch":a.review_epoch,"actor":a.actor,"reason":a.reason,"recorded_at":a.recorded_at,"prior_retry_after":a.prior_retry_after,"prior_code":a.prior_code})),
         "files":files,"missing":missing,"delivery_retry":snapshot.delivery.as_ref().map(|(failures,retry_after,code)|serde_json::json!({"failures":failures,"retry_after":retry_after,"code":code}))});
+    if let Some(c) = &snapshot.cancellation {
+        details
+            .as_object_mut()
+            .expect("status object")
+            .insert("cancellation".into(), cancellation_view(Some(c)));
+    }
     if let Some(problem) = &snapshot.problem {
         details
             .as_object_mut()
@@ -799,7 +852,7 @@ fn page_response(store: &Store, request: PageRequest) -> Response {
                     status.delivery.as_ref().map(|(failures, _, _)| *failures),
                     status.review_epoch,
                 )},
-                "cancellation": {"state": "NotRequested", "requested_at": null, "stopped_at": null},
+                "cancellation": cancellation_view(status.cancellation.as_ref()),
                 "deletion": null,
             });
             // Dashboard row extension (approved 2026-11-12): file progress,
@@ -872,6 +925,7 @@ fn resume_response(store: &Store, id: i64, input: ResumeInput) -> Response {
         Err(StoreError::ReviewConflict) => error(409, "review_conflict", false, Some(id)),
         Err(StoreError::ActionConflict) => error(409, "command_conflict", false, Some(id)),
         Err(StoreError::AuditFull) => error(409, "operator_audit_capacity", false, Some(id)),
+        Err(StoreError::Cancelled) => error(409, "recording_cancelled", false, Some(id)),
         Err(_) => error(503, "storage_unavailable", true, Some(id)),
     }
 }
@@ -979,6 +1033,7 @@ fn missing_reset_response(store: &Store, id: i64, input: MissingResetInput) -> R
         Err(StoreError::ReviewConflict) => error(409, "review_conflict", false, Some(id)),
         Err(StoreError::ActionConflict) => error(409, "command_conflict", false, Some(id)),
         Err(StoreError::AuditFull) => error(409, "operator_audit_capacity", false, Some(id)),
+        Err(StoreError::Cancelled) => error(409, "recording_cancelled", false, Some(id)),
         Err(_) => error(503, "storage_unavailable", true, Some(id)),
     }
 }
