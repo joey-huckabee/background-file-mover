@@ -2126,7 +2126,7 @@ fn compatibility_checks_all_unsupported_versions_without_initializing() {
     );
     std::fs::remove_file(recovery).unwrap();
     drop(Store::open(f.db()).unwrap());
-    for version in (1..=11).chain([13, 99]) {
+    for version in (1..=12).chain([14, 99]) {
         let c = Connection::open(f.db()).unwrap();
         c.pragma_update(None, "user_version", version).unwrap();
         drop(c);
@@ -2216,7 +2216,7 @@ fn rebuild_schema_twelve_fixture(c: &mut Connection) {
         )
         .unwrap();
     }
-    validate_schema(&tx).unwrap();
+    validate_schema_for(&tx, 12).unwrap();
     validate_job_sequence(&tx).unwrap();
     let broken: i64 = tx
         .query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| {
@@ -2574,6 +2574,13 @@ fn migration_history_fixture(path: &Path) {
     target.pragma_update(None, "foreign_keys", "OFF").unwrap();
     let tx = target.transaction().unwrap();
     for (table, values) in &mut rows {
+        if table.starts_with("retry_") {
+            assert!(
+                values.is_empty(),
+                "schema 13 receipts cannot be copied into schema 11"
+            );
+            continue;
+        }
         tx.execute(&format!("DELETE FROM {table}"), []).unwrap();
         for row in values {
             if table == "jobs" {
@@ -2609,7 +2616,15 @@ fn explicit_migration_preserves_all_tables_manifest_phases_replay_and_high_water
     let target = Connection::open(f.db()).unwrap();
     let original = Connection::open(&snapshot).unwrap();
     inspection::compare_rows(&target, &original, true).unwrap();
-    validate_schema(&target).unwrap();
+    validate_schema_for(&target, 12).unwrap();
+    drop(target);
+    let summary = StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_retry_receipts(f.db(), |_| Ok(()))
+        .unwrap();
+    assert_eq!(summary.schema_version, 13);
+    let target = Connection::open(f.db()).unwrap();
+    inspection::compare_rows(&target, &original, true).unwrap();
     drop(target);
     let store = Store::open(f.db()).unwrap();
     for id in 1..=5 {
@@ -2683,6 +2698,10 @@ fn explicit_migration_preserves_empty_sequence_absence_and_cleared_high_water() 
         StateInspection::open(f.db())
             .unwrap()
             .migrate_legacy(f.db(), snapshot, |_| Ok(()))
+            .unwrap();
+        StateInspection::open(f.db())
+            .unwrap()
+            .upgrade_retry_receipts(f.db(), |_| Ok(()))
             .unwrap();
         assert_eq!(
             Store::open(f.db())
