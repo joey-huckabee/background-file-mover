@@ -12,6 +12,11 @@ use zeroize::Zeroizing;
 const COOKIE: &str = "__Host-mover_admin";
 const LOGIN_DEADLINE: Duration = Duration::from_secs(10);
 const REQUEST_DEADLINE: Duration = Duration::from_secs(5);
+/// Live-update streams (see docs/dashboard/LIVE-UPDATES-DESIGN.md).
+const STREAMS: usize = crate::tls_executor::STREAM_JOBS;
+const STREAM_HEARTBEAT: Duration = Duration::from_secs(15);
+const STREAM_COALESCE: Duration = Duration::from_millis(250);
+const STREAM_WRITE: Duration = Duration::from_secs(2);
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -134,6 +139,10 @@ pub(crate) struct Admin {
     pub(crate) sessions: Sessions,
     /// Read-only configuration snapshot taken at startup (no secrets).
     settings: serde_json::Value,
+    /// "State may have changed" version, bumped by the store worker.
+    changes: tokio::sync::watch::Sender<u64>,
+    /// Concurrent live-update streams, separate from request budgets.
+    streams: Arc<tokio::sync::Semaphore>,
     document: String,
     csp: String,
 }
@@ -179,11 +188,17 @@ impl Prepared {
                     Duration::from_secs(config.inactivity_timeout_seconds.into()),
                 ),
                 settings,
+                changes: tokio::sync::watch::Sender::new(0),
+                streams: Arc::new(tokio::sync::Semaphore::new(STREAMS)),
                 document,
                 csp,
             }),
             listener,
         })
+    }
+    /// Sender the store worker uses to signal "state may have changed".
+    pub(crate) fn changes(&self) -> tokio::sync::watch::Sender<u64> {
+        self.admin.changes.clone()
     }
     pub(crate) fn activate(self) -> std::io::Result<Bound> {
         Ok(Bound {
@@ -226,6 +241,7 @@ pub(crate) async fn connection(
     mut stream: ingress::Stream,
     admin: Arc<Admin>,
     observer: std::sync::mpsc::SyncSender<crate::OperatorWork>,
+    release_request_permits: Box<dyn FnOnce() + Send>,
 ) {
     let reply = match tokio::time::timeout(REQUEST_DEADLINE, crate::request(&mut stream)).await {
         Err(_) => Reply::error(408, "request_timeout"),
@@ -236,6 +252,12 @@ pub(crate) async fn connection(
                 _ => "invalid_http",
             },
         ),
+        Ok(Ok(request)) if request.head.target == b"/api/v2/admin/events" => {
+            match boundary(&admin, &request) {
+                Some(reply) => reply,
+                None => return events(stream, admin, request, release_request_permits).await,
+            }
+        }
         Ok(Ok(request)) => handle(&admin, &request, &observer).await,
     };
     reply.write(&mut stream, &admin.csp).await;
@@ -347,13 +369,9 @@ fn session_cookie(r: &http::Request) -> Option<&str> {
     found
 }
 
-async fn handle(
-    admin: &Admin,
-    r: &http::Request,
-    observer: &std::sync::mpsc::SyncSender<crate::OperatorWork>,
-) -> Reply {
-    // Boundary precedence: framing (done), unsupported headers, target authority,
-    // route/method, then route-specific authentication before Origin/CSRF.
+/// Unsupported identity headers (400) and exact target authority (403), shared
+/// by ordinary routes and the event stream.
+fn boundary(admin: &Admin, r: &http::Request) -> Option<Reply> {
     if r.head.headers.keys().any(|h| {
         matches!(
             h.as_str(),
@@ -362,25 +380,38 @@ async fn handle(
             || h.starts_with("x-ssl-")
             || h.starts_with("x-client-")
     }) {
-        return Reply::error(400, "invalid_http");
+        return Some(Reply::error(400, "invalid_http"));
     }
     match header(r, "host") {
-        None | Some(b"") => return Reply::error(400, "invalid_http"),
+        None | Some(b"") => return Some(Reply::error(400, "invalid_http")),
         Some(host) if !admin.hosts.iter().any(|h| h.as_bytes() == host) => {
             // A person opening the page under another name gets directions; the
             // address shown is the configured origin, never the request's Host.
             if r.head.method == "GET" && r.head.target == b"/" {
-                return Reply {
+                return Some(Reply {
                     status: 403,
                     content_type: "text/html; charset=utf-8",
                     body: wrong_address_page(&admin.origin).into_bytes(),
                     headers: Zeroizing::new(String::new()),
                     document: true,
-                };
+                });
             }
-            return Reply::forbidden();
+            return Some(Reply::forbidden());
         }
         Some(_) => (),
+    }
+    None
+}
+
+async fn handle(
+    admin: &Admin,
+    r: &http::Request,
+    observer: &std::sync::mpsc::SyncSender<crate::OperatorWork>,
+) -> Reply {
+    // Boundary precedence: framing (done), unsupported headers, target authority,
+    // route/method, then route-specific authentication before Origin/CSRF.
+    if let Some(reply) = boundary(admin, r) {
+        return reply;
     }
     match r.head.target.as_slice() {
         b"/" => {
@@ -445,6 +476,150 @@ async fn handle(
             }
         }
     }
+}
+
+enum Wake {
+    Changed,
+    Revoked,
+    Heartbeat,
+    Closed,
+}
+
+/// Wait for a state change, a revocation (logout, password activation,
+/// shutdown) or the heartbeat interval, whichever comes first.
+async fn wait(
+    changes: &mut tokio::sync::watch::Receiver<u64>,
+    revoked: &mut tokio::sync::watch::Receiver<u64>,
+) -> Wake {
+    use std::task::Poll;
+    let mut changed = std::pin::pin!(changes.changed());
+    let mut revocation = std::pin::pin!(revoked.changed());
+    let mut heartbeat = std::pin::pin!(tokio::time::sleep(STREAM_HEARTBEAT));
+    std::future::poll_fn(|cx| {
+        if let Poll::Ready(result) = revocation.as_mut().poll(cx) {
+            return Poll::Ready(if result.is_ok() {
+                Wake::Revoked
+            } else {
+                Wake::Closed
+            });
+        }
+        if let Poll::Ready(result) = changed.as_mut().poll(cx) {
+            return Poll::Ready(if result.is_ok() {
+                Wake::Changed
+            } else {
+                Wake::Closed
+            });
+        }
+        if heartbeat.as_mut().poll(cx).is_ready() {
+            return Poll::Ready(Wake::Heartbeat);
+        }
+        Poll::Pending
+    })
+    .await
+}
+
+/// One bounded write+flush; false means the client is gone or not reading.
+async fn send(stream: &mut ingress::Stream, bytes: &[u8]) -> bool {
+    matches!(
+        tokio::time::timeout(STREAM_WRITE, async {
+            stream.write_all(bytes).await?;
+            stream.flush().await
+        })
+        .await,
+        Ok(Ok(()))
+    )
+}
+
+/// Server-Sent Events: "state may have changed" signals for the open page.
+/// Authorized like other reads, never renews the session, closes on session
+/// end, and swaps its request permits for one of the separate stream permits.
+async fn events(
+    mut stream: ingress::Stream,
+    admin: Arc<Admin>,
+    r: http::Request,
+    release_request_permits: Box<dyn FnOnce() + Send>,
+) {
+    let reply = if r.head.method != "GET" {
+        Some(Reply::method("GET"))
+    } else if !r.body.is_empty() {
+        Some(Reply::error(400, "unexpected_body"))
+    } else {
+        None
+    };
+    if let Some(reply) = reply {
+        reply.write(&mut stream, &admin.csp).await;
+        return;
+    }
+    let Some(token) = session_cookie(&r).map(|t| Zeroizing::new(t.to_owned())) else {
+        Reply::unauthenticated()
+            .write(&mut stream, &admin.csp)
+            .await;
+        return;
+    };
+    let live = |token: &str| {
+        admin
+            .sessions
+            .authorize(token, None, Activity::Background, std::time::Instant::now())
+            .is_ok()
+    };
+    if !live(&token) {
+        Reply::unauthenticated()
+            .write(&mut stream, &admin.csp)
+            .await;
+        return;
+    }
+    if header(&r, "origin").is_some_and(|o| o != admin.origin.as_bytes())
+        || header(&r, "sec-fetch-site").is_some_and(|s| s != b"same-origin")
+    {
+        Reply::forbidden().write(&mut stream, &admin.csp).await;
+        return;
+    }
+    let Ok(_stream_permit) = admin.streams.clone().try_acquire_owned() else {
+        Reply::error(503, "service_busy")
+            .write(&mut stream, &admin.csp)
+            .await;
+        return;
+    };
+    // From here on this connection no longer counts against request budgets.
+    release_request_permits();
+    let mut changes = admin.changes.subscribe();
+    let mut revoked = admin.sessions.revocations();
+    let version = *changes.borrow_and_update();
+    let head = format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-store\r\n\
+         X-Content-Type-Options: nosniff\r\nConnection: close\r\n\r\n\
+         retry: 5000\n\nevent: ready\ndata: {{\"version\":{version}}}\n\n"
+    );
+    if !send(&mut stream, head.as_bytes()).await {
+        return;
+    }
+    loop {
+        let wake = wait(&mut changes, &mut revoked).await;
+        if matches!(wake, Wake::Closed) {
+            break;
+        }
+        if matches!(wake, Wake::Revoked) || !live(&token) {
+            let _ = send(&mut stream, b"event: signed-out\ndata: {}\n\n").await;
+            break;
+        }
+        let sent = match wake {
+            Wake::Changed => {
+                // Coalesce a burst of writes into one event with the latest version.
+                tokio::time::sleep(STREAM_COALESCE).await;
+                let version = *changes.borrow_and_update();
+                send(
+                    &mut stream,
+                    format!("event: changed\ndata: {{\"version\":{version}}}\n\n").as_bytes(),
+                )
+                .await
+            }
+            _ => send(&mut stream, b": keepalive\n\n").await,
+        };
+        if !sent {
+            break;
+        }
+    }
+    let _ = tokio::time::timeout(STREAM_WRITE, stream.shutdown()).await;
 }
 
 /// Session read authorization shared by every admin GET. Authentication (401)

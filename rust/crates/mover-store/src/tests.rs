@@ -2928,5 +2928,9 @@ fn change_listener_fires_for_writes_not_reads() {
     assert!(after_write >= 1, "accept must notify");
     s.status(job.job_id).unwrap();
     s.status_page(0, 10, false).unwrap();
-    assert_eq!(count.load(Ordering::SeqCst), after_write, "reads must not notify");
+    assert_eq!(
+        count.load(Ordering::SeqCst),
+        after_write,
+        "reads must not notify"
+    );
 }

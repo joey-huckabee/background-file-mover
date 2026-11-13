@@ -1289,7 +1289,10 @@ impl TlsBudget {
         }
     }
     fn release_request(&self) {
-        self.request.lock().unwrap_or_else(|p| p.into_inner()).take();
+        self.request
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .take();
     }
 }
 // Fields drop in declaration order, even when the future was never polled.
@@ -1427,9 +1430,15 @@ async fn serve_inner(
                     return Err("startup stopped".into());
                 }
                 let changes = admin_ingress.as_ref().map(admin::Prepared::changes);
-                Worker::start(&startup_config, guard, startup_stop.clone(), control, changes)
-                    .map(|worker| (worker, endpoints, native, admin_ingress))
-                    .map_err(|e| e.to_string())
+                Worker::start(
+                    &startup_config,
+                    guard,
+                    startup_stop.clone(),
+                    control,
+                    changes,
+                )
+                .map(|worker| (worker, endpoints, native, admin_ingress))
+                .map_err(|e| e.to_string())
             });
             let _ = ready.send(result);
         })?;
