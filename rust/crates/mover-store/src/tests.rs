@@ -2224,8 +2224,7 @@ fn rebuild_schema_twelve_fixture(c: &mut Connection) {
         })
         .unwrap();
     assert_eq!(broken, 0);
-    tx.pragma_update(None, "user_version", SCHEMA_VERSION)
-        .unwrap();
+    tx.pragma_update(None, "user_version", 12).unwrap();
     tx.commit().unwrap();
     c.pragma_update(None, "foreign_keys", "ON").unwrap();
 }
@@ -2254,6 +2253,15 @@ fn schema_twelve_rebuilt_fixture_preserves_legacy_rows_indices_and_next_id() {
         );
     }
     drop(c);
+    // Schema 12 needs the guarded receipt upgrade before normal startup.
+    assert!(matches!(
+        Store::check_compatibility(f.db(), false),
+        Err(StoreError::MigrationRequired)
+    ));
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_retry_receipts(f.db(), |_| Ok(()))
+        .unwrap();
     Store::check_compatibility(f.db(), false).unwrap();
     let store = Store::open(f.db()).unwrap();
     let job = store.get(7).unwrap().unwrap();
