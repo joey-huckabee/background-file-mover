@@ -28,6 +28,8 @@ impl Store {
                 // Children first: retain FK enforcement, shared enrollment,
                 // instance identity and sqlite_sequence (old IDs never return).
                 for sql in [
+                    "DELETE FROM retry_outcomes WHERE job_id=?1",
+                    "DELETE FROM retry_contexts WHERE job_id=?1",
                     "DELETE FROM missing_resets WHERE job_id=?1",
                     "DELETE FROM operator_resumes WHERE job_id=?1",
                     "DELETE FROM delivery_failures WHERE job_id=?1",

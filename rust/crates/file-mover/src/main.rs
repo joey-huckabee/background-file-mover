@@ -153,10 +153,10 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         ]);
         // Preview validates lexical/local placement, without creating output.
         mover_fs::BackupOutput::check_location(&output, &excluded)?;
-        if !confirm || version == 12 {
+        if !confirm || version == 13 {
             println!(
                 "{}",
-                serde_json::json!({"schema_version":version,"target_schema":12,"conversion_required":version==11,"converted":false,"preview":!confirm,"backup_directory":output,"pairing_state":pairing,"payload_filesystem_inspected":false})
+                serde_json::json!({"schema_version":version,"target_schema":13,"conversion_required":version<13,"converted":false,"preview":!confirm,"backup_directory":output,"pairing_state":pairing,"payload_filesystem_inspected":false})
             );
             return Ok(());
         }
@@ -166,15 +166,48 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         let snapshot = backup.database_path();
         let receipt = backup.finish(&state, pairing)?;
         instance.validate_database(&config.state_database)?;
-        let summary = state.migrate_legacy(&config.state_database,&snapshot,|stage| {
-            instance.validate_database(&config.state_database).map_err(|e|std::io::Error::other(e.to_string()))?;
-            mover_fs::qualification_pause(stage).map_err(|e|std::io::Error::other(e.to_string()))?;
-            #[cfg(feature="nfs-qualification")]
-            if std::env::var("FILE_MOVER_QUALIFICATION_MIGRATION_FAULT").ok().as_deref()==Some(stage) {
+        // Ownership is revalidated at every checkpoint of both steps.
+        let checkpoint = |stage: &'static str| -> std::io::Result<()> {
+            instance
+                .validate_database(&config.state_database)
+                .map_err(|e| std::io::Error::other(e.to_string()))?;
+            mover_fs::qualification_pause(stage)
+                .map_err(|e| std::io::Error::other(e.to_string()))?;
+            #[cfg(feature = "nfs-qualification")]
+            if std::env::var("FILE_MOVER_QUALIFICATION_MIGRATION_FAULT")
+                .ok()
+                .as_deref()
+                == Some(stage)
+            {
                 return Err(std::io::Error::from_raw_os_error(5));
             }
             Ok(())
-        }).map_err(|e|format!("migration failed ({e}); preserve original state and backup, run guarded --check-state; commit may have completed; never automatically restore"))?;
+        };
+        let failed = |e: mover_store::StoreError| {
+            format!(
+                "migration failed ({e}); preserve original state and backup, run guarded --check-state; commit may have completed; never automatically restore"
+            )
+        };
+        let state = if version == 11 {
+            state
+                .migrate_legacy(&config.state_database, &snapshot, checkpoint)
+                .map_err(failed)?;
+            mover_store::StateInspection::open(&config.state_database)?
+        } else {
+            state
+        };
+        // 12 -> 13 adds the empty admin retry receipt tables; distinct stage
+        // names keep the 11 -> 12 fault-injection checkpoints unambiguous.
+        let summary = state
+            .upgrade_retry_receipts(&config.state_database, |stage| {
+                checkpoint(match stage {
+                    "before_create" => "receipts_before_create",
+                    "after_create" => "receipts_after_create",
+                    "before_commit" => "receipts_before_commit",
+                    _ => "receipts_after_commit",
+                })
+            })
+            .map_err(failed)?;
         let target = mover_store::StateInspection::open(&config.state_database)?;
         if mover_fs::validate_inspected_state(&target)? != pairing {
             return Err("postmigration pairing mismatch; preserve state and inspect".into());

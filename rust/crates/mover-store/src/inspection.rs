@@ -33,11 +33,11 @@ impl StateInspection {
         c.pragma_update(None, "trusted_schema", "OFF")?;
         let application: i64 = c.pragma_query_value(None, "application_id", |r| r.get(0))?;
         let version: i64 = c.pragma_query_value(None, "user_version", |r| r.get(0))?;
-        if application != APPLICATION_ID || ![11, 12].contains(&version) {
+        if application != APPLICATION_ID || ![11, 12, 13].contains(&version) {
             return Err(StoreError::UnsupportedSchema);
         }
         validate_schema_for(&c, version)?;
-        if version == 12 {
+        if version >= 12 {
             validate_identities(&c)?;
         }
         check_sqlite_options(&c)?;
