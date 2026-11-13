@@ -159,6 +159,11 @@ against upgraded state is not a supported rollback procedure. See the
 
 ## Offline clear of completed history
 
+**Update, [increment142](RUST-INCREMENT-142.md):** jobs whose cancellation has
+completed can now be cleared too, offline with this command or online from the
+dashboard (Clear from history), using the same eligibility. A pending
+cancellation is not eligible until the stop is confirmed.
+
 [Increment 107](RUST-INCREMENT-107.md) implements a host-local maintenance
 command for **committed jobs only**. Stop the service normally first; the command
 refuses a live daemon or surviving worker, including workers whose flock has

@@ -338,7 +338,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             let _store = mover_store::Store::open_read_only(&config.state_database)?;
             println!(
                 "{}",
-                serde_json::json!({"selected_job_ids":job_ids,"confirmation_required":true,"effect":"Forget history, replay and all file tracking. Files stay in place and leave mover management. Only committed jobs can currently be cleared. Rerun with --confirm."})
+                serde_json::json!({"selected_job_ids":job_ids,"confirmation_required":true,"effect":"Forget history, replay and all file tracking. Files stay in place and leave mover management. Only delivered jobs and jobs whose cancellation completed can be cleared. Rerun with --confirm."})
             );
         }
         return Ok(());

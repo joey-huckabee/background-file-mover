@@ -106,10 +106,12 @@ console.log('byte formatting ok');
 
 // Cancel outcome wording from real parsed (BigInt) counts.
 {
-  const cSrc = src.slice(src.indexOf('  function cancelOutcome('), src.indexOf('  function redrawCancel('));
-  const cancelOutcome = new Function(cSrc + '; return cancelOutcome;')();
+  const cSrc = src.slice(src.indexOf('  function cancelOutcome('), src.indexOf('  var ACTIONS = {'));
+  const { cancelOutcome, clearOutcome } = new Function(cSrc + '; return { cancelOutcome: cancelOutcome, clearOutcome: clearOutcome };')();
   assert.match(cancelOutcome(parseJSON('{"accepted_count":1,"failed_count":0,"skipped_count":0}')), /stopping work/);
   assert.match(cancelOutcome(parseJSON('{"accepted_count":0,"failed_count":1,"skipped_count":0}')), /already in progress/);
   assert.match(cancelOutcome(parseJSON('{"accepted_count":0,"failed_count":0,"skipped_count":1}')), /Nothing to cancel/);
-  console.log('cancel outcomes ok');
+  assert.match(clearOutcome(parseJSON('{"cleared_count":1}')), /Removed from history/);
+  assert.match(clearOutcome(parseJSON('{"cleared_count":0}')), /Nothing was removed/);
+  console.log('cancel and clear outcomes ok');
 }

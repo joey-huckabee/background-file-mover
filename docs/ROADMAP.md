@@ -48,6 +48,10 @@ dashboard remain unfinished. Packaging is not the next dashboard milestone.
 - [ ] Add reviewed-state retry, then safe cancellation, confirmed history clear
   and separately confirmed owned-data deletion in bounded increments. Preserve
   exact replay, actual effect settlement and group-50 complete forgetting.
+  Done: retry ([137](RUST-INCREMENT-137.md)/[138](RUST-INCREMENT-138.md)),
+  failure causes ([139](RUST-INCREMENT-139.md)), cancel
+  ([140](RUST-INCREMENT-140.md)/[141](RUST-INCREMENT-141.md)), history clear
+  ([142](RUST-INCREMENT-142.md)). Remaining: owned-data deletion.
 - [x] **Multiple admin browser connections (user request 2026-11-12, soon):**
   done in [increment135](RUST-INCREMENT-135.md): four admin connections, one
   global slot always reserved for the private operator.

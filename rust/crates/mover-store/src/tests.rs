@@ -3723,3 +3723,101 @@ fn schema_fourteen_requires_the_guarded_cancellation_upgrade_and_snapshots_cover
     assert_eq!(cancel_state(&s, j.job_id), None);
     assert_eq!(s.delivery_candidates(1_000, 64).unwrap(), vec![j.job_id]);
 }
+
+#[test]
+fn admin_clear_forgets_only_delivered_or_cancelled_jobs_and_waits_for_workers() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt")
+        .unwrap();
+    let done = history_job(&s, "clear-done", 4);
+    let pending = history_job(&s, "clear-pending", 2);
+    let cancelled = history_job(&s, "clear-cancelled", 1);
+    s.record_problem(done.job_id, ProblemStage::Delivery, "errno=13", Some(0), 10)
+        .unwrap();
+    assert_eq!(
+        s.admin_cancel(cancelled.job_id, "operator", 100).unwrap(),
+        CancelOutcome::Accepted
+    );
+    // Missing and unfinished jobs skip; a pending cancellation is not eligible.
+    assert_eq!(
+        s.admin_clear(999_999, |_| false).unwrap(),
+        ClearOutcome::Skipped
+    );
+    assert_eq!(
+        s.admin_clear(pending.job_id, |_| false).unwrap(),
+        ClearOutcome::Skipped
+    );
+    assert_eq!(
+        s.admin_clear(cancelled.job_id, |_| false).unwrap(),
+        ClearOutcome::Skipped
+    );
+    // A worker that may still be on the job defers the clear; nothing changes.
+    assert_eq!(
+        s.admin_clear(done.job_id, |id| id == 1).unwrap(),
+        ClearOutcome::Busy
+    );
+    assert!(s.status(done.job_id).unwrap().is_some());
+    assert_eq!(
+        s.admin_clear(done.job_id, |_| false).unwrap(),
+        ClearOutcome::Cleared
+    );
+    assert!(s.status(done.job_id).unwrap().is_none());
+    // Repeats skip; later actions on the old ID skip as missing.
+    assert_eq!(
+        s.admin_clear(done.job_id, |_| false).unwrap(),
+        ClearOutcome::Skipped
+    );
+    assert_eq!(
+        s.admin_cancel(done.job_id, "operator", 200).unwrap(),
+        CancelOutcome::Skipped
+    );
+    // Once its cancellation is settled, the cancelled job can be cleared too.
+    s.settle_cancellations(150, || false).unwrap();
+    assert_eq!(
+        s.admin_clear(cancelled.job_id, |_| false).unwrap(),
+        ClearOutcome::Cleared
+    );
+    assert!(s.status(cancelled.job_id).unwrap().is_none());
+    // The unrelated in-progress job is untouched; IDs are never reused.
+    assert!(s.status(pending.job_id).unwrap().is_some());
+    assert!(s.job_id_high_water().unwrap() >= cancelled.job_id);
+    drop(s);
+    let c = Connection::open(f.db()).unwrap();
+    for table in [
+        "files",
+        "claims",
+        "transfers",
+        "manifests",
+        "job_problems",
+        "cancellations",
+        "reservations",
+    ] {
+        let n: i64 = c
+            .query_row(
+                &format!("SELECT count(*) FROM {table} WHERE job_id IN (?1,?2)"),
+                [done.job_id, cancelled.job_id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(n, 0, "{table}");
+    }
+}
+
+#[test]
+fn offline_clear_now_includes_completed_cancellations() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = ready_job(&s);
+    s.admin_cancel(j.job_id, "operator", 100).unwrap();
+    drop(s);
+    // Pending (not yet settled) is not eligible.
+    let s = Store::open_for_history_clear(f.db()).unwrap();
+    assert_eq!(s.clear_completed_history(&[j.job_id]).unwrap(), 0);
+    drop(s);
+    let s = Store::open(f.db()).unwrap();
+    s.settle_cancellations(120, || false).unwrap();
+    drop(s);
+    let s = Store::open_for_history_clear(f.db()).unwrap();
+    assert_eq!(s.clear_completed_history(&[j.job_id]).unwrap(), 1);
+}

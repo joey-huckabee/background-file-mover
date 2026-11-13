@@ -264,6 +264,8 @@ enum Observation {
     Retry(mover_store::RetryOccurrence, RetryGate),
     /// One admin cancel occurrence (job ID, account principal), gated likewise.
     Cancel(i64, String, RetryGate),
+    /// One admin history-clear occurrence, gated likewise.
+    Clear(i64, RetryGate),
 }
 /// Runs the given work while the requesting admin session is valid; false if not.
 pub(crate) type RetryGate = Box<dyn FnOnce(&mut dyn FnMut()) -> bool + Send>;
@@ -308,6 +310,15 @@ impl Worker {
         )?;
         let admission = source_space.handle.clone();
         let observation_admission = admission.clone();
+        // Worker activity, shared by cancellation settlement and online clear.
+        // Set while the claim thread processes a submission; cancellation
+        // settlement reads it inside its store transaction (see Store docs).
+        let claim_active = Arc::new(AtomicBool::new(false));
+        let settle_claim_active = claim_active.clone();
+        // Job the delivery thread is working on (0 = none), for online clear.
+        let delivery_job = Arc::new(std::sync::atomic::AtomicI64::new(0));
+        let delivering = delivery_job.clone();
+        let (clear_claim_active, clear_delivery_job) = (claim_active.clone(), delivery_job.clone());
         let (observer, observations) = mpsc::sync_channel::<OperatorWork>(8);
         let observation_store = store.clone();
         let observation_instance = instance.clone();
@@ -342,6 +353,18 @@ impl Worker {
                             missing_reset_response(&observation_store, id, input)
                         }
                         Observation::RetryScope => retry_scope_response(&observation_store),
+                        Observation::Clear(id, gate) => {
+                            let (claim, delivery) = (clear_claim_active.clone(), clear_delivery_job.clone());
+                            let busy = move |job: i64| {
+                                claim.load(Ordering::SeqCst) || delivery.load(Ordering::SeqCst) == job
+                            };
+                            let mut decided = None;
+                            if gate(&mut || decided = Some(clear_response(&observation_store, id, busy.clone()))) {
+                                decided.unwrap_or_else(|| error(503, "storage_unavailable", true, None))
+                            } else {
+                                error(401, "authentication_required", false, None)
+                            }
+                        }
                         Observation::Cancel(id, principal, gate) => {
                             let mut decided = None;
                             if gate(&mut || decided = Some(cancel_response(&observation_store, id, &principal))) {
@@ -362,10 +385,6 @@ impl Worker {
                     let _ = reply.send(response);
                 }
             })?;
-        // Set while the claim thread processes a submission; cancellation
-        // settlement reads it inside its store transaction (see Store docs).
-        let claim_active = Arc::new(AtomicBool::new(false));
-        let settle_claim_active = claim_active.clone();
         let delivery_stop = stop.clone();
         let delivery_store = store.clone();
         let delivery_guard = guard.clone();
@@ -392,6 +411,8 @@ impl Worker {
                                 if delivery_stop.load(Ordering::Relaxed) {
                                     break;
                                 }
+                                delivering.store(id, Ordering::SeqCst);
+                                let _working = Working(&delivering);
                                 let mut problem = None;
                                 let result = delivery_worker::deliver(
                                     &delivery_store,
@@ -959,6 +980,24 @@ fn retry_scope_response(store: &Store) -> Response {
         Err(_) => error(503, "storage_unavailable", true, None),
     }
 }
+/// Clears the delivery thread's "working on" marker when the job's block ends,
+/// including every early `continue`.
+struct Working<'a>(&'a std::sync::atomic::AtomicI64);
+impl Drop for Working<'_> {
+    fn drop(&mut self) {
+        self.0.store(0, Ordering::SeqCst);
+    }
+}
+fn clear_response(store: &Store, id: i64, busy: impl Fn(i64) -> bool + Send + 'static) -> Response {
+    match store.admin_clear(id, busy) {
+        Ok(outcome) => observed(serde_json::json!({"outcome":match outcome {
+            mover_store::ClearOutcome::Cleared => "cleared",
+            mover_store::ClearOutcome::Skipped => "skipped",
+            mover_store::ClearOutcome::Busy => "busy",
+        }})),
+        Err(_) => error(503, "storage_unavailable", true, None),
+    }
+}
 fn cancel_response(store: &Store, id: i64, principal: &str) -> Response {
     match store.admin_cancel(id, principal, now()) {
         Ok(outcome) => observed(serde_json::json!({"outcome":match outcome {
@@ -1246,7 +1285,8 @@ async fn connection(
                                     | Observation::Page(..)
                                     | Observation::RetryScope
                                     | Observation::Retry(..)
-                                    | Observation::Cancel(..) => None,
+                                    | Observation::Cancel(..)
+                                    | Observation::Clear(..) => None,
                                 };
                                 let key_conflict = command_id.is_some_and(|id| {
                                     r.head

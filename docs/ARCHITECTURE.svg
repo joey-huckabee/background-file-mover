@@ -99,7 +99,7 @@
   <text x="374" y="348" class="mono">GET  /api/v2/admin/session</text>
   <text x="374" y="366" class="mono">POST /api/v2/admin/logout</text>
   <text x="374" y="384" class="mono">GET admin/jobs · settings · events · jobs/…</text>
-  <text x="374" y="402" class="planned">POST admin/jobs/retry · cancel · … clear / delete</text>
+  <text x="374" y="402" class="planned">POST admin/jobs/retry · cancel · clear-history · … delete</text>
   <rect x="368" y="390" width="284" height="17" rx="3" class="dash"/>
 
   <rect x="360" y="440" width="300" height="170" rx="8" class="listener"/>

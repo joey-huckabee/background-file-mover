@@ -457,7 +457,12 @@ async fn handle(
                 Some(i) => (&target[..i], Some(&target[i + 1..])),
                 None => (target, None),
             };
-            if path == b"/api/v2/admin/jobs/cancel" && query.is_none() {
+            if path == b"/api/v2/admin/jobs/clear-history" && query.is_none() {
+                if r.head.method != "POST" {
+                    return Reply::method("POST");
+                }
+                clear_history(admin, r, observer).await
+            } else if path == b"/api/v2/admin/jobs/cancel" && query.is_none() {
                 if r.head.method != "POST" {
                     return Reply::method("POST");
                 }
@@ -1049,7 +1054,7 @@ async fn instance_scope(
 
 /// Confirmation mode of the list route: `confirm_action` and `job_ids`, each
 /// exactly once and nothing else; 1-256 exact positive IDs, order and
-/// duplicates kept. Only `cancel` is implemented.
+/// duplicates kept. `cancel` and `clear-history` are implemented.
 fn confirmation_query(query: &[u8]) -> Result<(String, Vec<i64>), Reply> {
     let text = std::str::from_utf8(query).map_err(|_| Reply::error(400, "invalid_http"))?;
     let (mut action, mut ids) = (None, None);
@@ -1077,7 +1082,7 @@ fn confirmation_query(query: &[u8]) -> Result<(String, Vec<i64>), Reply> {
         }
     }
     match (action, ids) {
-        (Some("cancel"), Some(ids)) => Ok(("cancel".into(), ids)),
+        (Some(action @ ("cancel" | "clear-history")), Some(ids)) => Ok((action.into(), ids)),
         _ => Err(Reply::error(400, "invalid_selection")),
     }
 }
@@ -1109,7 +1114,8 @@ async fn confirmation(
     };
     let (token, expires_at) =
         crate::confirmation::issue(&admin.confirm_key, &scope, high_water, crate::now());
-    // Cancel targets no files, so its preview is complete without deletion targets.
+    // Cancel and clear touch no files, so the preview is complete without
+    // deletion targets.
     Reply::json(
         200,
         serde_json::json!({"items":[],"next_cursor":null,"confirmation":{
@@ -1198,6 +1204,87 @@ async fn cancel(
         202,
         serde_json::json!({"accepted_count":accepted,"failed_count":failed,"skipped_count":skipped}),
     )
+}
+
+/// Clear history (API-CONTRACT-CLOSEOUT "Clear processes current
+/// completed/safely-cancelled eligibility"): job-IDs-only body with a valid
+/// `clear-history` proof. Each occurrence forgets a delivered or cancelled job
+/// and all its linkage in one store transaction serialized with the workers;
+/// files are never touched. Missing and ineligible IDs skip silently. A job a
+/// worker may still be on is retried briefly, then skipped. 200 `{cleared_count}`.
+async fn clear_history(
+    admin: &Arc<Admin>,
+    r: &http::Request,
+    observer: &std::sync::mpsc::SyncSender<crate::OperatorWork>,
+) -> Reply {
+    let (token, csrf, authorized) = match authorize_action(admin, r) {
+        Ok(a) => a,
+        Err(reply) => return reply,
+    };
+    let ids = match crate::retry_context::selection(&r.body) {
+        Ok(ids) => ids,
+        Err(_) => return Reply::error(400, "invalid_selection"),
+    };
+    let instance = match instance_scope(observer).await {
+        Ok((instance, _)) => instance,
+        Err(reply) => return reply,
+    };
+    let proof = header(r, "mover-confirmation").and_then(|v| std::str::from_utf8(v).ok());
+    let scope = crate::confirmation::Scope {
+        instance: &instance,
+        principal: &authorized.principal,
+        generation: authorized.generation,
+        action: "clear-history",
+        job_ids: &ids,
+    };
+    let Some(high_water) = proof
+        .and_then(|p| crate::confirmation::verify(&admin.confirm_key, p, &scope, crate::now()))
+    else {
+        return Reply::error(400, "invalid_confirmation");
+    };
+    let mut cleared = 0_u16;
+    for job_id in ids {
+        if job_id > high_water {
+            continue;
+        }
+        // A worker finishing with the job is brief; wait up to ~2 s for it.
+        for attempt in 0..20 {
+            let gate_admin = Arc::clone(admin);
+            let gate_token = Zeroizing::new(token.to_owned());
+            let gate: crate::RetryGate = Box::new(move |work| {
+                gate_admin
+                    .sessions
+                    .while_authorized(&gate_token, work)
+                    .is_ok()
+            });
+            let response =
+                crate::operator_reply(observer, crate::Observation::Clear(job_id, gate)).await;
+            if response.status == 401 {
+                return Reply::unauthenticated();
+            }
+            let Some(d) = response.details.as_ref().filter(|_| response.status == 200) else {
+                return from_operator(response);
+            };
+            match d["outcome"].as_str() {
+                Some("cleared") => {
+                    cleared += 1;
+                    let _ = admin.sessions.authorize(
+                        token,
+                        Some(csrf),
+                        Activity::Deliberate,
+                        std::time::Instant::now(),
+                    );
+                }
+                Some("busy") if attempt < 19 => {
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                    continue;
+                }
+                _ => {}
+            }
+            break;
+        }
+    }
+    Reply::json(200, serde_json::json!({"cleared_count": cleared}))
 }
 
 async fn login(admin: &Admin, r: &http::Request) -> Reply {
