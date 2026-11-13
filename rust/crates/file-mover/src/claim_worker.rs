@@ -108,6 +108,15 @@ fn request(
     guard: &LocalClaimLock,
     stop: &AtomicBool,
 ) -> Result<ClaimIntent, ClaimError> {
+    request_diagnosed(assignment, guard, stop, &mut None)
+}
+/// As `request`, also returning the child's validated diagnostic on failure.
+fn request_diagnosed(
+    assignment: &Assignment,
+    guard: &LocalClaimLock,
+    stop: &AtomicBool,
+    diagnostic: &mut Option<String>,
+) -> Result<ClaimIntent, ClaimError> {
     let bytes = serde_json::to_vec(&Request {
         assignment: assignment.clone(),
         source_authorization: guard.source_authorization().cloned(),
@@ -125,9 +134,16 @@ fn request(
         LIMIT as u64,
     )
     .map_err(|_| ClaimError::OutcomeUncertain)?;
-    decode_receipt(&bytes)
+    decode_receipt_diagnosed(&bytes, diagnostic)
 }
+#[cfg(test)]
 fn decode_receipt(bytes: &[u8]) -> Result<ClaimIntent, ClaimError> {
+    decode_receipt_diagnosed(bytes, &mut None)
+}
+fn decode_receipt_diagnosed(
+    bytes: &[u8],
+    diagnostic: &mut Option<String>,
+) -> Result<ClaimIntent, ClaimError> {
     let reply: Receipt = serde_json::from_slice(bytes).map_err(|_| ClaimError::OutcomeUncertain)?;
     if reply.version != 1 {
         return Err(ClaimError::OutcomeUncertain);
@@ -137,6 +153,7 @@ fn decode_receipt(bytes: &[u8]) -> Result<ClaimIntent, ClaimError> {
             return Err(ClaimError::OutcomeUncertain);
         }
         eprintln!("Claim worker: {detail}");
+        *diagnostic = Some(detail.clone());
     }
     match (reply.claim, reply.error) {
         (Some(c), None) => c.decode().map_err(|_| ClaimError::OutcomeUncertain),
@@ -146,6 +163,8 @@ fn decode_receipt(bytes: &[u8]) -> Result<ClaimIntent, ClaimError> {
         _ => Err(ClaimError::OutcomeUncertain),
     }
 }
+/// Claim one file. A failure (other than a missing source file, which has its
+/// own record) also records the job's problem for the dashboard.
 pub(crate) fn claim(
     store: &Store,
     guard: &LocalClaimLock,
@@ -153,6 +172,44 @@ pub(crate) fn claim(
     job_id: i64,
     index: usize,
     check_expected_sizes: bool,
+) -> Result<Accepted, ClaimError> {
+    let mut diagnostic = None;
+    let result = claim_file(
+        store,
+        guard,
+        stop,
+        job_id,
+        index,
+        check_expected_sizes,
+        &mut diagnostic,
+    );
+    if let Err(error) = &result
+        && !matches!(error, ClaimError::MissingSource)
+        && !stop.load(std::sync::atomic::Ordering::Relaxed)
+    {
+        let text = diagnostic.unwrap_or_else(|| super::diagnostic::describe(error));
+        if let Err(e) = store.record_problem(
+            job_id,
+            mover_store::ProblemStage::Claim,
+            &text,
+            Some(index),
+            crate::now(),
+        ) {
+            eprintln!("Claim {job_id} problem record failed: {e}");
+        }
+    }
+    result
+}
+
+#[allow(clippy::too_many_arguments)]
+fn claim_file(
+    store: &Store,
+    guard: &LocalClaimLock,
+    stop: &AtomicBool,
+    job_id: i64,
+    index: usize,
+    check_expected_sizes: bool,
+    diagnostic: &mut Option<String>,
 ) -> Result<Accepted, ClaimError> {
     let job = store
         .get(job_id)?
@@ -192,7 +249,7 @@ pub(crate) fn claim(
                     file.relative_path()
                 )
             };
-            let observed = request(
+            let observed = request_diagnosed(
                 &Assignment::Observe {
                     version: 1,
                     job_id,
@@ -207,6 +264,7 @@ pub(crate) fn claim(
                 },
                 guard,
                 stop,
+                diagnostic,
             )?;
             if observed.job_id != job_id
                 || observed.file_index != index
@@ -220,13 +278,14 @@ pub(crate) fn claim(
                 return Err(ClaimError::Blocked("observation receipt mismatch"));
             }
             store.claim_capacity(observed.source.size)?;
-            let allocated = request(
+            let allocated = request_diagnosed(
                 &Assignment::Allocate {
                     version: 1,
                     claim: ClaimWire::new(&observed),
                 },
                 guard,
                 stop,
+                diagnostic,
             )?;
             let mut expected = observed.clone();
             expected.area = allocated.area.clone();
@@ -242,13 +301,14 @@ pub(crate) fn claim(
             "matching unfinished claim intent required",
         ));
     }
-    let applied = request(
+    let applied = request_diagnosed(
         &Assignment::Apply {
             version: 1,
             claim: ClaimWire::new(&intent),
         },
         guard,
         stop,
+        diagnostic,
     )?;
     if applied != intent {
         return Err(ClaimError::Blocked("applied claim receipt mismatch"));

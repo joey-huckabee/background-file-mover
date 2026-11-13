@@ -33,7 +33,7 @@ impl StateInspection {
         c.pragma_update(None, "trusted_schema", "OFF")?;
         let application: i64 = c.pragma_query_value(None, "application_id", |r| r.get(0))?;
         let version: i64 = c.pragma_query_value(None, "user_version", |r| r.get(0))?;
-        if application != APPLICATION_ID || ![11, 12, 13].contains(&version) {
+        if application != APPLICATION_ID || !(11..=14).contains(&version) {
             return Err(StoreError::UnsupportedSchema);
         }
         validate_schema_for(&c, version)?;
@@ -187,26 +187,45 @@ pub(super) fn compare_rows(
             }
         }
     }
-    compare_retry_receipts(source, snapshot)
+    // Tables added by later additive schemas (13: receipts, 14: problems).
+    compare_added_tables(
+        source,
+        snapshot,
+        &[
+            ("retry_contexts", "job_id,context_key"),
+            ("retry_outcomes", "job_id,context_key,occurrence"),
+        ],
+    )?;
+    compare_added_tables(source, snapshot, &[("job_problems", "job_id")])
 }
 
-// Schema 13 receipt tables. When both sides have them, every typed row must
-// match (backup verification protects exact replay). A side without them is a
-// pre-13 database, which is only equivalent when the other side holds none.
-fn compare_retry_receipts(source: &Connection, snapshot: &Connection) -> Result<()> {
+// When both sides have the tables, every typed row must match (backup
+// verification protects exact replay and recorded problems). A side without
+// them is an older database, only equivalent when the other side holds none.
+fn compare_added_tables(
+    source: &Connection,
+    snapshot: &Connection,
+    tables: &[(&str, &str)],
+) -> Result<()> {
     let has = |c: &Connection| -> Result<bool> {
-        Ok(c.query_row(
-            "SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('retry_contexts','retry_outcomes')",
-            [],
-            |r| r.get::<_, i64>(0),
-        )? == 2)
+        let mut n = 0;
+        for (table, _) in tables {
+            n += c.query_row(
+                "SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?1",
+                [table],
+                |r| r.get::<_, i64>(0),
+            )?;
+        }
+        Ok(n == tables.len() as i64)
     };
     let empty = |c: &Connection| -> Result<bool> {
-        Ok(c.query_row(
-            "SELECT (SELECT count(*) FROM retry_contexts)+(SELECT count(*) FROM retry_outcomes)",
-            [],
-            |r| r.get::<_, i64>(0),
-        )? == 0)
+        for (table, _) in tables {
+            let n: i64 = c.query_row(&format!("SELECT count(*) FROM {table}"), [], |r| r.get(0))?;
+            if n != 0 {
+                return Ok(false);
+            }
+        }
+        Ok(true)
     };
     match (has(source)?, has(snapshot)?) {
         (false, false) => return Ok(()),
@@ -216,10 +235,9 @@ fn compare_retry_receipts(source: &Connection, snapshot: &Connection) -> Result<
             return empty(side)?.then_some(()).ok_or(StoreError::CorruptState);
         }
     }
-    for sql in [
-        "SELECT * FROM retry_contexts ORDER BY job_id,context_key",
-        "SELECT * FROM retry_outcomes ORDER BY job_id,context_key,occurrence",
-    ] {
+    for (table, order) in tables {
+        let sql = format!("SELECT * FROM {table} ORDER BY {order}");
+        let sql = sql.as_str();
         let mut a = source.prepare(sql)?;
         let mut b = snapshot.prepare(sql)?;
         let width = a.column_count();

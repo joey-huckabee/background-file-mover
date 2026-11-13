@@ -153,10 +153,10 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         ]);
         // Preview validates lexical/local placement, without creating output.
         mover_fs::BackupOutput::check_location(&output, &excluded)?;
-        if !confirm || version == 13 {
+        if !confirm || version == 14 {
             println!(
                 "{}",
-                serde_json::json!({"schema_version":version,"target_schema":13,"conversion_required":version<13,"converted":false,"preview":!confirm,"backup_directory":output,"pairing_state":pairing,"payload_filesystem_inspected":false})
+                serde_json::json!({"schema_version":version,"target_schema":14,"conversion_required":version<14,"converted":false,"preview":!confirm,"backup_directory":output,"pairing_state":pairing,"payload_filesystem_inspected":false})
             );
             return Ok(());
         }
@@ -196,15 +196,31 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             state
         };
-        // 12 -> 13 adds the empty admin retry receipt tables; distinct stage
-        // names keep the 11 -> 12 fault-injection checkpoints unambiguous.
+        // 12 -> 13 adds the empty admin retry receipt tables and 13 -> 14 the
+        // empty problem table; distinct stage names keep every step's
+        // fault-injection checkpoints unambiguous.
+        let state = if state.summary().schema_version == 12 {
+            state
+                .upgrade_retry_receipts(&config.state_database, |stage| {
+                    checkpoint(match stage {
+                        "before_create" => "receipts_before_create",
+                        "after_create" => "receipts_after_create",
+                        "before_commit" => "receipts_before_commit",
+                        _ => "receipts_after_commit",
+                    })
+                })
+                .map_err(failed)?;
+            mover_store::StateInspection::open(&config.state_database)?
+        } else {
+            state
+        };
         let summary = state
-            .upgrade_retry_receipts(&config.state_database, |stage| {
+            .upgrade_job_problems(&config.state_database, |stage| {
                 checkpoint(match stage {
-                    "before_create" => "receipts_before_create",
-                    "after_create" => "receipts_after_create",
-                    "before_commit" => "receipts_before_commit",
-                    _ => "receipts_after_commit",
+                    "before_create" => "problems_before_create",
+                    "after_create" => "problems_after_create",
+                    "before_commit" => "problems_before_commit",
+                    _ => "problems_after_commit",
                 })
             })
             .map_err(failed)?;

@@ -1096,6 +1096,20 @@ fn admin_retry_delivers_a_reviewed_job_and_replays_its_receipt() {
         assert!(Instant::now() < until, "{:?}", f.operator("/api/v2/jobs/1"));
         std::thread::sleep(Duration::from_millis(20));
     }
+    // The cause is recorded for the dashboard: the foreign folder is in the way.
+    let problem = f.operator("/api/v2/jobs/1").1["details"]["last_problem"].clone();
+    assert_eq!(problem["stage"], "delivery", "{problem}");
+    assert_eq!(
+        problem["operation"], "staging_directory_create",
+        "{problem}"
+    );
+    assert_eq!(problem["errno"], 17, "{problem}");
+    assert!(
+        problem["diagnostic"]
+            .as_str()
+            .unwrap()
+            .starts_with("staging_directory_create errno=17")
+    );
     f.stop();
     {
         // Reach review without waiting for backoff, then remove only this
@@ -1224,6 +1238,8 @@ fn admin_retry_delivers_a_reviewed_job_and_replays_its_receipt() {
     let resume = &detail["details"]["latest_resume"];
     assert_eq!(resume["reason"], "Removed the \"foreign\" file");
     assert_eq!(resume["actor"].as_str().unwrap().len(), 64);
+    // After delivery the recorded problem remains as history.
+    assert_eq!(detail["details"]["last_problem"]["errno"], 17);
     // After sign-out the same request discloses nothing.
     assert_eq!(
         a.logout(
