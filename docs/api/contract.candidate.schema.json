@@ -2284,7 +2284,9 @@
         "operation": {
           "type": "string",
           "maxLength": 240,
-          "pattern": "^[ -~]*$"
+          "not": {
+            "pattern": "[^ -~]"
+          }
         },
         "errno": {
           "anyOf": [
@@ -2313,7 +2315,9 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 240,
-          "pattern": "^[ -~]+$"
+          "not": {
+            "pattern": "[^ -~]"
+          }
         },
         "recorded_at": {
           "$ref": "#/$defs/Timestamp"
