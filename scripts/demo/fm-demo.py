@@ -236,11 +236,12 @@ def probe():
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
+    ctx.set_alpn_protocols(["http/1.1"])  # the admin listener requires ALPN http/1.1
     try:
         c = http.client.HTTPSConnection("localhost", ADMIN_PORT, context=ctx, timeout=3)
         c.request("GET", "/")
         return c.getresponse().status
-    except OSError:
+    except (OSError, http.client.HTTPException):
         return None
 
 
