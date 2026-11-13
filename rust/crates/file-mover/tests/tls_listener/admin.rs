@@ -749,10 +749,7 @@ fn admin_history_pages_and_detail_match_operator_status() {
         ("state=Committed", "invalid_http"),
         ("cursor=bogus", "invalid_cursor"),
         // Confirmation mode: cancel and clear-history only (delete-data later).
-        (
-            "confirm_action=delete-data&job_ids=1",
-            "invalid_selection",
-        ),
+        ("confirm_action=delete-data&job_ids=1", "invalid_selection"),
         (
             "limit=5&confirm_action=cancel&job_ids=1",
             "invalid_selection",
