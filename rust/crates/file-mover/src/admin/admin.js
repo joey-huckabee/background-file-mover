@@ -140,7 +140,9 @@
     var tips = ["The mover accepted the request", "The mover has taken over the source files; the sender may let go",
       "All files are at the destination (" + (mode === "Move" ? "source removed" : "source kept") + ")"];
     labels.forEach(function (label, i) {
-      wrap.appendChild(el("span", label, "step" + (done[i] ? " done" : ""), tips[i]));
+      // Each reached step is a colored pill; unreached steps are outlined grey.
+      wrap.appendChild(el("span", label, "step step-" + i + (done[i] ? " done" : ""),
+        (done[i] ? "" : "Not yet: ") + tips[i]));
       if (i < 2) { wrap.appendChild(el("span", "›", "arrow")); }
     });
     var attention = ATTENTION[item.condition];

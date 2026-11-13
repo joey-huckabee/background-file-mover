@@ -16,6 +16,10 @@ No action, dependency or real state.
     Waiting for files, Ready to deliver, Retrying delivery or Needs review.
   - Job column toggles **oldest/newest first** (server-side order).
   - Session-timeout and read-only notes removed.
+- After live review: Progress steps are pill badges colored per stage (Received
+  blue, Acquired teal, Copied/Moved solid green; unreached steps outlined grey),
+  and "Sign out everywhere" is labelled **Sign out** (hover: signs out every
+  session; transfers keep running).
 - **Job detail** opens **inline** under the selected row (one open at a time) in
   a three-panel layout (Job, Activity, Storage reserved) above the files table.
   All facts in plain wording; hover shows the technical field and value. Files:

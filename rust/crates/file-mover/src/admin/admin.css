@@ -76,3 +76,12 @@ tr.detail-row>td{background:#f7f9f2;padding:14px 16px;white-space:normal}
 @media(max-width:1000px){.detail-grid{grid-template-columns:1fr}.settings-grid{grid-template-columns:1fr}}
 .steps{flex-wrap:nowrap;white-space:nowrap}
 .history .sub{white-space:nowrap}
+/* Progress pills: reached steps colored per stage, unreached outlined grey. */
+.steps{gap:5px}
+.step{display:inline-block;font-size:11px;line-height:1;padding:5px 9px;border-radius:999px;border:1px solid #d6dccf;background:#fff;color:#9aa494;font-weight:500}
+.step.done{border-color:transparent;font-weight:600}
+.step-0.done{background:#e3edf6;color:#2f5878}
+.step-1.done{background:#dcefe9;color:#22665a}
+.step-2.done{background:#2f6b4f;color:#fff}
+.arrow{color:#b8c1b0;font-size:12px}
+.steps .badge{margin-left:4px;padding:5px 9px;border-radius:999px;font-size:11px;line-height:1}
