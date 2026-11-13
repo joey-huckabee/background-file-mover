@@ -592,8 +592,22 @@ fn admin_connection_flood_does_not_starve_producer_or_operator() {
     }
     let opened = flood.finish();
     assert!(opened > 20, "flood must actually have run: {opened}");
-    // The admin listener still serves after the flood.
-    assert_eq!(a.call("GET", "/", "", &[]).status, 200);
+    // Admin recovers after the flood. Connections still queued when the flood
+    // stopped may each hold an admin slot until the 5 s handshake deadline.
+    let until = Instant::now() + Duration::from_secs(10);
+    loop {
+        match a.try_raw(&a.page()) {
+            Ok(reply) => {
+                assert_eq!(reply.status, 200);
+                break;
+            }
+            Err(_) => assert!(
+                Instant::now() < until,
+                "admin did not recover after the flood"
+            ),
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
     f.stop();
 }
 
