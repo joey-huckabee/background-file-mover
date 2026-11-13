@@ -2870,7 +2870,7 @@ fn status_page_is_bounded_ascending_and_reports_more() {
         })
         .collect();
     let page = |after, limit| {
-        let (rows, more) = s.status_page(after, limit).unwrap();
+        let (rows, more) = s.status_page(after, limit, false).unwrap();
         (rows.into_iter().map(|(id, _)| id).collect::<Vec<_>>(), more)
     };
     assert_eq!(page(0, 2), (ids[..2].to_vec(), true));
@@ -2880,12 +2880,25 @@ fn status_page_is_bounded_ascending_and_reports_more() {
     assert_eq!(page(0, 5), (ids.clone(), false));
     for limit in [0, 257] {
         assert!(matches!(
-            s.status_page(0, limit),
+            s.status_page(0, limit, false),
             Err(StoreError::InvalidContext)
         ));
     }
     // Page rows equal individual status reads.
-    let (rows, _) = s.status_page(0, 256).unwrap();
+    // Descending pages walk the same IDs in reverse.
+    let (desc, more) = s.status_page(i64::MAX, 2, true).unwrap();
+    assert_eq!(
+        desc.iter().map(|(id, _)| *id).collect::<Vec<_>>(),
+        vec![ids[4], ids[3]]
+    );
+    assert!(more);
+    let (desc, more) = s.status_page(ids[1], 2, true).unwrap();
+    assert_eq!(
+        desc.iter().map(|(id, _)| *id).collect::<Vec<_>>(),
+        vec![ids[0]]
+    );
+    assert!(!more);
+    let (rows, _) = s.status_page(0, 256, false).unwrap();
     for (id, status) in rows {
         let single = s.status(id).unwrap().unwrap();
         assert_eq!(status.review_epoch, single.review_epoch);

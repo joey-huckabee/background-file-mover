@@ -1235,6 +1235,43 @@
               "type": "null"
             }
           ]
+        },
+        "files_total": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256
+        },
+        "files_delivered": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "measured_bytes": {
+          "$ref": "#/$defs/LedgerBytes"
+        },
+        "unmeasured_files": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "source_folder": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 4096,
+          "description": "Submission directory relative to the source root recorded with the job; empty when the job was submitted from that root itself."
+        },
+        "destination_folder": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255,
+          "description": "Job directory relative to the destination root recorded with the job (which may differ from the currently configured root for older jobs)."
+        },
+        "transfer_mode": {
+          "type": "string",
+          "enum": [
+            "Copy",
+            "Move"
+          ]
         }
       },
       "required": [
@@ -1245,7 +1282,14 @@
         "source_paths_released",
         "retry_review",
         "cancellation",
-        "deletion"
+        "deletion",
+        "files_total",
+        "files_delivered",
+        "measured_bytes",
+        "unmeasured_files",
+        "source_folder",
+        "destination_folder",
+        "transfer_mode"
       ],
       "oneOf": [
         {
@@ -1268,7 +1312,8 @@
             ]
           }
         }
-      ]
+      ],
+      "x-extension": "Dashboard row extension approved 2026-11-12 (increment134): file progress, measured bytes (decimal string), folders relative to each job's recorded roots (source_folder may be empty for the root itself) and effective transfer mode. Current configured roots appear only in admin settings and may differ for older jobs."
     },
     "ConfirmationToken": {
       "type": "string",
@@ -2178,6 +2223,49 @@
       "maxLength": 36,
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
       "description": "Canonical response/manifest UUID; requests accept either hexadecimal case. No version/variant restriction."
+    },
+    "AdminSettings": {
+      "type": "object",
+      "description": "Read-only configuration snapshot taken at service startup (increment134). Paths and policy only; never key material, password verifiers or file contents. Certificate subject/notAfter are read from the loaded DER files.",
+      "required": [
+        "config_file",
+        "loaded_at",
+        "transfers",
+        "storage",
+        "producer",
+        "dashboard",
+        "internal"
+      ],
+      "properties": {
+        "config_file": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "loaded_at": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "transfers": {
+          "type": "object"
+        },
+        "storage": {
+          "type": "object"
+        },
+        "producer": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "dashboard": {
+          "type": "object"
+        },
+        "internal": {
+          "type": "object"
+        }
+      }
     }
   },
   "x-history-clear-policy": "Group50: after safe stop/settlement, successful eligible clear forgets all source/destination linkage, ownership/accounting/inventory and action results. Files remain unmanaged; no post-clear cleanup or reconstruction.",

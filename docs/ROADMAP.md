@@ -40,12 +40,27 @@ dashboard remain unfinished. Packaging is not the next dashboard milestone.
   login/session/logout routes and the embedded sign-in page
   ([setup](ADMIN-HTTPS-SETUP.md)). [Increment131](RUST-INCREMENT-131.md) adds
   read-only job history and detail; [increment132](RUST-INCREMENT-132.md) the
-  retention view. Actions and the UI refinement pass remain; live password
+  retention view; [increment134](RUST-INCREMENT-134.md) applies the first live UI
+  review (inline detail, progress steps, new columns, sort, Storage, Settings).
+  Actions remain; live password
   activation over IPC remains unfinished.
   Account setup alone does not complete this dashboard milestone.
 - [ ] Add reviewed-state retry, then safe cancellation, confirmed history clear
   and separately confirmed owned-data deletion in bounded increments. Preserve
   exact replay, actual effect settlement and group-50 complete forgetting.
+- [ ] **Multiple admin browser connections (user request 2026-11-12, soon):**
+  the admin listener admits one connection at a time. Allow several independent
+  browser connections while keeping a guaranteed private-operator slot and the
+  bounded global budget; measure under producer load. Prerequisite for live updates.
+- [ ] **Live status updates (user request 2026-11-12):** push job/retention
+  changes to the open dashboard when they happen, without polling and without a
+  full-page refresh (update only the affected rows/panels). Proposed transport:
+  Server-Sent Events from the admin listener (native browser `EventSource`, no
+  libraries). Prerequisites: a separate bounded budget for long-lived streams
+  (the admin listener currently admits one connection at a time), events emitted
+  from committed state transitions only, stream closed on logout/expiry/password
+  activation, no inactivity renewal from stream traffic, and reconnect that
+  re-reads authoritative state. Its own reviewed increment.
 - [ ] **UI review and refinement:** after real read data and action flows are
   available, the coordinator reviews and edits every screen with the user.
   Trim redundant cards, labels and explanatory copy; simplify navigation and

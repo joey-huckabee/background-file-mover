@@ -506,6 +506,9 @@ mod tests {
             .unwrap();
         assert_eq!(ok.session.len(), 64);
         assert_ne!(*ok.session, *ok.csrf);
+        // The slot frees only at actual verifier thread exit, which can trail
+        // the reply under load; wait so the next login is not Busy.
+        wait_idle(&s);
         let now = Instant::now();
         let auth = s
             .authorize(&ok.session, Some(&ok.csrf), Activity::Deliberate, now)
@@ -521,6 +524,7 @@ mod tests {
                 rt.block_on(s.login(user, pw(password), long)).err(),
                 Some(LoginError::InvalidCredentials)
             );
+            wait_idle(&s);
         }
         // Non-canonical encodings of a valid token never authorize.
         let upper = ok.session.to_uppercase();

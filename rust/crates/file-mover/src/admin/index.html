@@ -12,59 +12,62 @@
 <section class="art" aria-hidden="true">
 <div class="brand"><span class="mark">fm</span><span>FILE MOVER<small>OPERATIONS CONSOLE</small></span></div>
 <h1>Quiet confidence.<br><em>Every transfer.</em></h1>
-<p>Transfers continue independently of dashboard sessions.</p>
 </section>
 <section class="form-wrap">
 <form id="signin-form" class="form" novalidate>
 <h2>Sign in to File Mover</h2>
-<p class="muted">Use the host-managed administrator account.</p>
 <label for="username">Username</label>
 <input id="username" name="username" autocomplete="username" required maxlength="128" spellcheck="false" autocapitalize="off">
 <label for="password">Password</label>
 <input id="password" name="password" type="password" autocomplete="current-password" required>
 <div id="signin-error" class="error" role="alert"></div>
 <button id="signin-button" class="primary" type="submit">Sign in</button>
-<p class="foot">Account setup and password changes are host-local.</p>
 </form>
 </section>
 </main>
 <div id="shell" class="shell" hidden>
 <header class="top">
 <div class="brand"><span class="mark">fm</span><span>FILE MOVER<small>OPERATIONS CONSOLE</small></span></div>
-<button id="signout" class="secondary" type="button">Sign out everywhere</button>
+<button id="signout" class="secondary" type="button" title="Signs out every open dashboard session. Transfers keep running.">Sign out</button>
 </header>
 <main class="content">
 <div class="heading">
-<div><h1 id="view-title">Job history</h1><p id="idle" class="muted"></p></div>
+<h1 id="view-title">Job history</h1>
 <button id="refresh" class="secondary" type="button">Refresh</button>
 </div>
-<nav class="tabs" aria-label="Views"><button id="tab-history" class="tab active" type="button" aria-pressed="true">Job history</button><button id="tab-retention" class="tab" type="button" aria-pressed="false">Retention</button></nav>
+<nav class="tabs" aria-label="Views"><button id="tab-history" class="tab active" type="button" aria-pressed="true">Job history</button><button id="tab-storage" class="tab" type="button" aria-pressed="false">Storage</button><button id="tab-settings" class="tab" type="button" aria-pressed="false">Settings</button></nav>
 <div id="shell-error" class="error" role="alert"></div>
 <div id="history-view">
 <section class="card" aria-labelledby="history-heading">
-<h2 id="history-heading" class="sr-only">Retained jobs</h2>
+<h2 id="history-heading" class="sr-only">Jobs</h2>
 <p id="history-status" class="muted" role="status"></p>
 <div class="scroll">
-<table>
-<thead><tr><th>Job</th><th>Generator</th><th>State</th><th>Condition</th><th>Source paths</th></tr></thead>
+<table class="history">
+<thead><tr>
+<th><button id="sort" class="sort" type="button" title="Oldest first; click for newest first">Job ▲</button></th>
+<th title="Received: the mover accepted the request. Acquired: the mover took over the source files. Copied/Moved: all files are at the destination. A badge appears only when something is waiting or needs attention.">Progress</th>
+<th title="How many of the job's files are at the destination">Files delivered</th>
+<th title="Measured total size of the job's files; unmeasured files are never counted as zero">Size</th>
+<th title="The job's folder relative to the source root recorded with the job">Source folder</th>
+<th title="The job's folder relative to the destination root recorded with the job">Destination folder</th>
+</tr></thead>
 <tbody id="history-rows"></tbody>
 </table>
 </div>
 <div class="pager"><button id="prev" class="secondary" type="button" disabled>Previous</button><button id="next" class="secondary" type="button" disabled>Next</button></div>
 </section>
-<section id="detail" class="card" hidden aria-labelledby="detail-title">
-<div class="heading"><h2 id="detail-title" tabindex="-1"></h2><button id="close-detail" class="secondary" type="button">Close</button></div>
-<div id="detail-body"></div>
+</div>
+<div id="storage-view" hidden>
+<section class="card" aria-labelledby="storage-heading">
+<h2 id="storage-heading" class="sr-only">Reserved storage</h2>
+<p id="storage-status" class="muted" role="status"></p>
+<div id="storage-body"></div>
 </section>
 </div>
-<div id="retention-view" hidden>
-<section class="card" aria-labelledby="retention-heading">
-<h2 id="retention-heading" class="sr-only">Reservation ledger</h2>
-<p id="retention-status" class="muted" role="status"></p>
-<div id="retention-body"></div>
-</section>
+<div id="settings-view" hidden>
+<p id="settings-status" class="muted" role="status"></p>
+<div id="settings-body"></div>
 </div>
-<p class="muted small">Read-only view. Retry, cancel, clear and delete are not available yet.</p>
 </main>
 </div>
 <script>/*SCRIPT*/</script>

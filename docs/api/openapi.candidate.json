@@ -1642,6 +1642,19 @@
             }
           },
           {
+            "name": "order",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "asc"
+            },
+            "description": "Job ID order (approved 2026-11-12). The opaque cursor binds the order; a cursor used with the other order is 400 invalid_cursor."
+          },
+          {
             "name": "cursor",
             "in": "query",
             "schema": {
@@ -4396,6 +4409,93 @@
                 "description": "Authenticated responses are not cacheable."
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v2/admin/settings": {
+      "get": {
+        "operationId": "adminSettings",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "description": "Read-only admin settings (approved 2026-11-12). Same read authorization and activity rules as other admin GETs.",
+        "responses": {
+          "200": {
+            "description": "Settings snapshot",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminSettings"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked session",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AuthenticationRequired"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Marked read failed CSRF/Origin/Fetch-Metadata",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "admin_request_forbidden"
+            ]
+          },
+          "405": {
+            "description": "Only GET",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ]
           }
         }
       }

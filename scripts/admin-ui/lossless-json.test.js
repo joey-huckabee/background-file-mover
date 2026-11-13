@@ -14,7 +14,7 @@ for (const bad of bads) assert.throws(() => parseJSON(bad), Error, JSON.stringif
 console.log('lossless parser ok');
 
 // Exact byte formatting: BigInt arithmetic, never binary64; rounds down, never overstates.
-const bytesSrc = src.slice(src.indexOf('  function bytes(value)'), src.indexOf('  function stat('));
+const bytesSrc = src.slice(src.indexOf('  function bytes(value)'), src.indexOf('  function time('));
 const bytes = new Function(bytesSrc + '; return bytes;')();
 assert.strictEqual(bytes(null), '—');
 assert.strictEqual(bytes('0'), '0 bytes');

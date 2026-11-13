@@ -362,6 +362,24 @@ fn admin_https_login_session_logout_and_boundary_precedence() {
     // Target authority, forwarded identity and unimplemented routes.
     let wrong_host = a.raw(b"GET / HTTP/1.1\r\nHost: evil.example\r\nContent-Length: 0\r\n\r\n");
     assert_eq!(wrong_host.status, 403);
+    // A browser page load gets directions to the configured address only.
+    assert_eq!(
+        wrong_host.header("content-type"),
+        Some("text/html; charset=utf-8")
+    );
+    assert!(wrong_host.header("content-security-policy").is_some());
+    let page = String::from_utf8(wrong_host.body.clone()).unwrap();
+    assert!(
+        page.contains(&format!("https://localhost:{}/", a.port)),
+        "{page}"
+    );
+    assert!(!page.contains("evil.example"));
+    // API calls under a wrong address keep the JSON refusal.
+    let api = a.raw(
+        b"GET /api/v2/admin/session HTTP/1.1\r\nHost: evil.example\r\nContent-Length: 0\r\n\r\n",
+    );
+    assert_eq!(api.status, 403);
+    assert_eq!(api.json(), json!({"error":"admin_request_forbidden"}));
     assert_eq!(
         a.call("GET", "/", "X-Forwarded-For: 10.0.0.1\r\n", &[])
             .status,
@@ -371,6 +389,7 @@ fn admin_https_login_session_logout_and_boundary_precedence() {
     for path in [
         "/api/v2/jobs/1",
         "/api/v2/admin/jobs",
+        "/api/v2/admin/settings",
         "/api/v2/retention",
         "/api/v2/jobs/1/retention",
     ] {
@@ -574,7 +593,11 @@ fn admin_history_pages_and_detail_match_operator_status() {
     }
 
     // Unauthenticated reads disclose nothing.
-    for path in ["/api/v2/admin/jobs", "/api/v2/jobs/1"] {
+    for path in [
+        "/api/v2/admin/jobs",
+        "/api/v2/jobs/1",
+        "/api/v2/admin/settings",
+    ] {
         let r = a.call("GET", path, "", &[]);
         assert_eq!(r.status, 401, "{path}");
         assert_eq!(r.json(), json!({"error":"authentication_required"}));
@@ -604,7 +627,9 @@ fn admin_history_pages_and_detail_match_operator_status() {
             "condition":"Committed","source_paths_released":true,
             "retry_review":{"instance_id":instance,"job_id":"1","review_epoch":null},
             "cancellation":{"state":"NotRequested","requested_at":null,"stopped_at":null},
-            "deletion":null})
+            "deletion":null,
+            "files_total":2,"files_delivered":2,"measured_bytes":"12","unmeasured_files":0,
+            "source_folder":"current","destination_folder":UUID,"transfer_mode":"Copy"})
     );
     assert_eq!(items[1]["job_id"], "2");
     assert_eq!(items[1]["recording_id"], second_uuid);
@@ -618,11 +643,60 @@ fn admin_history_pages_and_detail_match_operator_status() {
     assert_eq!(next["items"][0]["job_id"], "2");
     assert_eq!(next["next_cursor"], Value::Null);
     let foreign = get(
-        &format!("/api/v2/admin/jobs?cursor=c1.{}.1", "f".repeat(32)),
+        &format!("/api/v2/admin/jobs?cursor=c1.{}.a.1", "f".repeat(32)),
         "",
     );
     assert_eq!(foreign.status, 400);
     assert_eq!(foreign.json(), json!({"error":"invalid_cursor"}));
+    // Newest first; a cursor only continues the order it was issued for.
+    let desc = get("/api/v2/admin/jobs?order=desc&limit=1", "").json();
+    assert_eq!(desc["items"][0]["job_id"], "2");
+    let desc_cursor = desc["next_cursor"].as_str().unwrap().to_owned();
+    let older = get(
+        &format!("/api/v2/admin/jobs?order=desc&limit=1&cursor={desc_cursor}"),
+        "",
+    )
+    .json();
+    assert_eq!(older["items"][0]["job_id"], "1");
+    assert_eq!(older["next_cursor"], Value::Null);
+    let mixed = get(&format!("/api/v2/admin/jobs?cursor={desc_cursor}"), "");
+    assert_eq!(mixed.json(), json!({"error":"invalid_cursor"}));
+
+    // Read-only settings: configuration and certificate summaries, no secrets.
+    let settings = get("/api/v2/admin/settings", "");
+    assert_eq!(settings.status, 200);
+    assert_eq!(settings.header("cache-control"), Some("no-store"));
+    let s = settings.json();
+    assert_eq!(s["transfers"]["generator_id"], "recorder");
+    assert_eq!(s["transfers"]["transfer_mode"], "Copy");
+    assert_eq!(s["producer"]["transport"], "HTTPS");
+    assert_eq!(
+        s["producer"]["approved_clients"][0]["sha256"],
+        mover_fs::sha256_hex(&fixture("client.der"))
+    );
+    assert_eq!(s["dashboard"]["authority"], format!("localhost:{}", a.port));
+    let server = &s["dashboard"]["certificates"][0];
+    assert_eq!(server["role"], "Server certificate");
+    let not_after = server["not_after"].as_str().expect("expiry read from DER");
+    assert!(
+        not_after.len() == 20 && not_after.ends_with('Z'),
+        "{not_after}"
+    );
+    let text = settings.body.clone();
+    let key = fs::read(f.root.join("admin-credentials/server.key.der")).unwrap();
+    assert!(!text.windows(16).any(|w| key.windows(16).any(|k| k == w)));
+    assert!(!String::from_utf8_lossy(&text).contains("argon2"));
+    assert_eq!(
+        a.call(
+            "POST",
+            "/api/v2/admin/settings",
+            &format!("Cookie: {cookie}\r\n"),
+            &[]
+        )
+        .status,
+        405
+    );
+
     for (query, code) in [
         ("limit=0", "invalid_http"),
         ("limit=1&limit=1", "invalid_http"),

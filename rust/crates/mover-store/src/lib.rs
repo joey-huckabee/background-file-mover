@@ -503,19 +503,27 @@ impl Store {
             Ok(status)
         })
     }
-    /// One bounded page of retained jobs in ascending original job ID after
-    /// `after`, read in a single transaction. Returns whether more rows follow.
-    /// No cross-request snapshot; cleared jobs are simply absent.
-    pub fn status_page(&self, after: i64, limit: usize) -> Result<(Vec<(i64, JobStatus)>, bool)> {
+    /// One bounded page of retained jobs, read in a single transaction.
+    /// Ascending: IDs after `cursor`; descending: IDs before `cursor`. Returns
+    /// whether more rows follow. No cross-request snapshot; cleared jobs are absent.
+    pub fn status_page(
+        &self,
+        cursor: i64,
+        limit: usize,
+        descending: bool,
+    ) -> Result<(Vec<(i64, JobStatus)>, bool)> {
         if !(1..=256).contains(&limit) {
             return Err(StoreError::InvalidContext);
         }
         self.call(move |db| {
             let tx = db.connection.transaction()?;
             let ids = {
-                let mut s =
-                    tx.prepare("SELECT job_id FROM jobs WHERE job_id>?1 ORDER BY job_id LIMIT ?2")?;
-                s.query_map(rusqlite::params![after, limit as i64 + 1], |r| {
+                let mut s = tx.prepare(if descending {
+                    "SELECT job_id FROM jobs WHERE job_id<?1 ORDER BY job_id DESC LIMIT ?2"
+                } else {
+                    "SELECT job_id FROM jobs WHERE job_id>?1 ORDER BY job_id LIMIT ?2"
+                })?;
+                s.query_map(rusqlite::params![cursor, limit as i64 + 1], |r| {
                     r.get::<_, i64>(0)
                 })?
                 .collect::<std::result::Result<Vec<_>, _>>()?
