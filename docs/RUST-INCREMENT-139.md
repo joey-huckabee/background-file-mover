@@ -73,3 +73,15 @@ code (`delivery_requires_review`), so the operator could not tell what to fix.
   clean; all mover-store tests; mover-fs backup tests; API migration,
   compatibility and offline-state tests; all 27 real-service TLS/admin tests.
   The SLES gates run in PR CI.
+
+## CI result
+
+PR46 CI run
+[43427104049](https://github.com/joey-huckabee/background-file-mover/actions/runs/43427104049)
+at `c748756` passes both full modes: production **400 tests per debug/release
+profile** and nfs-qualification **404/profile** (increment138's 397/401 plus the
+two store tests and the claim classification test). An earlier run failed one
+API test (a refused resubmission recorded a problem); fixed by recording only
+storage failures. Independent review raised five findings across the contract
+schema, collision advice, printable-text patterns and refusal classification;
+all fixed, final re-review had no findings. Merged to main as `bf09834`.
