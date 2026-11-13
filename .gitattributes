@@ -12,3 +12,6 @@ poetry.lock text eol=lf
 # rule at the top would rewrite any byte inside one that happened to look like
 # a line ending, giving a database corrupt in a way no diff would show.
 *.db binary
+
+# Windows batch files need CRLF in the working tree; the index stays LF.
+*.cmd text eol=crlf

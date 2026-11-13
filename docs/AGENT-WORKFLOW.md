@@ -177,6 +177,8 @@ Recorded 2026-11-11 from the retired model handoff.
   `wsl -u root -- bash scripts/dev-wsl-namespace.sh bash scripts/dev-local-tls-tests.sh [FILTER]`
   (gate SQLite flags; private mount namespace hides the WSLg mirror of `/` that
   the mover's alias checks otherwise refuse). Fast feedback only, not gate evidence.
+- Dashboard demos: [`scripts/demo/fm-demo.cmd`](../scripts/demo/README.md) builds, sets up,
+  runs and feeds a disposable demo in WSL (transient systemd unit `fm-demo-review`).
 - Native `cargo fmt`, `cargo clippy` and focused `cargo test` in the WSL clone are
   quick pre-checks only. Some tests need gate-provided environment (for example
   `FILE_MOVER_TLS_FIXTURES`) and fail outside the gate. PR CI runs both full modes.
