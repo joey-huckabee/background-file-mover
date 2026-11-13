@@ -36,7 +36,7 @@ impl Admin {
     fn origin(&self) -> String {
         format!("https://localhost:{}", self.port)
     }
-    fn raw(&self, bytes: &[u8]) -> Reply {
+    fn client(&self) -> rustls::StreamOwned<rustls::ClientConnection, std::net::TcpStream> {
         let mut config = ClientConfig::builder_with_provider(tls::provider())
             .with_protocol_versions(&[&rustls::version::TLS13])
             .unwrap()
@@ -55,22 +55,49 @@ impl Admin {
             ServerName::try_from("localhost").unwrap(),
         )
         .unwrap();
-        let mut stream = rustls::StreamOwned::new(connection, socket);
-        stream.write_all(bytes).unwrap();
-        stream.flush().unwrap();
+        rustls::StreamOwned::new(connection, socket)
+    }
+    /// One request; Err when the server closes without an HTTP reply.
+    fn try_raw(&self, bytes: &[u8]) -> Result<Reply, String> {
+        let mut stream = self.client();
         let mut out = Vec::new();
-        stream.read_to_end(&mut out).unwrap();
+        stream
+            .write_all(bytes)
+            .and_then(|()| stream.flush())
+            .and_then(|()| stream.read_to_end(&mut out).map(|_| ()))
+            .map_err(|e| e.to_string())?;
         let end = out
             .windows(4)
             .position(|b| b == b"\r\n\r\n")
-            .expect("complete HTTP reply");
+            .ok_or("closed before an HTTP reply")?;
         let head = String::from_utf8(out[..end].to_vec()).unwrap();
         let status = head.split_whitespace().nth(1).unwrap().parse().unwrap();
-        Reply {
+        Ok(Reply {
             status,
             head,
             body: out[end + 4..].to_vec(),
+        })
+    }
+    fn raw(&self, bytes: &[u8]) -> Reply {
+        self.try_raw(bytes).expect("complete HTTP reply")
+    }
+    /// An admitted admin session: TLS handshake finished, no request sent yet.
+    fn hold(&self) -> rustls::StreamOwned<rustls::ClientConnection, std::net::TcpStream> {
+        let mut stream = self.client();
+        while stream.conn.is_handshaking() {
+            stream
+                .conn
+                .complete_io(&mut stream.sock)
+                .expect("admitted admin handshake");
         }
+        stream
+    }
+    fn page(&self) -> Vec<u8> {
+        format!(
+            "GET / HTTP/1.1\r\nHost: localhost:{}\r\nContent-Length: 0\r\n\r\n",
+            self.port
+        )
+        .into_bytes()
     }
     fn call(&self, method: &str, path: &str, headers: &str, body: &[u8]) -> Reply {
         let mut bytes = format!(
@@ -795,5 +822,40 @@ fn admin_history_pages_and_detail_match_operator_status() {
     assert_eq!(get("/api/v2/jobs/1", "").status, 401);
     assert_eq!(get("/api/v2/retention", "").status, 401);
     assert_eq!(get("/api/v2/jobs/1/retention", "").status, 401);
+    f.stop();
+}
+
+#[test]
+fn several_admin_connections_are_served_and_the_operator_keeps_its_slot() {
+    let (mut f, a) = admin_fixture();
+    // Held sessions stay admitted until the server's 5 s request deadline, so
+    // every check below runs well inside that window.
+    let started = Instant::now();
+    let held: Vec<_> = (0..3).map(|_| a.hold()).collect();
+    // A fourth concurrent browser connection is served.
+    assert_eq!(a.raw(&a.page()).status, 200);
+    let fourth = a.hold();
+    // All four admin slots held: a fifth is closed without any HTTP reply.
+    assert!(a.try_raw(&a.page()).is_err());
+    // The private operator socket keeps its reserved slot.
+    assert_eq!(f.operator("/healthz").0, 200);
+    assert!(
+        started.elapsed() < Duration::from_secs(4),
+        "test window exceeded"
+    );
+    drop(held);
+    drop(fourth);
+    // Released sessions free their slots.
+    let until = Instant::now() + Duration::from_secs(10);
+    loop {
+        match a.try_raw(&a.page()) {
+            Ok(reply) => {
+                assert_eq!(reply.status, 200);
+                break;
+            }
+            Err(_) => assert!(Instant::now() < until, "admin slots not released"),
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
     f.stop();
 }
