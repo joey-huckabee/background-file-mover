@@ -32,6 +32,10 @@ the authorizations; this list grants nothing new.
 
 ## Current direction (2026-10-13)
 
+2026-11-12 admin connections: the user says "go ahead with 1" (multiple admin
+browser connections). Increment135: four admin connections, explicit operator
+reservation; see docs/RUST-INCREMENT-135.md.
+
 2026-11-12 UI refinement: the user accepted the Settings recommendations and asked
 to review the hosted result ("Just go with it"). Increment134 applies all review
 decisions plus approved contract extensions (row fields, order, settings route).
