@@ -999,15 +999,15 @@ fn live_event_stream_signals_changes_and_closes_on_sign_out() {
     assert!(head.starts_with("HTTP/1.1 200 OK"), "{head}");
     assert!(head.contains("Content-Type: text/event-stream"), "{head}");
     assert!(head.contains("Cache-Control: no-store"), "{head}");
-    let text = read_until(&mut first, "event: ready", Duration::from_secs(5));
+    // The ready event may arrive in the same read as the head.
+    let text = head.clone() + &read_until(&mut first, "event: ready", Duration::from_secs(5));
     assert!(text.contains("event: ready"), "{text}");
 
     // A second stream fits; a third is refused; requests and operator still work.
     let (mut second, head2) = open_events(&a, &cookie, "");
     assert!(head2.starts_with("HTTP/1.1 200 OK"), "{head2}");
-    assert!(
-        read_until(&mut second, "event: ready", Duration::from_secs(5)).contains("event: ready")
-    );
+    let text2 = head2.clone() + &read_until(&mut second, "event: ready", Duration::from_secs(5));
+    assert!(text2.contains("event: ready"), "{text2}");
     let third = a.call(
         "GET",
         "/api/v2/admin/events",
