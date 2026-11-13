@@ -8,8 +8,9 @@ cancel"; files stay in place). Builds on the schema-15 storage and safe stop of
 
 - **Confirmation proof** (`file-mover/src/confirmation.rs`): HMAC-SHA256 over a
   framed scope: state instance, account principal, session revocation
-  generation, action, exact ordered job IDs and expiry. Wire form
-  `c1.<expires_at>.<64 hex>` (contract `ConfirmationToken`). Valid for 300 s.
+  generation, action, exact ordered job IDs, the job-ID high-water mark at
+  issuance and expiry. Wire form `c1.<expires_at>.<high_water>.<64 hex>`
+  (contract `ConfirmationToken`). Valid for 300 s.
   The key is random per process and never stored, so a restart, a logout or an
   account activation voids every proof. Verification is constant-time and any
   mismatch (scope, order, duplicates, expiry, encoding) is the same refusal.
@@ -45,6 +46,16 @@ cancel"; files stay in place). Builds on the schema-15 storage and safe stop of
   - After a lost reply or 503 the same request can be resent until the proof
     expires.
   - Activity then shows "Cancellation requested …" or "Cancelled …".
+
+## Review fixes
+
+- A proof could have cancelled a job created after it was issued (preview
+  `[2]` while only job 1 existed; job 2 created later; resend). The proof now
+  authenticates the job-ID high-water mark at issuance, and the cancel route
+  permanently skips any ID above it without dispatching. Missing IDs at or below
+  it still skip silently. The admin TLS test covers both: before and after
+  job 2 exists, the old proof skips it.
+- CI failed once on formatting of the test file (fixed).
 
 ## Tests
 

@@ -1325,7 +1325,7 @@
       "pattern": "^[A-Za-z0-9_.-]+$",
       "x-max-utf8-bytes": 6144,
       "description": "Opaque authenticated confirmation proof, returned unchanged. Engineering limits/expiry/staleness and group50 forgetting are fixed in API-CONTRACT-CLOSEOUT.md; codec/runtime remain unimplemented.",
-      "x-status": "implemented for action cancel in increment141 (HMAC-SHA256 proof 'c1.<expires_at>.<hex>', per-process key, 300 s); clear-history/delete-data not yet"
+      "x-status": "implemented for action cancel in increment141 (HMAC-SHA256 proof 'c1.<expires_at>.<high_water>.<hex>', per-process key, 300 s; IDs above the issuance high-water mark always skip); clear-history/delete-data not yet"
     },
     "DeleteTarget": {
       "type": "object",
@@ -1440,7 +1440,7 @@
         "deletion_targets",
         "complete"
       ],
-      "x-status": "implemented for action cancel in increment141 (HMAC-SHA256 proof 'c1.<expires_at>.<hex>', per-process key, 300 s); clear-history/delete-data not yet",
+      "x-status": "implemented for action cancel in increment141 (HMAC-SHA256 proof 'c1.<expires_at>.<high_water>.<hex>', per-process key, 300 s; IDs above the issuance high-water mark always skip); clear-history/delete-data not yet",
       "x-semantic-rules": [
         "Ordered job_ids include duplicates and exactly match the future mutation body.",
         "Only issue a proof for a complete bounded preview. No truncation or partial deletion authority.",

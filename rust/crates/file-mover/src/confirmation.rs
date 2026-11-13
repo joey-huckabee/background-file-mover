@@ -66,7 +66,7 @@ fn hmac(key: &[u8], message: &[u8]) -> [u8; 32] {
     sha256(&outer)
 }
 
-fn frame(scope: &Scope<'_>, expires_at: i64) -> Vec<u8> {
+fn frame(scope: &Scope<'_>, high_water: i64, expires_at: i64) -> Vec<u8> {
     let mut f = b"BFM-CONFIRMATION\0v1\0".to_vec();
     for text in [scope.instance, scope.principal, scope.action] {
         f.extend_from_slice(&(text.len() as u32).to_be_bytes());
@@ -77,44 +77,50 @@ fn frame(scope: &Scope<'_>, expires_at: i64) -> Vec<u8> {
     for id in scope.job_ids {
         f.extend_from_slice(&id.to_be_bytes());
     }
+    f.extend_from_slice(&high_water.to_be_bytes());
     f.extend_from_slice(&expires_at.to_be_bytes());
     f
 }
 
-/// Issue a proof valid until `now + LIFETIME_SECONDS`.
-pub(crate) fn issue(key: &Key, scope: &Scope<'_>, now: i64) -> (String, i64) {
-    let expires_at = now.saturating_add(LIFETIME_SECONDS);
-    let mac = hmac(key.0.as_ref(), &frame(scope, expires_at));
-    let hex: String = mac.iter().map(|b| format!("{b:02x}")).collect();
-    (format!("c1.{expires_at}.{hex}"), expires_at)
+fn canonical(text: &str) -> Option<i64> {
+    text.parse::<i64>()
+        .ok()
+        .filter(|n| *n >= 0 && n.to_string() == text)
 }
 
-/// Verify an unchanged proof for exactly this scope at `now`. Any difference
-/// (scope, tampering, expiry, encoding) is the same refusal.
-pub(crate) fn verify(key: &Key, token: &str, scope: &Scope<'_>, now: i64) -> bool {
-    let Some(rest) = token.strip_prefix("c1.") else {
-        return false;
-    };
-    let Some((expires, mac)) = rest.split_once('.') else {
-        return false;
-    };
-    let Ok(expires_at) = expires.parse::<i64>() else {
-        return false;
-    };
-    // Canonical decimal only; within the lifetime window.
-    if expires_at.to_string() != expires
-        || expires_at <= now
+/// Issue a proof valid until `now + LIFETIME_SECONDS`. `high_water` is the
+/// job-ID high-water mark at issuance: IDs above it were never allocated when
+/// the operator confirmed, so the proof can never cover a later job.
+pub(crate) fn issue(key: &Key, scope: &Scope<'_>, high_water: i64, now: i64) -> (String, i64) {
+    let expires_at = now.saturating_add(LIFETIME_SECONDS);
+    let mac = hmac(key.0.as_ref(), &frame(scope, high_water, expires_at));
+    let hex: String = mac.iter().map(|b| format!("{b:02x}")).collect();
+    (format!("c1.{expires_at}.{high_water}.{hex}"), expires_at)
+}
+
+/// Verify an unchanged proof for exactly this scope at `now`, returning the
+/// authenticated issuance high-water mark. Any difference (scope, tampering,
+/// expiry, encoding) is the same refusal.
+pub(crate) fn verify(key: &Key, token: &str, scope: &Scope<'_>, now: i64) -> Option<i64> {
+    let mut parts = token.strip_prefix("c1.")?.split('.');
+    let (expires, high_water, mac) = (parts.next()?, parts.next()?, parts.next()?);
+    if parts.next().is_some() {
+        return None;
+    }
+    let expires_at = canonical(expires)?;
+    let high_water = canonical(high_water)?;
+    if expires_at <= now
         || expires_at > now.saturating_add(LIFETIME_SECONDS)
         || mac.len() != 64
         || !mac
             .bytes()
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
     {
-        return false;
+        return None;
     }
-    let expected = hmac(key.0.as_ref(), &frame(scope, expires_at));
+    let expected = hmac(key.0.as_ref(), &frame(scope, high_water, expires_at));
     let expected: String = expected.iter().map(|b| format!("{b:02x}")).collect();
-    bool::from(expected.as_bytes().ct_eq(mac.as_bytes()))
+    bool::from(expected.as_bytes().ct_eq(mac.as_bytes())).then_some(high_water)
 }
 
 #[cfg(test)]
@@ -150,7 +156,7 @@ mod tests {
             action: "cancel",
             job_ids: &ids,
         };
-        let (token, expires) = issue(&key, &scope, 1000);
+        let (token, expires) = issue(&key, &scope, 41, 1000);
         assert_eq!(expires, 1300);
         assert!(
             token.len() >= 16
@@ -158,17 +164,26 @@ mod tests {
                     .bytes()
                     .all(|b| b.is_ascii_alphanumeric() || b"_.-".contains(&b))
         );
-        assert!(verify(&key, &token, &scope, 1000));
-        assert!(verify(&key, &token, &scope, 1299));
-        assert!(!verify(&key, &token, &scope, 1300), "expired");
-        assert!(!verify(&key, &token, &scope, 900), "issued in the future");
+        assert_eq!(verify(&key, &token, &scope, 1000), Some(41));
+        assert_eq!(verify(&key, &token, &scope, 1299), Some(41));
+        assert_eq!(verify(&key, &token, &scope, 1300), None, "expired");
+        assert_eq!(
+            verify(&key, &token, &scope, 900),
+            None,
+            "issued in the future"
+        );
+        // The high-water mark is authenticated, not editable.
+        assert_eq!(
+            verify(&key, &token.replacen(".41.", ".42.", 1), &scope, 1000),
+            None
+        );
         let changed = |f: &dyn Fn(&mut Scope<'_>)| {
             let mut s = Scope {
                 job_ids: &ids,
                 ..scope
             };
             f(&mut s);
-            verify(&key, &token, &s, 1000)
+            verify(&key, &token, &s, 1000).is_some()
         };
         assert!(!changed(&|s| s.instance = "other"));
         assert!(!changed(&|s| s.principal = "other"));
@@ -177,7 +192,7 @@ mod tests {
         assert!(!changed(&|s| s.job_ids = &[1, 3, 3]));
         assert!(!changed(&|s| s.job_ids = &[3, 1]));
         assert!(
-            !verify(&Key::fixed([8; 32]), &token, &scope, 1000),
+            verify(&Key::fixed([8; 32]), &token, &scope, 1000).is_none(),
             "other process"
         );
         for bad in [
@@ -188,7 +203,7 @@ mod tests {
             format!("{token}0"),
             String::new(),
         ] {
-            assert!(!verify(&key, &bad, &scope, 1000), "{bad}");
+            assert!(verify(&key, &bad, &scope, 1000).is_none(), "{bad}");
         }
     }
 }

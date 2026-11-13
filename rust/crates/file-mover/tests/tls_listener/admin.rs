@@ -749,8 +749,14 @@ fn admin_history_pages_and_detail_match_operator_status() {
         ("state=Committed", "invalid_http"),
         ("cursor=bogus", "invalid_cursor"),
         // Confirmation mode is implemented for cancel only (increment 141).
-        ("confirm_action=clear-history&job_ids=1", "invalid_selection"),
-        ("limit=5&confirm_action=cancel&job_ids=1", "invalid_selection"),
+        (
+            "confirm_action=clear-history&job_ids=1",
+            "invalid_selection",
+        ),
+        (
+            "limit=5&confirm_action=cancel&job_ids=1",
+            "invalid_selection",
+        ),
     ] {
         let r = get(&format!("/api/v2/admin/jobs?{query}"), "");
         assert_eq!(r.status, 400, "{query}");
@@ -1323,6 +1329,12 @@ fn admin_cancel_needs_a_matching_confirmation_and_stops_the_job() {
         .as_str()
         .unwrap()
         .to_owned();
+    // A proof issued before job 2 exists can never cancel job 2.
+    let future = get("confirm_action=cancel&job_ids=2").json()["confirmation"]["token"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert!(future.contains(".1."), "high-water 1 bound: {future}");
 
     let headers = |proof: Option<&str>| {
         format!(
@@ -1383,6 +1395,33 @@ fn admin_cancel_needs_a_matching_confirmation_and_stops_the_job() {
     );
     assert_eq!(
         f.operator("/api/v2/jobs/1").1["details"]["condition"],
+        "AwaitingClaims"
+    );
+    let future_headers = format!(
+        "Cookie: {cookie}\r\nOrigin: {}\r\nMover-CSRF-Token: {csrf}\r\nContent-Type: application/json\r\nMover-Confirmation: {future}\r\n",
+        a.origin()
+    );
+    let skip = json!({"accepted_count":0,"failed_count":0,"skipped_count":1});
+    assert_eq!(post(&future_headers, br#"{"job_ids":[2]}"#).json(), skip);
+    // Job 2 is created afterwards (waiting for a file); the same still-valid
+    // proof skips it.
+    let mut second = f.input();
+    second["recording_id"] = json!("0b6f1c2c-1e9d-4b8a-a7f1-2b5d3c4e5f61");
+    fs::write(f.root.join("source/current/c"), b"charlie").unwrap();
+    second["files"] = json!(["c", "never-there"]);
+    second
+        .as_object_mut()
+        .unwrap()
+        .remove("expected_sizes_bytes");
+    let (code, created) = f.https("POST", "/api/v2/jobs", "", &second);
+    assert_eq!(
+        (code, created["error"].as_str()),
+        (409, Some("source_file_missing"))
+    );
+    assert_eq!(f.operator("/api/v2/jobs/2").0, 200, "job 2 now exists");
+    assert_eq!(post(&future_headers, br#"{"job_ids":[2]}"#).json(), skip);
+    assert_eq!(
+        f.operator("/api/v2/jobs/2").1["details"]["condition"],
         "AwaitingClaims"
     );
 

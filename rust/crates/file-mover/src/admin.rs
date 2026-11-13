@@ -1031,13 +1031,18 @@ fn authorize_action<'a>(
     Ok((token, csrf, authorized))
 }
 
-/// The state instance ID, read through the observation queue.
-async fn instance_id(
+/// The state instance ID and job-ID high-water mark, via the observation queue.
+async fn instance_scope(
     observer: &std::sync::mpsc::SyncSender<crate::OperatorWork>,
-) -> Result<String, Reply> {
+) -> Result<(String, i64), Reply> {
     let scope = crate::operator_reply(observer, crate::Observation::RetryScope).await;
     match scope.details.as_ref().filter(|_| scope.status == 200) {
-        Some(d) => Ok(d["instance_id"].as_str().unwrap_or_default().to_owned()),
+        Some(d) => Ok((
+            d["instance_id"].as_str().unwrap_or_default().to_owned(),
+            d["high_water"]
+                .as_i64()
+                .ok_or_else(|| Reply::error(503, "storage_unavailable"))?,
+        )),
         None => Err(from_operator(scope)),
     }
 }
@@ -1091,7 +1096,7 @@ async fn confirmation(
         Ok(q) => q,
         Err(reply) => return reply,
     };
-    let instance = match instance_id(observer).await {
+    let (instance, high_water) = match instance_scope(observer).await {
         Ok(i) => i,
         Err(reply) => return reply,
     };
@@ -1102,7 +1107,8 @@ async fn confirmation(
         action: &action,
         job_ids: &ids,
     };
-    let (token, expires_at) = crate::confirmation::issue(&admin.confirm_key, &scope, crate::now());
+    let (token, expires_at) =
+        crate::confirmation::issue(&admin.confirm_key, &scope, high_water, crate::now());
     // Cancel targets no files, so its preview is complete without deletion targets.
     Reply::json(
         200,
@@ -1129,8 +1135,8 @@ async fn cancel(
         Ok(ids) => ids,
         Err(_) => return Reply::error(400, "invalid_selection"),
     };
-    let instance = match instance_id(observer).await {
-        Ok(i) => i,
+    let instance = match instance_scope(observer).await {
+        Ok((instance, _)) => instance,
         Err(reply) => return reply,
     };
     // Framing refused duplicate headers; any mismatch, expiry or tampering is
@@ -1143,13 +1149,19 @@ async fn cancel(
         action: "cancel",
         job_ids: &ids,
     };
-    if !proof
-        .is_some_and(|p| crate::confirmation::verify(&admin.confirm_key, p, &scope, crate::now()))
-    {
+    let Some(high_water) = proof
+        .and_then(|p| crate::confirmation::verify(&admin.confirm_key, p, &scope, crate::now()))
+    else {
         return Reply::error(400, "invalid_confirmation");
-    }
+    };
     let (mut accepted, mut failed, mut skipped) = (0_u16, 0_u16, 0_u16);
     for job_id in ids {
+        // IDs never allocated when the operator confirmed can never be
+        // cancelled by this proof, even if such a job exists now.
+        if job_id > high_water {
+            skipped += 1;
+            continue;
+        }
         let gate_admin = Arc::clone(admin);
         let gate_token = Zeroizing::new(token.to_owned());
         let gate: crate::RetryGate = Box::new(move |work| {
