@@ -470,13 +470,18 @@
       activity.appendChild(el("p", "Cancelled " + time(cancellation.stopped_at) +
         ". No further work. Files already taken over stay where they are (see Storage).", "notice", "cancellation.state: Cancelled"));
     }
-    var cst = cancelState[job.job_id];
-    if (cst && (cst.proof || cst.sending)) {
-      activity.appendChild(cancelForm(job.job_id));
-    } else if (job.state !== "Committed" && cancellation.state === "NotRequested") {
-      activity.appendChild(cancelForm(job.job_id));
+    var cst = actionState["cancel:" + job.job_id];
+    if (actionPending("cancel", job.job_id) ||
+        (job.state !== "Committed" && cancellation.state === "NotRequested")) {
+      activity.appendChild(actionForm("cancel", job.job_id, job));
     } else if (cst && cst.message) {
       activity.appendChild(el("p", cst.message, "muted"));
+    }
+    // Delivered jobs and completed cancellations can be removed from history.
+    if (actionPending("clear-history", job.job_id) ||
+        job.state === "Committed" || cancellation.state === "Cancelled") {
+      quietJob = false;
+      activity.appendChild(actionForm("clear-history", job.job_id, job));
     }
     if (quietJob) { activity.appendChild(el("p", "No problems recorded.", "muted")); }
 
@@ -660,20 +665,46 @@
     if (liveDeferred || force) { liveDeferred = false; refreshVisible(); }
   }
 
-  // Cancel: a confirmation preview first (a short-lived service proof bound to
-  // this account, session and exact job), then the cancel request with that
-  // proof. After a lost reply the identical request may be resent until the
-  // proof expires; a repeat can only report "already in progress" or skip.
-  var cancelState = {};  // job ID -> {proof, expires_at, sending, message}
+  // Confirmed actions (cancel, clear history): a confirmation preview first (a
+  // short-lived service proof bound to this account, session and exact job),
+  // then the action with that proof. After a lost reply the identical request
+  // may be resent until the proof expires; a repeat cannot act twice.
+  var actionState = {};  // "<action>:<job ID>" -> {proof, expires_at, sending, message}
   function cancelOutcome(counts) {
     if (String(counts.accepted_count) !== "0") { return "Cancelling: the mover is stopping work on this job."; }
     if (String(counts.failed_count) !== "0") { return "A cancellation is already in progress for this job."; }
     return "Nothing to cancel: the job is already delivered, cancelled or no longer tracked.";
   }
-  function redrawCancel(jobId) {
-    var old = document.getElementById("cancel-" + jobId);
-    if (old) { old.replaceWith(cancelForm(jobId)); }
+  function clearOutcome(body) {
+    return String(body.cleared_count) !== "0" ? "Removed from history."
+      : "Nothing was removed: the job is still in progress, already removed, or busy. Try again shortly.";
   }
+  var ACTIONS = {
+    cancel: {
+      route: "/api/v2/admin/jobs/cancel", ask: "Cancel job…", confirm: "Cancel job", keep: "Keep job",
+      hover: "Stop all work on this job. You will be asked to confirm.",
+      question: function (jobId) {
+        return "Cancel job #" + jobId + "? The mover stops working on it and will not deliver it. " +
+          "Files it already took over, and any partly delivered files, stay where they are (see Storage). " +
+          "This cannot be undone.";
+      },
+      done: function (b) { return b && b.accepted_count !== undefined; }, outcome: cancelOutcome
+    },
+    "clear-history": {
+      route: "/api/v2/admin/jobs/clear-history", ask: "Clear from history…", confirm: "Clear from history", keep: "Keep in history",
+      hover: "Forget this job's record. Files are not touched. You will be asked to confirm.",
+      question: function (jobId, job) {
+        return "Remove job #" + jobId + " from the history? The mover forgets this job completely: its record, " +
+          "activity, storage accounting and its recording ID. If the sender submits the same recording again, " +
+          "it is treated as a new recording. No files are touched, but they leave mover management: " +
+          (job.state === "Committed"
+            ? "delivered files stay at the destination, and the source files the mover took over stay where they are, untracked."
+            : "files the mover took over stay where they are, untracked and no longer counted on the Storage page.") +
+          " This cannot be undone.";
+      },
+      done: function (b) { return b && b.cleared_count !== undefined; }, outcome: clearOutcome
+    }
+  };
   function readReply(r) {
     return r.text().then(function (text) {
       var body = null;
@@ -681,90 +712,97 @@
       return { status: r.status, body: body };
     });
   }
-  function askCancel(jobId) {
-    var st = cancelState[jobId] = cancelState[jobId] || {};
+  function redrawAction(action, jobId, job) {
+    var old = document.getElementById(action + "-" + jobId);
+    if (old) { old.replaceWith(actionForm(action, jobId, job)); }
+  }
+  function askAction(action, jobId, job) {
+    var key = action + ":" + jobId;
+    var st = actionState[key] = actionState[key] || {};
     st.sending = true; st.message = "Preparing confirmation…";
-    redrawCancel(jobId);
-    fetch("/api/v2/admin/jobs?confirm_action=cancel&job_ids=" + encodeURIComponent(jobId), {
+    redrawAction(action, jobId, job);
+    fetch("/api/v2/admin/jobs?confirm_action=" + action + "&job_ids=" + encodeURIComponent(jobId), {
       credentials: "same-origin", cache: "no-store",
       headers: { "Mover-Admin-Activity": "interaction", "Mover-CSRF-Token": csrf || "" }
     }).then(readReply).then(function (r) {
       st.sending = false;
-      if (r.status === 401) { delete cancelState[jobId]; show(false); return; }
+      if (r.status === 401) { delete actionState[key]; show(false); return; }
       var c = r.body && r.body.confirmation;
-      if (r.status !== 200 || !c || c.action !== "cancel") {
+      if (r.status !== 200 || !c || c.action !== action) {
         st.message = "Could not prepare the confirmation (" + ((r.body && r.body.error) || r.status) + ").";
       } else {
         st.proof = c.token; st.expires_at = Number(c.expires_at); st.message = "";
       }
-      redrawCancel(jobId);
+      redrawAction(action, jobId, job);
     }).catch(function () {
       st.sending = false; st.message = "The service could not be reached.";
-      redrawCancel(jobId);
+      redrawAction(action, jobId, job);
     });
   }
-  function sendCancel(jobId) {
-    var st = cancelState[jobId];
+  function sendAction(action, jobId, job) {
+    var cfg = ACTIONS[action], st = actionState[action + ":" + jobId];
     if (!st || !st.proof || st.sending) { return; }
     if (Date.now() / 1000 >= st.expires_at) {
-      st.proof = null; st.message = "The confirmation expired. Click Cancel job again.";
-      redrawCancel(jobId); return;
+      st.proof = null; st.message = "The confirmation expired. Start again.";
+      redrawAction(action, jobId, job); return;
     }
     st.sending = true; st.message = "Sending…";
-    redrawCancel(jobId);
-    fetch("/api/v2/admin/jobs/cancel", {
+    redrawAction(action, jobId, job);
+    fetch(cfg.route, {
       method: "POST", credentials: "same-origin", cache: "no-store",
       headers: { "Content-Type": "application/json", "Mover-CSRF-Token": csrf || "", "Mover-Confirmation": st.proof },
       body: '{"job_ids":[' + jobId + "]}"
     }).then(readReply).then(function (r) {
       st.sending = false;
-      if (r.status === 401) { delete cancelState[jobId]; show(false); return; }
-      if (r.status === 503 || (r.status === 202 && !(r.body && r.body.accepted_count !== undefined))) {
-        st.message = "No confirmed reply. Click Cancel job again to resend the same request.";
-        redrawCancel(jobId); return;
+      if (r.status === 401) { delete actionState[action + ":" + jobId]; show(false); return; }
+      var ok = r.status === 200 || r.status === 202;
+      if (r.status === 503 || (ok && !cfg.done(r.body))) {
+        st.message = "No confirmed reply. Click " + cfg.confirm + " again to resend the same request.";
+        redrawAction(action, jobId, job); return;
       }
       st.proof = null;
-      if (r.status === 202) {
-        st.message = cancelOutcome(r.body);
+      if (ok) {
+        st.message = cfg.outcome(r.body);
       } else if (r.body && r.body.error === "invalid_confirmation") {
-        st.message = "The confirmation expired or no longer matches. Click Cancel job again.";
+        st.message = "The confirmation expired or no longer matches. Start again.";
       } else {
-        st.message = "The cancel was refused (" + ((r.body && r.body.error) || r.status) + ").";
+        st.message = "The request was refused (" + ((r.body && r.body.error) || r.status) + ").";
       }
-      redrawCancel(jobId);
+      redrawAction(action, jobId, job);
       refreshVisible();
     }).catch(function () {
       st.sending = false;
-      st.message = "No reply from the service. Click Cancel job again to resend the same request.";
-      redrawCancel(jobId);
+      st.message = "No reply from the service. Click " + cfg.confirm + " again to resend the same request.";
+      redrawAction(action, jobId, job);
     });
   }
-  function cancelForm(jobId) {
-    var st = cancelState[jobId] || {};
+  function actionForm(action, jobId, job) {
+    var cfg = ACTIONS[action], st = actionState[action + ":" + jobId] || {};
     var box = el("div", null, "cancel");
-    box.id = "cancel-" + jobId;
+    box.id = action + "-" + jobId;
     if (st.proof) {
-      box.appendChild(el("p", "Cancel job #" + jobId + "? The mover stops working on it and will not deliver it. " +
-        "Files it already took over, and any partly delivered files, stay where they are (see Storage). " +
-        "This cannot be undone.", "notice"));
-      var yes = el("button", st.sending ? "Sending…" : "Cancel job", "secondary danger", "Confirm cancellation of this job");
+      box.appendChild(el("p", cfg.question(jobId, job), "notice"));
+      var yes = el("button", st.sending ? "Sending…" : cfg.confirm, "secondary danger", "Confirm");
       yes.type = "button"; yes.disabled = !!st.sending;
-      yes.addEventListener("click", function () { sendCancel(jobId); });
-      var no = el("button", "Keep job", "secondary", "Close without cancelling");
+      yes.addEventListener("click", function () { sendAction(action, jobId, job); });
+      var no = el("button", cfg.keep, "secondary", "Close without changing anything");
       no.type = "button"; no.disabled = !!st.sending;
-      no.addEventListener("click", function () { st.proof = null; st.message = ""; redrawCancel(jobId); });
+      no.addEventListener("click", function () { st.proof = null; st.message = ""; redrawAction(action, jobId, job); });
       box.appendChild(yes); box.appendChild(document.createTextNode(" ")); box.appendChild(no);
     } else {
-      var ask = el("button", st.sending ? "Preparing…" : "Cancel job…", "secondary danger",
-        "Stop all work on this job. You will be asked to confirm.");
+      var ask = el("button", st.sending ? "Preparing…" : cfg.ask, "secondary danger", cfg.hover);
       ask.type = "button"; ask.disabled = !!st.sending;
-      ask.addEventListener("click", function () { askCancel(jobId); });
+      ask.addEventListener("click", function () { askAction(action, jobId, job); });
       box.appendChild(ask);
     }
     var status = el("p", st.message || "", "error");
     status.setAttribute("role", "status");
     box.appendChild(status);
     return box;
+  }
+  function actionPending(action, jobId) {
+    var st = actionState[action + ":" + jobId];
+    return !!st && !!(st.proof || st.sending);
   }
 
   function renderJobStorage(target, d) {

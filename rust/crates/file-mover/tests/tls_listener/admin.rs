@@ -748,11 +748,8 @@ fn admin_history_pages_and_detail_match_operator_status() {
         ("limit=1&limit=1", "invalid_http"),
         ("state=Committed", "invalid_http"),
         ("cursor=bogus", "invalid_cursor"),
-        // Confirmation mode is implemented for cancel only (increment 141).
-        (
-            "confirm_action=clear-history&job_ids=1",
-            "invalid_selection",
-        ),
+        // Confirmation mode: cancel and clear-history only (delete-data later).
+        ("confirm_action=delete-data&job_ids=1", "invalid_selection"),
         (
             "limit=5&confirm_action=cancel&job_ids=1",
             "invalid_selection",
@@ -1476,5 +1473,114 @@ fn admin_cancel_needs_a_matching_confirmation_and_stops_the_job() {
         a.origin()
     );
     assert_eq!(post(&fresh, one).json(), invalid);
+    f.stop();
+}
+
+#[test]
+fn admin_clear_history_forgets_delivered_and_cancelled_jobs_but_keeps_files() {
+    let (mut f, a) = admin_fixture();
+    prepare_payload(&f);
+    assert_eq!(f.https("POST", "/api/v2/jobs", "", &f.input()).0, 202);
+    wait_commit(&f);
+    // Job 2 waits for a file, then gets cancelled.
+    fs::write(f.root.join("source/current/c"), b"charlie").unwrap();
+    let mut second = f.input();
+    second["recording_id"] = json!("0b6f1c2c-1e9d-4b8a-a7f1-2b5d3c4e5f62");
+    second["files"] = json!(["c", "never-there"]);
+    second
+        .as_object_mut()
+        .unwrap()
+        .remove("expected_sizes_bytes");
+    assert_eq!(
+        f.https("POST", "/api/v2/jobs", "", &second).1["error"],
+        "source_file_missing"
+    );
+    let ok = a.login("admin", PASSWORD);
+    let cookie = ok.cookie();
+    let csrf = ok.header("mover-csrf-token").unwrap().to_owned();
+    let proof = |action: &str, ids: &str| {
+        a.session_path(
+            &format!("/api/v2/admin/jobs?confirm_action={action}&job_ids={ids}"),
+            &cookie,
+            &format!(
+                "Mover-Admin-Activity: interaction\r\nOrigin: {}\r\nMover-CSRF-Token: {csrf}\r\n",
+                a.origin()
+            ),
+        )
+        .json()["confirmation"]["token"]
+            .as_str()
+            .unwrap()
+            .to_owned()
+    };
+    let send = |route: &str, proof: &str, body: &[u8]| {
+        a.call(
+            "POST",
+            route,
+            &format!(
+                "Cookie: {cookie}\r\nOrigin: {}\r\nMover-CSRF-Token: {csrf}\r\nContent-Type: application/json\r\nMover-Confirmation: {proof}\r\n",
+                a.origin()
+            ),
+            body,
+        )
+    };
+    let clear = "/api/v2/admin/jobs/clear-history";
+    // Precedence and proof binding: a cancel proof cannot clear.
+    let r = a.call("GET", clear, &format!("Cookie: {cookie}\r\n"), &[]);
+    assert_eq!((r.status, r.header("allow")), (405, Some("POST")));
+    let wrong = proof("cancel", "1");
+    assert_eq!(
+        send(clear, &wrong, br#"{"job_ids":[1]}"#).json(),
+        json!({"error":"invalid_confirmation"})
+    );
+    // Unfinished job 2 is not eligible yet: nothing removed.
+    let p2 = proof("clear-history", "2");
+    let r = send(clear, &p2, br#"{"job_ids":[2]}"#);
+    assert_eq!((r.status, r.json()), (200, json!({"cleared_count":0})));
+    // Delivered job 1 is forgotten; its delivered files stay.
+    let p1 = proof("clear-history", "1");
+    let r = send(clear, &p1, br#"{"job_ids":[1]}"#);
+    assert_eq!(r.status, 200, "{}", String::from_utf8_lossy(&r.body));
+    assert_eq!(r.header("cache-control"), Some("no-store"));
+    assert_eq!(r.json(), json!({"cleared_count":1}));
+    assert_eq!(f.operator("/api/v2/jobs/1").0, 404);
+    assert_eq!(a.session_path("/api/v2/jobs/1", &cookie, "").status, 404);
+    assert!(
+        f.root
+            .join(format!("destination/{UUID}/COMMITTED.json"))
+            .exists()
+    );
+    assert_eq!(
+        fs::read(f.root.join(format!("destination/{UUID}/a"))).unwrap(),
+        b"alpha"
+    );
+    // A resend removes nothing more.
+    assert_eq!(
+        send(clear, &p1, br#"{"job_ids":[1]}"#).json(),
+        json!({"cleared_count":0})
+    );
+    // Cancel job 2, wait for the confirmed stop, then clear it.
+    let pc = proof("cancel", "2");
+    assert_eq!(
+        send("/api/v2/admin/jobs/cancel", &pc, br#"{"job_ids":[2]}"#).json()["accepted_count"],
+        1
+    );
+    let until = Instant::now() + Duration::from_secs(10);
+    while f.operator("/api/v2/jobs/2").1["details"]["condition"] != "Cancelled" {
+        assert!(Instant::now() < until);
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let p2 = proof("clear-history", "2");
+    assert_eq!(
+        send(clear, &p2, br#"{"job_ids":[2]}"#).json(),
+        json!({"cleared_count":1})
+    );
+    assert_eq!(f.operator("/api/v2/jobs/2").0, 404);
+    // The file the mover had taken over stays on disk, no longer tracked.
+    assert_eq!(
+        fs::read(f.root.join("source/.file-mover/2-0/data")).unwrap(),
+        b"charlie"
+    );
+    let page = a.session_path("/api/v2/admin/jobs", &cookie, "").json();
+    assert_eq!(page["items"], json!([]));
     f.stop();
 }

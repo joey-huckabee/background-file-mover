@@ -106,10 +106,27 @@ console.log('byte formatting ok');
 
 // Cancel outcome wording from real parsed (BigInt) counts.
 {
-  const cSrc = src.slice(src.indexOf('  function cancelOutcome('), src.indexOf('  function redrawCancel('));
-  const cancelOutcome = new Function(cSrc + '; return cancelOutcome;')();
+  const cSrc = src.slice(src.indexOf('  function cancelOutcome('), src.indexOf('  var ACTIONS = {'));
+  const { cancelOutcome, clearOutcome } = new Function(cSrc + '; return { cancelOutcome: cancelOutcome, clearOutcome: clearOutcome };')();
   assert.match(cancelOutcome(parseJSON('{"accepted_count":1,"failed_count":0,"skipped_count":0}')), /stopping work/);
   assert.match(cancelOutcome(parseJSON('{"accepted_count":0,"failed_count":1,"skipped_count":0}')), /already in progress/);
   assert.match(cancelOutcome(parseJSON('{"accepted_count":0,"failed_count":0,"skipped_count":1}')), /Nothing to cancel/);
-  console.log('cancel outcomes ok');
+  assert.match(clearOutcome(parseJSON('{"cleared_count":1}')), /Removed from history/);
+  assert.match(clearOutcome(parseJSON('{"cleared_count":0}')), /Nothing was removed/);
+  console.log('cancel and clear outcomes ok');
+}
+
+// Clear confirmation explains forgetting the recording ID and file management.
+{
+  const aSrc = src.slice(src.indexOf('  function cancelOutcome('), src.indexOf('  function readReply('));
+  const ACTIONS = new Function(aSrc + '; return ACTIONS;')();
+  for (const state of ['Committed', 'Claimed']) {
+    const q = ACTIONS['clear-history'].question('7', { state });
+    assert.match(q, /recording ID/);
+    assert.match(q, /treated as a new recording/);
+    assert.match(q, /No files are touched, but they leave mover management/);
+    assert.match(q, /untracked/);
+  }
+  assert.match(ACTIONS['clear-history'].question('7', { state: 'Committed' }), /delivered files stay at the destination/);
+  console.log('clear confirmation wording ok');
 }

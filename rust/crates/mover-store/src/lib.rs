@@ -22,6 +22,7 @@ mod problems;
 pub use cancellations::{CancelOutcome, CancelState, Cancellation};
 pub use problems::{JobProblem, ProblemStage, valid_diagnostic};
 mod history;
+pub use history::ClearOutcome;
 mod inspection;
 mod migration;
 pub use admin_retry::{MAX_RETRY_CONTEXTS_PER_JOB, RetryOccurrence, RetryOutcome, RetryResult};
