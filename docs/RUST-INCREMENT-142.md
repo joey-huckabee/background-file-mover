@@ -71,3 +71,15 @@ the offline clear of [increment 107](RUST-INCREMENT-107.md). No schema change.
   known load-sensitive UUID race test, which passes alone); full API suite with
   only environment failures also seen on main or passing alone. The SLES gates
   run in PR CI.
+
+## CI result
+
+PR51 CI run
+[43522042595](https://github.com/joey-huckabee/background-file-mover/actions/runs/43522042595)
+at `35c999b` passes both full modes: production **411 tests per debug/release
+profile** and nfs-qualification **415/profile** (increment141's 408/412 plus two
+store clear tests and the real-service clear test). Two earlier runs failed on
+test-file formatting only. Independent review found one issue (the confirmation
+did not explain recording-ID forgetting and loss of file management), fixed;
+re-review had no findings and found no worker-after-clear race. Merged to main as
+`dedaf8b`.
