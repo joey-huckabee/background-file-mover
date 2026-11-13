@@ -123,6 +123,14 @@ impl StateInspection {
     ) -> Result<InspectionSummary> {
         self.additive_upgrade(path, 13, create_problem_tables, checkpoint)
     }
+    /// 14 -> 15: add the empty admin cancellation table.
+    pub fn upgrade_cancellations(
+        self,
+        path: impl AsRef<Path>,
+        checkpoint: impl FnMut(&'static str) -> std::io::Result<()>,
+    ) -> Result<InspectionSummary> {
+        self.additive_upgrade(path, 14, create_cancellation_tables, checkpoint)
+    }
     /// One guarded additive step `from` -> `from + 1` that only creates new,
     /// empty tables, validating schema, identities, sequence and contents on
     /// both sides in one immediate transaction.

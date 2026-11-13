@@ -28,7 +28,7 @@ proxy UID instead, and there is no TCP listener.
    fixed executor pool with a 5-second handshake deadline.
 2. Strict HTTP/1.1 framing and validation: generator binding, source scope, UUID
    `recording_id` replay and optional expected sizes.
-3. The async coordinator records every transition in SQLite (schema 14). All
+3. The async coordinator records every transition in SQLite (schema 15). All
    filesystem I/O runs in supervised child workers: source-space observer, claim
    worker, delivery worker per recording, bootstrap and enrollment.
 4. Recordings are claimed from the source root by rename and published to

@@ -71,6 +71,7 @@ impl Store {
                 return Ok(MissingResetReceipt{review_epoch:r.review_epoch+1,new_deadline:p.new_deadline,replay:true});
             }
             let job=load(&tx,id)?.ok_or(StoreError::NotFound)?;
+            if super::cancellations::requested(&tx,id)? {return Err(StoreError::Cancelled);}
             if job.recording.file_phase(request.file_index as usize)!=Some(mover_core::FilePhase::Pending) {return Err(StoreError::ReviewConflict);}
             let current_epoch=epoch(&tx,id)?;
             if current_epoch>=64 {return Err(StoreError::AuditFull);}
