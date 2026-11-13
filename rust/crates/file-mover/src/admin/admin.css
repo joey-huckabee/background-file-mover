@@ -85,3 +85,9 @@ tr.detail-row>td{background:#f7f9f2;padding:14px 16px;white-space:normal}
 .step-2.done{background:#2f6b4f;color:#fff}
 .arrow{color:#b8c1b0;font-size:12px}
 .steps .badge{margin-left:4px;padding:5px 9px;border-radius:999px;font-size:11px;line-height:1}
+.top-right{display:flex;align-items:center;gap:14px}
+.live{font-size:12px;display:inline-flex;align-items:center;gap:6px;color:#c8d8cc}
+.live::before{content:"";width:8px;height:8px;border-radius:50%;background:#8a9582}
+.live.on::before{background:#82d19a;box-shadow:0 0 0 3px #82d19a33}
+.live.wait::before{background:#e3c46f}
+.live.off::before{background:#d98a7c}

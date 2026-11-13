@@ -919,3 +919,131 @@ fn producer_and_admin_load_cannot_take_the_operator_slot() {
     }
     f.stop();
 }
+
+/// Open an event stream; returns the connection after the response head.
+fn open_events(
+    a: &Admin,
+    cookie: &str,
+    extra: &str,
+) -> (
+    rustls::StreamOwned<rustls::ClientConnection, std::net::TcpStream>,
+    String,
+) {
+    let mut stream = a.client();
+    stream
+        .write_all(
+            format!(
+                "GET /api/v2/admin/events HTTP/1.1\r\nHost: localhost:{}\r\nCookie: {cookie}\r\n{extra}\r\n",
+                a.port
+            )
+            .as_bytes(),
+        )
+        .unwrap();
+    stream.flush().unwrap();
+    let text = read_until(&mut stream, "\r\n\r\n", Duration::from_secs(5));
+    (stream, text)
+}
+
+/// Read until `needle` appears or the deadline passes; returns all text read.
+fn read_until(
+    stream: &mut rustls::StreamOwned<rustls::ClientConnection, std::net::TcpStream>,
+    needle: &str,
+    within: Duration,
+) -> String {
+    let until = Instant::now() + within;
+    let mut seen = Vec::new();
+    let mut buf = [0_u8; 1024];
+    stream
+        .sock
+        .set_read_timeout(Some(Duration::from_millis(200)))
+        .unwrap();
+    while Instant::now() < until {
+        match stream.read(&mut buf) {
+            Ok(0) => break,
+            Ok(n) => {
+                seen.extend_from_slice(&buf[..n]);
+                if String::from_utf8_lossy(&seen).contains(needle) {
+                    break;
+                }
+            }
+            Err(e)
+                if matches!(
+                    e.kind(),
+                    std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+                ) => {}
+            Err(_) => break,
+        }
+    }
+    String::from_utf8_lossy(&seen).into_owned()
+}
+
+#[test]
+fn live_event_stream_signals_changes_and_closes_on_sign_out() {
+    let (mut f, a) = admin_fixture();
+    // No session: refused before any stream.
+    let none = a.call("GET", "/api/v2/admin/events", "", &[]);
+    assert_eq!(none.status, 401);
+    let ok = a.login("admin", PASSWORD);
+    let cookie = ok.cookie();
+    let csrf = ok.header("mover-csrf-token").unwrap().to_owned();
+    // Cross-site embedding is refused.
+    let foreign = a.call(
+        "GET",
+        "/api/v2/admin/events",
+        &format!("Cookie: {cookie}\r\nOrigin: https://evil.example\r\n"),
+        &[],
+    );
+    assert_eq!(foreign.status, 403);
+
+    let (mut first, head) = open_events(&a, &cookie, "");
+    assert!(head.starts_with("HTTP/1.1 200 OK"), "{head}");
+    assert!(head.contains("Content-Type: text/event-stream"), "{head}");
+    assert!(head.contains("Cache-Control: no-store"), "{head}");
+    let text = read_until(&mut first, "event: ready", Duration::from_secs(5));
+    assert!(text.contains("event: ready"), "{text}");
+
+    // A second stream fits; a third is refused; requests and operator still work.
+    let (mut second, head2) = open_events(&a, &cookie, "");
+    assert!(head2.starts_with("HTTP/1.1 200 OK"), "{head2}");
+    assert!(
+        read_until(&mut second, "event: ready", Duration::from_secs(5)).contains("event: ready")
+    );
+    let third = a.call(
+        "GET",
+        "/api/v2/admin/events",
+        &format!("Cookie: {cookie}\r\n"),
+        &[],
+    );
+    assert_eq!(third.status, 503);
+    assert_eq!(third.json(), json!({"error":"service_busy"}));
+    for _ in 0..4 {
+        assert_eq!(a.raw(&a.page()).status, 200);
+    }
+    assert_eq!(f.operator("/healthz").0, 200);
+
+    // A real state change reaches the open stream.
+    prepare_payload(&f);
+    let input = f.input();
+    assert_eq!(f.https("POST", "/api/v2/jobs", "", &input).0, 202);
+    let text = read_until(&mut first, "event: changed", Duration::from_secs(10));
+    assert!(text.contains("event: changed"), "{text}");
+    assert!(text.contains("\"version\":"), "{text}");
+    wait_commit(&f);
+
+    // Global sign-out closes every stream with a signed-out event.
+    let origin = format!("Origin: {}\r\n", a.origin());
+    assert_eq!(
+        a.logout(&cookie, &format!("{origin}Mover-CSRF-Token: {csrf}\r\n"))
+            .status,
+        204
+    );
+    for stream in [&mut first, &mut second] {
+        let text = read_until(stream, "event: signed-out", Duration::from_secs(5));
+        assert!(text.contains("event: signed-out"), "{text}");
+    }
+    // Streams released: a new session can open one again.
+    let again = a.login("admin", PASSWORD).cookie();
+    let (_third, head3) = open_events(&a, &again, "");
+    assert!(head3.starts_with("HTTP/1.1 200 OK"), "{head3}");
+    f.stop();
+}
