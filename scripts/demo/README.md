@@ -37,7 +37,7 @@ again for fresh ones.
 
 1. `add-job --blocked`: the demo puts a file the mover did not write where the
    job's first file belongs. The mover refuses to overwrite it, so the job shows
-   **Needs review** after a few seconds.
+   **Needs review** after up to a minute (it retries twice first).
 2. Open the job's details. The Activity panel shows **Retry delivery**.
 3. `unblock` removes only the planted file (the "fix").
 4. Type what you checked or fixed, click **Retry delivery**. The result appears

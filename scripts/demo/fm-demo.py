@@ -369,6 +369,42 @@ def status_line(_=None):
         print(f"  open https://localhost:{ADMIN_PORT}/   sign in: admin / {PASSWORD}")
 
 
+def real_dir(path):
+    """True only for a real directory (never a symlink) owned by the demo user."""
+    try:
+        st = os.lstat(path)
+    except FileNotFoundError:
+        return False
+    return stat.S_ISDIR(st.st_mode) and st.st_uid == os.getuid()
+
+
+def demo_destination():
+    """The demo destination root, refusing symlinks or foreign ownership at
+    run/ and run/destination (DATA itself is validated by demo_data)."""
+    destination = ROOT / "destination"
+    for d in (ROOT, destination):
+        if not real_dir(d):
+            fail(f"{d} is not a real directory owned by {USER}; refusing")
+    return destination
+
+
+def checked_path(destination, parts):
+    """Join parts under destination; every existing directory on the way must be
+    a real owned directory, and the leaf must not be a symlink."""
+    path = destination
+    for part in parts[:-1]:
+        if part in ("", ".", "..") or "/" in part:
+            return None
+        path = path / part
+        if os.path.lexists(path) and not real_dir(path):
+            return None
+    leaf = parts[-1]
+    if leaf in ("", ".", "..") or "/" in leaf:
+        return None
+    path = path / leaf
+    return None if path.is_symlink() else path
+
+
 def load_blockers():
     return json.loads(BLOCKERS.read_text()) if BLOCKERS.exists() else []
 
@@ -376,9 +412,15 @@ def load_blockers():
 def plant_blocker(recording_id, rel):
     """A foreign file where the job's first file will be published. The mover
     never overwrites what it did not write, so delivery stops for review."""
-    target = ROOT / "destination" / recording_id / rel
+    destination = demo_destination()
+    target = checked_path(destination, [recording_id, *rel.split("/")])
+    if target is None or os.path.lexists(destination / recording_id):
+        fail("unexpected blocker path; refusing")
     target.parent.mkdir(parents=True, exist_ok=False)
-    target.write_bytes(BLOCKER_TEXT)
+    # O_NOFOLLOW|O_EXCL: never follow or replace anything already there.
+    fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "wb") as f:
+        f.write(BLOCKER_TEXT)
     BLOCKERS.write_text(json.dumps(load_blockers() + [{"recording_id": recording_id, "file": rel}]))
 
 
@@ -413,21 +455,29 @@ def cmd_unblock(a):
     if is_root():
         fail("internal unblock must not run as root")
     demo_data()
-    destination = (ROOT / "destination").resolve()
+    destination = demo_destination()
     removed = 0
     for b in load_blockers():
-        target = ROOT / "destination" / b["recording_id"] / b["file"]
-        if target.is_symlink() or not target.resolve().is_relative_to(destination):
-            say(f"skipping unexpected path {target}")
+        target = checked_path(destination, [b["recording_id"], *b["file"].split("/")])
+        if target is None:
+            say(f"skipping unexpected blocker entry {b}")
             continue
-        if target.is_file() and target.read_bytes() == BLOCKER_TEXT:
+        try:
+            fd = os.open(target, os.O_RDONLY | os.O_NOFOLLOW)
+        except OSError:
+            continue
+        with os.fdopen(fd, "rb") as f:
+            same = stat.S_ISREG(os.fstat(f.fileno()).st_mode) and f.read(len(BLOCKER_TEXT) + 1) == BLOCKER_TEXT
+        if same:
             target.unlink()
             removed += 1
-            # Remove now-empty directories the blocker created, up to the recording folder.
+            # Remove now-empty real directories the blocker created, up to the recording folder.
             parent = target.parent
-            top = ROOT / "destination" / b["recording_id"]
-            while parent != top.parent and parent.is_dir() and not any(parent.iterdir()):
+            top = destination / b["recording_id"]
+            while parent != destination and real_dir(parent) and not any(parent.iterdir()):
                 parent.rmdir()
+                if parent == top:
+                    break
                 parent = parent.parent
     BLOCKERS.unlink(missing_ok=True)
     say(f"removed {removed} blocker(s); use Retry delivery in the job's details")
