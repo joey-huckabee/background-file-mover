@@ -4499,6 +4499,93 @@
           }
         }
       }
+    },
+    "/api/v2/admin/events": {
+      "get": {
+        "operationId": "adminEvents",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "description": "Server-Sent Events live-update stream (increment136). Events: ready, changed {version}, signed-out, keepalive comments. Never renews the session; at most 2 concurrent streams. See docs/dashboard/LIVE-UPDATES-DESIGN.md.",
+        "responses": {
+          "200": {
+            "description": "text/event-stream",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or revoked session",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AuthenticationRequired"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Supplied Origin or Sec-Fetch-Site is not same-origin",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "admin_request_forbidden"
+            ]
+          },
+          "503": {
+            "description": "Stream capacity in use",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "service_busy"
+            ]
+          }
+        }
+      }
     }
   },
   "components": {

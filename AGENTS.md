@@ -32,6 +32,10 @@ the authorizations; this list grants nothing new.
 
 ## Current direction (2026-10-13)
 
+2026-11-13 live updates: the user says "Go with your recommendations" for live
+status updates. Increment136 adds SSE live updates per
+docs/dashboard/LIVE-UPDATES-DESIGN.md (reviewed). See docs/RUST-INCREMENT-136.md.
+
 2026-11-12 admin connections: the user says "go ahead with 1" (multiple admin
 browser connections). Increment135: four admin connections, explicit operator
 reservation; see docs/RUST-INCREMENT-135.md.

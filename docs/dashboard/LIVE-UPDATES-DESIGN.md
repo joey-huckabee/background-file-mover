@@ -2,8 +2,8 @@
 
 User request 2026-11-12: push status changes to the open dashboard without
 polling and without a full-page refresh. The user approved proceeding on the
-recommendations below ("Go with your recommendations"). Implementation in
-progress as increment136; this note is the reviewed design.
+recommendations below ("Go with your recommendations"). Implemented in
+[increment136](../RUST-INCREMENT-136.md); this note is the reviewed design.
 
 ## Transport
 

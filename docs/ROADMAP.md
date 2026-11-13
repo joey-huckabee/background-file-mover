@@ -54,7 +54,8 @@ dashboard remain unfinished. Packaging is not the next dashboard milestone.
   the admin listener admits one connection at a time. Allow several independent
   browser connections while keeping a guaranteed private-operator slot and the
   bounded global budget; measure under producer load. Prerequisite for live updates.
-- [ ] **Live status updates (user request 2026-11-12):** push job/retention
+- [x] **Live status updates (user request 2026-11-12):** done in
+  [increment136](RUST-INCREMENT-136.md) per the [design](dashboard/LIVE-UPDATES-DESIGN.md). push job/retention
   changes to the open dashboard when they happen, without polling and without a
   full-page refresh (update only the affected rows/panels). Proposed transport:
   Server-Sent Events from the admin listener (native browser `EventSource`, no
