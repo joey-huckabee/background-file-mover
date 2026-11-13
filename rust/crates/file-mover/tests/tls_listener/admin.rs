@@ -1047,3 +1047,192 @@ fn live_event_stream_signals_changes_and_closes_on_sign_out() {
     assert!(head3.starts_with("HTTP/1.1 200 OK"), "{head3}");
     f.stop();
 }
+
+/// Canonical `Mover-Retry-Context` value for test requests (mirrors the contract).
+fn retry_header(instance: &str, ids: &[i64], epochs: &[Option<u32>], reason: &str) -> String {
+    let mut frame = b"BFM-RETRY-SELECTION\0v1\0".to_vec();
+    frame.extend_from_slice(&(ids.len() as u16).to_be_bytes());
+    for id in ids {
+        frame.extend_from_slice(&id.to_be_bytes());
+    }
+    let epochs: Vec<String> = epochs
+        .iter()
+        .map(|e| e.map_or("null".into(), |v| v.to_string()))
+        .collect();
+    let payload = format!(
+        "{{\"version\":1,\"instance_id\":\"{instance}\",\"selection_sha256\":\"{}\",\"review_epochs\":[{}],\"reason\":\"{}\"}}",
+        mover_fs::sha256_hex(&frame),
+        epochs.join(","),
+        reason.replace('\\', "\\\\").replace('"', "\\\"")
+    );
+    const A: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    let mut out = String::from("v1.");
+    for chunk in payload.as_bytes().chunks(3) {
+        let n = (u32::from(chunk[0]) << 16)
+            | (u32::from(*chunk.get(1).unwrap_or(&0)) << 8)
+            | u32::from(*chunk.get(2).unwrap_or(&0));
+        for i in 0..=chunk.len() {
+            out.push(A[((n >> (18 - 6 * i)) & 63) as usize] as char);
+        }
+    }
+    out
+}
+
+#[test]
+fn admin_retry_delivers_a_reviewed_job_and_replays_its_receipt() {
+    let (mut f, a) = admin_fixture();
+    // A foreign file at the final destination makes delivery fail for real.
+    prepare_payload(&f);
+    let collision = f.root.join(format!("destination/{UUID}"));
+    fs::create_dir(&collision).unwrap();
+    fs::write(collision.join("a"), b"foreign").unwrap();
+    assert_eq!(f.https("POST", "/api/v2/jobs", "", &f.input()).0, 202);
+    let until = Instant::now() + Duration::from_secs(15);
+    while f.operator("/api/v2/jobs/1").1["details"]["delivery_retry"]["failures"]
+        .as_u64()
+        .unwrap_or(0)
+        < 1
+    {
+        assert!(Instant::now() < until, "{:?}", f.operator("/api/v2/jobs/1"));
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    f.stop();
+    {
+        // Reach review without waiting for backoff, then remove only this
+        // test's foreign collision so the reviewed retry can succeed.
+        let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        while s.status(1).unwrap().unwrap().delivery.unwrap().0 < 3 {
+            s.delivery_failed(1, 100).unwrap();
+        }
+    }
+    fs::remove_file(collision.join("a")).unwrap();
+    fs::remove_dir(&collision).unwrap();
+    f.start();
+
+    let ok = a.login("admin", PASSWORD);
+    let cookie = ok.cookie();
+    let csrf = ok.header("mover-csrf-token").unwrap().to_owned();
+    let page = a.session_path("/api/v2/admin/jobs", &cookie, "").json();
+    let review = page["items"][0]["retry_review"].clone();
+    assert_eq!(review["job_id"], "1");
+    assert_eq!(review["review_epoch"], 0);
+    let instance = review["instance_id"].as_str().unwrap().to_owned();
+    let body = br#"{"job_ids":[1]}"#;
+    let header = retry_header(&instance, &[1], &[Some(0)], "Removed the \"foreign\" file");
+    let post =
+        |headers: &str, body: &[u8]| a.call("POST", "/api/v2/admin/jobs/retry", headers, body);
+    let full = |context: &str| {
+        format!(
+            "Cookie: {cookie}\r\nOrigin: {}\r\nMover-CSRF-Token: {csrf}\r\nContent-Type: application/json\r\nMover-Retry-Context: {context}\r\n",
+            a.origin()
+        )
+    };
+
+    // Precedence: method, authentication, Origin/CSRF, media type, then context.
+    let r = a.call(
+        "GET",
+        "/api/v2/admin/jobs/retry",
+        &format!("Cookie: {cookie}\r\n"),
+        &[],
+    );
+    assert_eq!((r.status, r.header("allow")), (405, Some("POST")));
+    assert_eq!(
+        post(
+            &format!(
+                "Origin: {}\r\nContent-Type: application/json\r\nMover-Retry-Context: {header}\r\n",
+                a.origin()
+            ),
+            body
+        )
+        .status,
+        401
+    );
+    let no_origin = format!(
+        "Cookie: {cookie}\r\nMover-CSRF-Token: {csrf}\r\nContent-Type: application/json\r\nMover-Retry-Context: {header}\r\n"
+    );
+    assert_eq!(post(&no_origin, body).status, 403);
+    let no_csrf = format!(
+        "Cookie: {cookie}\r\nOrigin: {}\r\nContent-Type: application/json\r\nMover-Retry-Context: {header}\r\n",
+        a.origin()
+    );
+    assert_eq!(post(&no_csrf, body).status, 403);
+    let wrong_csrf = full(&header).replace(&csrf, &"0".repeat(csrf.len()));
+    assert_eq!(post(&wrong_csrf, body).status, 403);
+    let text = full(&header).replace("application/json", "text/plain");
+    assert_eq!(
+        post(&text, body).json(),
+        json!({"error":"unsupported_media_type"})
+    );
+    let missing = full(&header).replace(&format!("Mover-Retry-Context: {header}\r\n"), "");
+    assert_eq!(
+        post(&missing, body).json(),
+        json!({"error":"invalid_retry_context"})
+    );
+    assert_eq!(
+        post(&full(&header), br#"{"job_ids":[1,1]}"#).json(),
+        json!({"error":"invalid_retry_context"})
+    );
+    assert_eq!(
+        post(&full(&header), br#"{"job_ids":[]}"#).json(),
+        json!({"error":"invalid_selection"})
+    );
+    let foreign = retry_header(&"0".repeat(32), &[1], &[Some(0)], "x");
+    let r = post(&full(&foreign), body);
+    assert_eq!(
+        (r.status, r.json()),
+        (409, json!({"error":"review_conflict"}))
+    );
+    // A non-null epoch for a never-allocated job ID refuses the whole request.
+    let future = retry_header(&instance, &[1, 99], &[Some(0), Some(0)], "x");
+    let r = post(&full(&future), br#"{"job_ids":[1,99]}"#);
+    assert_eq!(
+        (r.status, r.json()),
+        (400, json!({"error":"invalid_retry_context"}))
+    );
+    let r = post(&full(&format!("v1.{}", "A".repeat(6142))), body);
+    assert_eq!(r.status, 431);
+    // None of the refusals scheduled anything.
+    assert_eq!(
+        f.operator("/api/v2/jobs/1").1["details"]["condition"],
+        "ReviewRequired"
+    );
+
+    // Accepted, then an exact resend replays the stored outcome.
+    let r = post(&full(&header), body);
+    assert_eq!(r.status, 202, "{}", String::from_utf8_lossy(&r.body));
+    assert_eq!(r.header("cache-control"), Some("no-store"));
+    let accepted = json!({"accepted_count":1,"failed_count":0,"skipped_count":0});
+    assert_eq!(r.json(), accepted);
+    assert_eq!(post(&full(&header), body).json(), accepted);
+    wait_commit(&f);
+    assert_eq!(fs::read(collision.join("a")).unwrap(), b"alpha");
+    // Still the original outcome after delivery committed.
+    assert_eq!(post(&full(&header), body).json(), accepted);
+    // A new context for the delivered job skips; a null epoch also skips.
+    let later = retry_header(&instance, &[1], &[Some(0)], "Second look");
+    assert_eq!(
+        post(&full(&later), body).json(),
+        json!({"accepted_count":0,"failed_count":0,"skipped_count":1})
+    );
+    let null = retry_header(&instance, &[1], &[None], "Second look");
+    assert_eq!(
+        post(&full(&null), body).json(),
+        json!({"accepted_count":0,"failed_count":0,"skipped_count":1})
+    );
+    // The audit names the account principal and the exact reason.
+    let detail = f.operator("/api/v2/jobs/1").1;
+    let resume = &detail["details"]["latest_resume"];
+    assert_eq!(resume["reason"], "Removed the \"foreign\" file");
+    assert_eq!(resume["actor"].as_str().unwrap().len(), 64);
+    // After sign-out the same request discloses nothing.
+    assert_eq!(
+        a.logout(
+            &cookie,
+            &format!("Origin: {}\r\nMover-CSRF-Token: {csrf}\r\n", a.origin())
+        )
+        .status,
+        204
+    );
+    assert_eq!(post(&full(&header), body).status, 401);
+    f.stop();
+}

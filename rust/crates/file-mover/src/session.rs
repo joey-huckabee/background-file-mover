@@ -76,6 +76,8 @@ pub struct Authorized {
     pub csrf: Zeroizing<String>,
     pub revision: u64,
     pub generation: u64,
+    /// Server-held account identity (64 hex); used as the audit principal.
+    pub principal: String,
 }
 
 type Entropy = Box<dyn Fn(&mut [u8]) -> bool + Send + Sync>;
@@ -317,6 +319,7 @@ impl Sessions {
         }
         self.prune(&mut state, now);
         let (revision, generation) = (state.account.revision, state.generation);
+        let principal = state.account.account_id.clone();
         // Scan every entry so lookup time does not depend on the match position.
         let mut found = None;
         for (i, s) in state.sessions.iter().enumerate() {
@@ -341,6 +344,7 @@ impl Sessions {
             csrf: hex(&s.csrf),
             revision,
             generation,
+            principal,
         })
     }
 

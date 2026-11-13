@@ -91,3 +91,5 @@ tr.detail-row>td{background:#f7f9f2;padding:14px 16px;white-space:normal}
 .live.on::before{background:#82d19a;box-shadow:0 0 0 3px #82d19a33}
 .live.wait::before{background:#e3c46f}
 .live.off::before{background:#d98a7c}
+.retry{margin-top:4px}.retry p{margin:0 0 4px;font-size:13px}.retry label{margin:10px 0 4px}
+.retry textarea{display:block;width:100%;padding:8px;border:1px solid #cfd8c7;border-radius:5px;font:inherit;resize:vertical;margin-bottom:8px}

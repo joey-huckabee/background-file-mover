@@ -25,3 +25,5 @@ jobs:
       - uses: actions/checkout@v6
       - name: Lossless JSON parser in the embedded admin page
         run: node scripts/admin-ui/lossless-json.test.js
+      - name: Embedded retry-context vectors match the contract copy
+        run: cmp docs/api/retry-context.candidate.vectors.json rust/crates/file-mover/src/retry_context.vectors.json

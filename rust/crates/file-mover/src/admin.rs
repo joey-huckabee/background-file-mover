@@ -305,6 +305,7 @@ impl Reply {
     async fn write(self, stream: &mut ingress::Stream, csp: &str) {
         let reason = match self.status {
             200 => "OK",
+            202 => "Accepted",
             204 => "No Content",
             400 => "Bad Request",
             401 => "Unauthorized",
@@ -450,7 +451,12 @@ async fn handle(
                 Some(i) => (&target[..i], Some(&target[i + 1..])),
                 None => (target, None),
             };
-            if path == b"/api/v2/admin/jobs" {
+            if path == b"/api/v2/admin/jobs/retry" && query.is_none() {
+                if r.head.method != "POST" {
+                    return Reply::method("POST");
+                }
+                retry(admin, r, observer).await
+            } else if path == b"/api/v2/admin/jobs" {
                 if r.head.method != "GET" {
                     return Reply::method("GET");
                 }
@@ -860,6 +866,120 @@ async fn detail(
     } else {
         from_operator(response)
     }
+}
+
+/// Reviewed delivery retry (docs/api/RETRY-HEADER.candidate.md). Authentication
+/// (401) precedes Origin/CSRF (403), media type (415) and context validation.
+/// The whole request is validated before any occurrence; each occurrence then
+/// rechecks the session and commits its own receipt, audit and scheduling.
+async fn retry(
+    admin: &Admin,
+    r: &http::Request,
+    observer: &std::sync::mpsc::SyncSender<crate::OperatorWork>,
+) -> Reply {
+    use crate::retry_context::{self as ctx, ContextError};
+    let Some(token) = session_cookie(r) else {
+        return Reply::unauthenticated();
+    };
+    let now = std::time::Instant::now();
+    if admin
+        .sessions
+        .authorize(token, None, Activity::Background, now)
+        .is_err()
+    {
+        return Reply::unauthenticated();
+    }
+    if header(r, "origin") != Some(admin.origin.as_bytes())
+        || header(r, "sec-fetch-site").is_some_and(|s| s != b"same-origin")
+    {
+        return Reply::forbidden();
+    }
+    let Some(csrf) = header(r, "mover-csrf-token").and_then(|v| std::str::from_utf8(v).ok()) else {
+        return Reply::forbidden();
+    };
+    let principal = match admin
+        .sessions
+        .authorize(token, Some(csrf), Activity::Deliberate, now)
+    {
+        Ok(authorized) => authorized.principal,
+        Err(AuthError::CsrfMismatch) => return Reply::forbidden(),
+        Err(AuthError::Unauthenticated) => return Reply::unauthenticated(),
+    };
+    if header(r, "content-type") != Some(b"application/json") {
+        return Reply::error(415, "unsupported_media_type");
+    }
+    // Instance and high-water mark are read once for whole-request validation.
+    let scope = crate::operator_reply(observer, crate::Observation::RetryScope).await;
+    let (instance, high_water) = match scope.details.as_ref().filter(|_| scope.status == 200) {
+        Some(d) => (
+            d["instance_id"].as_str().unwrap_or_default().to_owned(),
+            d["high_water"].as_i64().unwrap_or(i64::MAX),
+        ),
+        None => return from_operator(scope),
+    };
+    // Framing already refused duplicate headers and heads over 8192 bytes.
+    let values: Vec<&[u8]> = header(r, "mover-retry-context").into_iter().collect();
+    let context = match ctx::decode(&r.body, &values, &instance, None) {
+        Ok(context) => context,
+        Err(
+            ContextError::HeadTooLarge
+            | ContextError::ValueTooLarge
+            | ContextError::DecodedTooLarge,
+        ) => return Reply::error(431, "request_headers_too_large"),
+        Err(ContextError::InvalidSelection) => return Reply::error(400, "invalid_selection"),
+        Err(ContextError::InstanceMismatch) => return Reply::error(409, "review_conflict"),
+        Err(_) => return Reply::error(400, "invalid_retry_context"),
+    };
+    // A non-null epoch can only have been observed for an allocated job ID.
+    if context
+        .job_ids
+        .iter()
+        .zip(&context.review_epochs)
+        .any(|(id, epoch)| epoch.is_some() && *id > high_water)
+    {
+        return Reply::error(400, "invalid_retry_context");
+    }
+    let key = ctx::receipt_key(&principal, &context);
+    let (mut accepted, mut failed, mut skipped) = (0_u16, 0_u16, 0_u16);
+    for (occurrence, (job_id, epoch)) in context
+        .job_ids
+        .iter()
+        .zip(&context.review_epochs)
+        .enumerate()
+    {
+        // Revocation wins before every new occurrence or receipt disclosure.
+        if admin
+            .sessions
+            .authorize(token, None, Activity::Background, std::time::Instant::now())
+            .is_err()
+        {
+            return Reply::unauthenticated();
+        }
+        let work = crate::Observation::Retry(mover_store::RetryOccurrence {
+            job_id: *job_id,
+            context_key: key.clone(),
+            principal: principal.clone(),
+            instance_id: context.instance_id.clone(),
+            review_epoch: *epoch,
+            reason: context.reason.clone(),
+            occurrence: occurrence as u16,
+        });
+        let response = crate::operator_reply(observer, work).await;
+        match response.details.as_ref().filter(|_| response.status == 200) {
+            Some(d) => match d["outcome"].as_str() {
+                Some("accepted") => accepted += 1,
+                Some("failed") => failed += 1,
+                _ => skipped += 1,
+            },
+            // No fabricated counts: earlier occurrences stay committed and an
+            // unchanged resend replays them.
+            None => return from_operator(response),
+        }
+    }
+    Reply::json(
+        202,
+        serde_json::json!({"accepted_count":accepted,"failed_count":failed,"skipped_count":skipped}),
+    )
 }
 
 async fn login(admin: &Admin, r: &http::Request) -> Reply {

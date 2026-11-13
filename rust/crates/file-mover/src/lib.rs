@@ -15,6 +15,7 @@ pub mod native;
 pub mod password;
 pub mod payload;
 mod reload;
+mod retry_context;
 pub mod session;
 pub mod source_space;
 pub mod tls;
@@ -255,6 +256,10 @@ enum Observation {
     Retention(Option<i64>),
     Resume(i64, ResumeInput),
     ResetMissing(i64, MissingResetInput),
+    /// Admin retry whole-request scope: instance ID and job-ID high-water mark.
+    RetryScope,
+    /// One admin retry occurrence (session-authorized by the admin listener).
+    Retry(mover_store::RetryOccurrence),
 }
 type OperatorWork = (Observation, oneshot::Sender<Response>);
 struct Worker {
@@ -330,6 +335,8 @@ impl Worker {
                         Observation::ResetMissing(id, input) => {
                             missing_reset_response(&observation_store, id, input)
                         }
+                        Observation::RetryScope => retry_scope_response(&observation_store),
+                        Observation::Retry(o) => retry_response(&observation_store, &o),
                     };
                     let _ = reply.send(response);
                 }
@@ -814,6 +821,39 @@ fn resume_response(store: &Store, id: i64, input: ResumeInput) -> Response {
         Err(_) => error(503, "storage_unavailable", true, Some(id)),
     }
 }
+fn observed(details: serde_json::Value) -> Response {
+    Response {
+        status: 200,
+        error: None,
+        details: Some(details),
+        ..error(200, "observed", false, None)
+    }
+}
+fn retry_scope_response(store: &Store) -> Response {
+    match store
+        .instance_id()
+        .and_then(|i| Ok((i, store.job_id_high_water()?)))
+    {
+        Ok((instance, high_water)) => {
+            observed(serde_json::json!({"instance_id":instance,"high_water":high_water}))
+        }
+        Err(_) => error(503, "storage_unavailable", true, None),
+    }
+}
+fn retry_response(store: &Store, o: &mover_store::RetryOccurrence) -> Response {
+    match store.admin_retry(o, now()) {
+        Ok(r) => observed(serde_json::json!({"outcome":match r.outcome {
+            mover_store::RetryOutcome::Accepted => "accepted",
+            mover_store::RetryOutcome::Failed => "failed",
+            mover_store::RetryOutcome::Skipped => "skipped",
+        }})),
+        Err(StoreError::ReviewConflict) => error(409, "review_conflict", false, None),
+        Err(StoreError::ActionConflict) => error(409, "command_conflict", false, None),
+        Err(StoreError::InvalidContext) => error(400, "invalid_retry_context", false, None),
+        Err(StoreError::ReceiptCapacity) => error(503, "service_busy", true, None),
+        Err(_) => error(503, "storage_unavailable", true, None),
+    }
+}
 fn retention_response(store: &Store, id: Option<i64>) -> Response {
     let r = match store.retention(id) {
         Ok(Some(r)) => r,
@@ -1071,7 +1111,9 @@ async fn connection(
                                     Observation::ResetMissing(_, input) => Some(&input.command_id),
                                     Observation::Status(_)
                                     | Observation::Retention(_)
-                                    | Observation::Page(..) => None,
+                                    | Observation::Page(..)
+                                    | Observation::RetryScope
+                                    | Observation::Retry(_) => None,
                                 };
                                 let key_conflict = command_id.is_some_and(|id| {
                                     r.head
