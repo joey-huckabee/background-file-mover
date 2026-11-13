@@ -3230,7 +3230,13 @@ fn admin_retry_duplicate_after_acceptance_fails_across_commit_and_restart() {
     let c = Connection::open(f.db()).unwrap();
     c.execute(
         "INSERT INTO retry_contexts VALUES(?1,?2,?3,?4,0,?5)",
-        params![job.job_id, first.context_key, first.principal, first.instance_id, first.reason],
+        params![
+            job.job_id,
+            first.context_key,
+            first.principal,
+            first.instance_id,
+            first.reason
+        ],
     )
     .unwrap();
     c.execute(
@@ -3250,7 +3256,10 @@ fn admin_retry_duplicate_after_acceptance_fails_across_commit_and_restart() {
     assert_eq!((r.outcome, r.replay), (RetryOutcome::Failed, true));
     // A different context for the committed job still skips.
     let other = retry_occurrence(&s, job.job_id, Some(0), 'b', 1);
-    assert_eq!(s.admin_retry(&other, 202).unwrap().outcome, RetryOutcome::Skipped);
+    assert_eq!(
+        s.admin_retry(&other, 202).unwrap().outcome,
+        RetryOutcome::Skipped
+    );
 }
 
 #[test]
@@ -3260,7 +3269,10 @@ fn snapshot_verification_covers_retry_receipts() {
     let j = ready_job(&s);
     review(&s, j.job_id);
     let o = retry_occurrence(&s, j.job_id, Some(0), 'a', 0);
-    assert_eq!(s.admin_retry(&o, 120).unwrap().outcome, RetryOutcome::Accepted);
+    assert_eq!(
+        s.admin_retry(&o, 120).unwrap().outcome,
+        RetryOutcome::Accepted
+    );
     drop(s);
     for (n, tamper) in [
         "UPDATE retry_contexts SET reason='altered'",
