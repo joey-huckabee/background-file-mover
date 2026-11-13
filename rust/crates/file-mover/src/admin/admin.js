@@ -694,10 +694,12 @@
       route: "/api/v2/admin/jobs/clear-history", ask: "Clear from history…", confirm: "Clear from history", keep: "Keep in history",
       hover: "Forget this job's record. Files are not touched. You will be asked to confirm.",
       question: function (jobId, job) {
-        return "Remove job #" + jobId + " from the history? The mover forgets this job: its record, activity and " +
-          "storage accounting. No files are touched: " + (job.state === "Committed"
-            ? "delivered files stay at the destination."
-            : "files the mover took over stay where they are, but will no longer be tracked or counted on the Storage page.") +
+        return "Remove job #" + jobId + " from the history? The mover forgets this job completely: its record, " +
+          "activity, storage accounting and its recording ID. If the sender submits the same recording again, " +
+          "it is treated as a new recording. No files are touched, but they leave mover management: " +
+          (job.state === "Committed"
+            ? "delivered files stay at the destination, and the source files the mover took over stay where they are, untracked."
+            : "files the mover took over stay where they are, untracked and no longer counted on the Storage page.") +
           " This cannot be undone.";
       },
       done: function (b) { return b && b.cleared_count !== undefined; }, outcome: clearOutcome

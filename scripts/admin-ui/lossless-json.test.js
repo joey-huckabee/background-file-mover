@@ -115,3 +115,18 @@ console.log('byte formatting ok');
   assert.match(clearOutcome(parseJSON('{"cleared_count":0}')), /Nothing was removed/);
   console.log('cancel and clear outcomes ok');
 }
+
+// Clear confirmation explains forgetting the recording ID and file management.
+{
+  const aSrc = src.slice(src.indexOf('  function cancelOutcome('), src.indexOf('  function readReply('));
+  const ACTIONS = new Function(aSrc + '; return ACTIONS;')();
+  for (const state of ['Committed', 'Claimed']) {
+    const q = ACTIONS['clear-history'].question('7', { state });
+    assert.match(q, /recording ID/);
+    assert.match(q, /treated as a new recording/);
+    assert.match(q, /No files are touched, but they leave mover management/);
+    assert.match(q, /untracked/);
+  }
+  assert.match(ACTIONS['clear-history'].question('7', { state: 'Committed' }), /delivered files stay at the destination/);
+  console.log('clear confirmation wording ok');
+}

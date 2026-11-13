@@ -40,6 +40,15 @@ the offline clear of [increment 107](RUST-INCREMENT-107.md). No schema change.
   - The row disappears after a successful clear.
   - Cancel and clear now share one confirmed-action component in `admin.js`.
 
+## Review fixes
+
+- The confirmation now states the complete group-50 effect: the job's record,
+  activity, accounting and recording ID are forgotten (submitting the same
+  recording again creates a new recording), and no files are touched but all
+  leave mover management. Delivered files stay at the destination and the
+  taken-over source files stay where they are, untracked. A node test checks the
+  wording for delivered and cancelled jobs.
+
 ## Tests
 
 - Store: online clear clears delivered and settled-cancelled jobs, skips
