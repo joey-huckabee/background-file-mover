@@ -43,4 +43,9 @@ was added. All 7 admin real-service tests pass locally.
 
 ## Validation status
 
-Pending PR CI for both full SLES modes and independent review.
+PR36 CI run
+[43362677263](https://github.com/joey-huckabee/background-file-mover/actions/runs/43362677263)
+at `43c694e` passes both full modes: production **383 tests per debug/release
+profile** and nfs-qualification **387/profile** (increment134's 381/385 plus
+the concurrency and mixed-load reservation tests). Independent review: no
+remaining findings. Merged to main as `61896a3`.
