@@ -97,3 +97,4 @@ tr.detail-row>td{background:#f7f9f2;padding:14px 16px;white-space:normal}
 .problem strong{color:var(--red)}.problem p{margin:4px 0 0;font-size:13px}.problem .mono{font-size:11px;overflow-wrap:anywhere}
 .problem.resolved{border-left-color:#c3cbbb;background:var(--paper)}.problem.resolved strong{color:var(--muted)}
 .badge.grey{background:#efefec;color:#5d6660}
+.cancel{margin-top:10px}.cancel .notice{margin:0 0 8px}.secondary.danger{color:var(--red);border-color:#e9c8c1}

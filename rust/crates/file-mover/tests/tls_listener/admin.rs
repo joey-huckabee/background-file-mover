@@ -748,7 +748,15 @@ fn admin_history_pages_and_detail_match_operator_status() {
         ("limit=1&limit=1", "invalid_http"),
         ("state=Committed", "invalid_http"),
         ("cursor=bogus", "invalid_cursor"),
-        ("confirm_action=cancel&job_ids=1", "invalid_selection"),
+        // Confirmation mode is implemented for cancel only (increment 141).
+        (
+            "confirm_action=clear-history&job_ids=1",
+            "invalid_selection",
+        ),
+        (
+            "limit=5&confirm_action=cancel&job_ids=1",
+            "invalid_selection",
+        ),
     ] {
         let r = get(&format!("/api/v2/admin/jobs?{query}"), "");
         assert_eq!(r.status, 400, "{query}");
@@ -1250,5 +1258,223 @@ fn admin_retry_delivers_a_reviewed_job_and_replays_its_receipt() {
         204
     );
     assert_eq!(post(&full(&header), body).status, 401);
+    f.stop();
+}
+
+#[test]
+fn admin_cancel_needs_a_matching_confirmation_and_stops_the_job() {
+    let (mut f, a) = admin_fixture();
+    // A job waiting for its second file (not yet handed off).
+    fs::write(f.root.join("source/current/a"), b"alpha").unwrap();
+    let (code, waiting) = f.https("POST", "/api/v2/jobs", "", &f.input());
+    assert_eq!(
+        (code, waiting["error"].as_str()),
+        (409, Some("source_file_missing"))
+    );
+    let ok = a.login("admin", PASSWORD);
+    let cookie = ok.cookie();
+    let csrf = ok.header("mover-csrf-token").unwrap().to_owned();
+    let get = |query: &str| {
+        a.session_path(
+            &format!("/api/v2/admin/jobs?{query}"),
+            &cookie,
+            &format!(
+                "Mover-Admin-Activity: interaction\r\nOrigin: {}\r\nMover-CSRF-Token: {csrf}\r\n",
+                a.origin()
+            ),
+        )
+    };
+    // Confirmation mode: strict query.
+    assert_eq!(
+        a.call(
+            "GET",
+            "/api/v2/admin/jobs?confirm_action=cancel&job_ids=1",
+            "",
+            &[]
+        )
+        .status,
+        401
+    );
+    for bad in [
+        "confirm_action=cancel",
+        "job_ids=1",
+        "confirm_action=cancel&job_ids=0",
+        "confirm_action=cancel&job_ids=01",
+        "confirm_action=cancel&job_ids=1,",
+        "confirm_action=cancel&job_ids=1&job_ids=1",
+        "confirm_action=cancel&job_ids=1&limit=5",
+        "confirm_action=delete-data&job_ids=1",
+    ] {
+        let r = get(bad);
+        assert_eq!(
+            (r.status, r.json()),
+            (400, json!({"error":"invalid_selection"})),
+            "{bad}"
+        );
+    }
+    let preview = get("confirm_action=cancel&job_ids=1");
+    assert_eq!(preview.status, 200);
+    assert_eq!(preview.header("cache-control"), Some("no-store"));
+    let body = preview.json();
+    assert_eq!(body["items"], json!([]));
+    assert_eq!(body["next_cursor"], Value::Null);
+    let c = &body["confirmation"];
+    assert_eq!(c["action"], "cancel");
+    assert_eq!(c["job_ids"], json!([1]));
+    assert_eq!(c["complete"], true);
+    assert_eq!(c["deletion_targets"], json!([]));
+    let proof = c["token"].as_str().unwrap().to_owned();
+    assert!(proof.starts_with("c1."));
+    let other = get("confirm_action=cancel&job_ids=1,1").json()["confirmation"]["token"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    // A proof issued before job 2 exists can never cancel job 2.
+    let future = get("confirm_action=cancel&job_ids=2").json()["confirmation"]["token"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert!(future.contains(".1."), "high-water 1 bound: {future}");
+
+    let headers = |proof: Option<&str>| {
+        format!(
+            "Cookie: {cookie}\r\nOrigin: {}\r\nMover-CSRF-Token: {csrf}\r\nContent-Type: application/json\r\n{}",
+            a.origin(),
+            proof.map_or(String::new(), |p| format!("Mover-Confirmation: {p}\r\n"))
+        )
+    };
+    let post =
+        |headers: &str, body: &[u8]| a.call("POST", "/api/v2/admin/jobs/cancel", headers, body);
+    let one = br#"{"job_ids":[1]}"#;
+    let r = a.call(
+        "GET",
+        "/api/v2/admin/jobs/cancel",
+        &format!("Cookie: {cookie}\r\n"),
+        &[],
+    );
+    assert_eq!((r.status, r.header("allow")), (405, Some("POST")));
+    assert_eq!(
+        post(
+            &headers(Some(&proof)).replace(&format!("Cookie: {cookie}\r\n"), ""),
+            one
+        )
+        .status,
+        401
+    );
+    assert_eq!(
+        post(
+            &headers(Some(&proof)).replace(&a.origin(), "https://evil.example"),
+            one
+        )
+        .status,
+        403
+    );
+    assert_eq!(
+        post(
+            &headers(Some(&proof)).replace("application/json", "text/plain"),
+            one
+        )
+        .status,
+        415
+    );
+    let invalid = json!({"error":"invalid_confirmation"});
+    assert_eq!(post(&headers(None), one).json(), invalid);
+    // A proof for another selection (here [1,1]) cannot cancel [1], and vice versa.
+    assert_eq!(post(&headers(Some(&other)), one).json(), invalid);
+    assert_eq!(
+        post(&headers(Some(&proof)), br#"{"job_ids":[1,1]}"#).json(),
+        invalid
+    );
+    assert_eq!(
+        post(&headers(Some(&format!("{proof}0"))), one).json(),
+        invalid
+    );
+    assert_eq!(
+        post(&headers(Some(&proof)), br#"{"job_ids":[]}"#).json(),
+        json!({"error":"invalid_selection"})
+    );
+    assert_eq!(
+        f.operator("/api/v2/jobs/1").1["details"]["condition"],
+        "AwaitingClaims"
+    );
+    let future_headers = format!(
+        "Cookie: {cookie}\r\nOrigin: {}\r\nMover-CSRF-Token: {csrf}\r\nContent-Type: application/json\r\nMover-Confirmation: {future}\r\n",
+        a.origin()
+    );
+    let skip = json!({"accepted_count":0,"failed_count":0,"skipped_count":1});
+    assert_eq!(post(&future_headers, br#"{"job_ids":[2]}"#).json(), skip);
+    // Job 2 is created afterwards (waiting for a file); the same still-valid
+    // proof skips it.
+    let mut second = f.input();
+    second["recording_id"] = json!("0b6f1c2c-1e9d-4b8a-a7f1-2b5d3c4e5f61");
+    fs::write(f.root.join("source/current/c"), b"charlie").unwrap();
+    second["files"] = json!(["c", "never-there"]);
+    second
+        .as_object_mut()
+        .unwrap()
+        .remove("expected_sizes_bytes");
+    let (code, created) = f.https("POST", "/api/v2/jobs", "", &second);
+    assert_eq!(
+        (code, created["error"].as_str()),
+        (409, Some("source_file_missing"))
+    );
+    assert_eq!(f.operator("/api/v2/jobs/2").0, 200, "job 2 now exists");
+    assert_eq!(post(&future_headers, br#"{"job_ids":[2]}"#).json(), skip);
+    assert_eq!(
+        f.operator("/api/v2/jobs/2").1["details"]["condition"],
+        "AwaitingClaims"
+    );
+
+    // Accepted; a lost-reply resend of the same request cannot cancel twice.
+    let r = post(&headers(Some(&proof)), one);
+    assert_eq!(r.status, 202, "{}", String::from_utf8_lossy(&r.body));
+    assert_eq!(
+        r.json(),
+        json!({"accepted_count":1,"failed_count":0,"skipped_count":0})
+    );
+    let again = post(&headers(Some(&proof)), one).json();
+    assert_eq!(again["accepted_count"], 0, "{again}");
+    let until = Instant::now() + Duration::from_secs(10);
+    while f.operator("/api/v2/jobs/1").1["details"]["condition"] != "Cancelled" {
+        assert!(Instant::now() < until, "{:?}", f.operator("/api/v2/jobs/1"));
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    assert_eq!(
+        post(&headers(Some(&proof)), one).json(),
+        json!({"accepted_count":0,"failed_count":0,"skipped_count":1})
+    );
+    let detail = f.operator("/api/v2/jobs/1").1;
+    assert_eq!(detail["details"]["cancellation"]["state"], "Cancelled");
+    let row = &a.session_path("/api/v2/admin/jobs", &cookie, "").json()["items"][0];
+    assert_eq!(row["condition"], "Cancelled");
+    assert_eq!(row["cancellation"]["state"], "Cancelled");
+    // The sender's resubmission honors the cancellation; the file stays.
+    fs::create_dir_all(f.root.join("source/current/sub")).unwrap();
+    fs::write(f.root.join("source/current/sub/b"), b"bravo!!").unwrap();
+    let (code, refused) = f.https("POST", "/api/v2/jobs", "", &f.input());
+    assert_eq!(
+        (code, refused["error"].as_str()),
+        (409, Some("recording_cancelled"))
+    );
+    assert!(f.root.join("source/current/sub/b").exists());
+    // Sign-out voids the proof even for a new session of the same account.
+    assert_eq!(
+        a.logout(
+            &cookie,
+            &format!("Origin: {}\r\nMover-CSRF-Token: {csrf}\r\n", a.origin())
+        )
+        .status,
+        204
+    );
+    let ok = a.login("admin", PASSWORD);
+    let (cookie2, csrf2) = (
+        ok.cookie(),
+        ok.header("mover-csrf-token").unwrap().to_owned(),
+    );
+    let fresh = format!(
+        "Cookie: {cookie2}\r\nOrigin: {}\r\nMover-CSRF-Token: {csrf2}\r\nContent-Type: application/json\r\nMover-Confirmation: {proof}\r\n",
+        a.origin()
+    );
+    assert_eq!(post(&fresh, one).json(), invalid);
     f.stop();
 }
