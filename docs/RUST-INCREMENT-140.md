@@ -63,3 +63,13 @@ No real installation is migrated by this work.
   passes alone); full API suite with only the environment failures also seen on
   main (a load-sensitive one passes alone); mover-fs backup tests; all 27
   real-service TLS/admin tests. The SLES gates run in PR CI.
+
+## CI result
+
+PR48 CI run
+[43466244306](https://github.com/joey-huckabee/background-file-mover/actions/runs/43466244306)
+at `bb49f72` passes both full modes: production **405 tests per debug/release
+profile** and nfs-qualification **409/profile** (increment139's 400/404 plus four
+store cancellation tests and the real-service cancellation test). Independent
+review had no findings (settlement ordering, committed-first race and in-flight
+delivery confirmed). Merged to main as `afcb61f`.
