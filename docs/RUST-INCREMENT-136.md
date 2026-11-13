@@ -55,4 +55,11 @@ the whole page → detail → reservations chain before the next one starts.
 
 ## Validation status
 
-Pending PR CI for both full SLES modes and independent review.
+PR38 CI run
+[43368755297](https://github.com/joey-huckabee/background-file-mover/actions/runs/43368755297)
+at `1a02062` passes both full modes: production **385 tests per debug/release
+profile** and nfs-qualification **389/profile** (increment135's 383/387 plus the
+store change-listener and real-service stream tests). Independent review covered
+the design (four findings) and the implementation (three findings); all fixed,
+no remaining findings. Verified end to end in Edge against the demo: a submitted
+job appeared without a page reload. Merged to main as `2de3599`.
