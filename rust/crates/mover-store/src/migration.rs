@@ -76,7 +76,7 @@ impl StateInspection {
             )?;
         }
         checkpoint("after_sequence")?;
-        validate_schema(&tx)?;
+        validate_schema_for(&tx, 12)?;
         validate_identities(&tx)?;
         validate_job_sequence(&tx)?;
         validate_contents(&tx, 12)?;
@@ -99,5 +99,59 @@ impl StateInspection {
         drop(self);
         let target = Self::open(path.as_ref())?;
         Ok(target.summary)
+    }
+
+    /// Explicit offline 12 -> 13: add the empty admin retry receipt tables in a
+    /// single immediate transaction. Existing rows are untouched by construction
+    /// (CREATE TABLE only); schema, identities, sequence and contents are validated
+    /// before and after. Caller MUST hold InstanceGuard throughout and must have
+    /// taken a fresh verified backup first. Any error may be postcommit: inspect
+    /// the original state, never auto-restore.
+    pub fn upgrade_retry_receipts(
+        self,
+        path: impl AsRef<Path>,
+        mut checkpoint: impl FnMut(&'static str) -> std::io::Result<()>,
+    ) -> Result<InspectionSummary> {
+        if self.summary().schema_version != 12 {
+            return Err(StoreError::UnsupportedSchema);
+        }
+        let mut c = Connection::open_with_flags(
+            path.as_ref(),
+            OpenFlags::SQLITE_OPEN_READ_WRITE
+                | OpenFlags::SQLITE_OPEN_FULL_MUTEX
+                | OpenFlags::SQLITE_OPEN_NOFOLLOW,
+        )?;
+        c.busy_timeout(Duration::from_secs(5))?;
+        c.execute_batch("PRAGMA trusted_schema=OFF; PRAGMA writable_schema=OFF; PRAGMA legacy_alter_table=OFF; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;")?;
+        let tx = c.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let version: i64 = tx.pragma_query_value(None, "user_version", |r| r.get(0))?;
+        let application: i64 = tx.pragma_query_value(None, "application_id", |r| r.get(0))?;
+        let journal: String = tx.pragma_query_value(None, "journal_mode", |r| r.get(0))?;
+        if version != 12 || application != APPLICATION_ID || journal != "wal" {
+            return Err(StoreError::UnsupportedSchema);
+        }
+        check_sqlite_options(&tx)?;
+        validate_schema_for(&tx, 12)?;
+        validate_identities(&tx)?;
+        validate_job_sequence(&tx)?;
+        validate_contents(&tx, 12)?;
+        checkpoint("before_create")?;
+        create_retry_receipt_tables(&tx)?;
+        checkpoint("after_create")?;
+        validate_schema_for(&tx, 13)?;
+        validate_identities(&tx)?;
+        validate_job_sequence(&tx)?;
+        validate_contents(&tx, 13)?;
+        let integrity: String = tx.query_row("PRAGMA integrity_check", [], |r| r.get(0))?;
+        if integrity != "ok" {
+            return Err(StoreError::CorruptState);
+        }
+        tx.pragma_update(None, "user_version", 13)?;
+        checkpoint("before_commit")?;
+        tx.commit()?;
+        checkpoint("after_commit")?;
+        drop(c);
+        drop(self);
+        Ok(Self::open(path.as_ref())?.summary)
     }
 }

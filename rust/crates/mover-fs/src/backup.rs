@@ -446,7 +446,7 @@ mod tests {
         assert!(result.status.success(), "{result:?}");
         let body: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
         assert_eq!(body["converted"], true);
-        assert_eq!(body["schema_version"], 12);
+        assert_eq!(body["schema_version"], 13);
         assert!(Path::new(&f.path("snapshot/VERIFIED.json")).exists());
         let s = Store::open(f.path("state/jobs.sqlite")).unwrap();
         let job = s.get(7).unwrap().unwrap();
@@ -503,7 +503,7 @@ mod tests {
                     .unwrap()
                     .summary()
                     .schema_version,
-                if nfs_qualification_enabled() { 11 } else { 12 }
+                if nfs_qualification_enabled() { 11 } else { 13 }
             );
             if nfs_qualification_enabled() {
                 assert!(!migrate_command(&f, true).output().unwrap().status.success());
@@ -588,11 +588,12 @@ mod tests {
             drop(current);
             drop(original);
             drop(recovered);
+            // The same backup directory is never reused: an interrupted 11->12
+            // step needs a fresh backup, and so does the remaining 12->13 step.
             let retry = migrate_command(&f, true).output().unwrap();
-            assert_eq!(
-                retry.status.success(),
-                version == 12,
-                "same output cannot be reused before commit: {retry:?}"
+            assert!(
+                !retry.status.success(),
+                "same output cannot be reused: {retry:?}"
             );
         }
     }

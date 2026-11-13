@@ -12,7 +12,7 @@ access; browser sign-in also needs the separate admin listener described in
 
 Run the installed executable as the mover's same non-root service UID and
 non-root primary GID, using its original local configuration and state. The
-state must already be supported schema12 with a recorded active source pairing.
+state must already be the supported current schema (13; run `--migrate-state` first if the service reports MigrationRequired) with a recorded active source pairing.
 These commands refuse missing, uninitialized, incompatible or foreign state;
 they do not initialize a source, create replacement state or migrate a database.
 They inspect local state without traversing source/destination payload storage.

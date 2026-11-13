@@ -4668,7 +4668,7 @@ fn offline_history_epoch_helper() {
 #[test]
 fn incompatible_database_refuses_before_bootstrap_for_every_effect_entry_point() {
     let exe = std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap();
-    for case in (1..=11).chain([13, 99, 100, 101]) {
+    for case in (1..=12).chain([14, 99, 100, 101]) {
         let f = Fixture::uninitialized(300);
         let database = f.root.join("state/jobs.sqlite");
         drop(mover_store::Store::open(&database).unwrap());
@@ -4723,7 +4723,7 @@ fn incompatible_database_refuses_before_bootstrap_for_every_effect_entry_point()
             assert!(
                 log.contains(if case == 101 {
                     "file is not a database"
-                } else if case == 11 {
+                } else if case == 11 || case == 12 {
                     "MigrationRequired"
                 } else {
                     "UnsupportedSchema"
@@ -4797,7 +4797,7 @@ fn offline_inspection_and_backup_preserve_original_recovery_without_payload_root
     let result = check.wait_with_output().unwrap();
     assert!(result.status.success(), "{result:?}");
     let report: Value = serde_json::from_slice(&result.stdout).unwrap();
-    assert_eq!(report["schema_version"], 12);
+    assert_eq!(report["schema_version"], 13);
     assert_eq!(report["retained_jobs"], 1);
     assert_eq!(report["pairing_state"], "RecordedActive");
     let epoch: Value =
@@ -4958,7 +4958,7 @@ fn migration_command(f: &Fixture, output: &std::path::Path, confirm: bool) -> Co
     c
 }
 #[test]
-fn migration_cli_refuses_live_owner_bad_arguments_and_missing_state_then_validates_v12_noop() {
+fn migration_cli_refuses_live_owner_bad_arguments_and_missing_state_then_validates_current_noop() {
     let mut f = Fixture::new(300);
     let backup = f.root.join("migration-backup");
     let before = retention(&f, None).1;
@@ -4972,7 +4972,7 @@ fn migration_cli_refuses_live_owner_bad_arguments_and_missing_state_then_validat
         assert!(result.status.success(), "{result:?}");
         let value: Value = serde_json::from_slice(&result.stdout).unwrap();
         assert_eq!(value["converted"], false);
-        assert_eq!(value["schema_version"], 12);
+        assert_eq!(value["schema_version"], 13);
         assert!(!backup.exists());
     }
     for args in [

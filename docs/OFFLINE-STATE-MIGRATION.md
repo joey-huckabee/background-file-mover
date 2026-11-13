@@ -1,4 +1,12 @@
-# Offline schema-11 to schema-12 migration
+# Offline state migration (schema 11 or 12 to schema 13)
+
+**Update, [increment137](RUST-INCREMENT-137.md):** the current schema is 13. The same
+`--migrate-state` command now converts schema 12 to 13 (it adds the empty admin
+retry receipt tables in one transaction; existing rows are untouched) and chains
+11 -> 12 -> 13 for legacy state. Preview reports `target_schema: 13` and
+`conversion_required: true` for schemas 11 and 12; it is a no-op for 13. Each run
+needs a new backup directory, including a rerun after an interrupted migration.
+The procedure below is otherwise unchanged.
 
 Current runtime checkpoint: [increment 118](RUST-INCREMENT-118.md) records UUID/v2
 integration and exact gate status. Validated mixed schema-12 state can be inspected
@@ -36,8 +44,8 @@ See [increment 115](RUST-INCREMENT-115.md) for actual qualification and limits.
    ```
 
    No backup directory or job-data changes are made. Local guard/lifetime
-   metadata may be written. Schema 11 reports conversion_required:true. Valid
-   legacy-only schema 12 reports false. Preview does not prove free capacity,
+   metadata may be written. Schemas 11 and 12 report conversion_required:true;
+   current schema 13 reports false. Preview does not prove free capacity,
    output-parent permissions or successful writes; apply checks these again.
 5. Apply explicitly, using that same unused directory:
 

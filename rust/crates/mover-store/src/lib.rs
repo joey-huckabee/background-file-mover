@@ -16,9 +16,11 @@ use std::{
     thread,
     time::Duration,
 };
+mod admin_retry;
 mod history;
 mod inspection;
 mod migration;
+pub use admin_retry::{MAX_RETRY_CONTEXTS_PER_JOB, RetryOccurrence, RetryOutcome, RetryResult};
 pub use inspection::{InspectedEnrollment, InspectionSummary, StateInspection};
 mod missing_resets;
 mod operators;
@@ -30,7 +32,7 @@ pub use retention::RetentionSnapshot;
 pub use source_ownership::SourceOwnership;
 
 const APPLICATION_ID: i64 = 0x42464d52;
-const SCHEMA_VERSION: i64 = 12;
+const SCHEMA_VERSION: i64 = 13;
 
 #[derive(Debug)]
 pub enum StoreError {
@@ -57,6 +59,8 @@ pub enum StoreError {
     ReviewConflict,
     ActionConflict,
     AuditFull,
+    /// Retry receipt storage for this job is full; refuse rather than evict.
+    ReceiptCapacity,
 }
 
 impl fmt::Display for StoreError {
@@ -66,11 +70,11 @@ impl fmt::Display for StoreError {
             Self::Io(error) => write!(f, "I/O: {error}"),
             Self::UnsupportedSchema => write!(
                 f,
-                "UnsupportedSchema: schema 12 mover state required; automatic legacy upgrades are disabled. Preserve original state and use compatible software; do not reinitialize or restore a stale database."
+                "UnsupportedSchema: schema 13 mover state required; automatic upgrades are disabled. Preserve original state and use compatible software; do not reinitialize or restore a stale database."
             ),
             Self::MigrationRequired => write!(
                 f,
-                "MigrationRequired: schema 11 state is preserved; explicit offline migration to schema 12 is required; normal startup never applies it. Do not reinitialize or replace original state."
+                "MigrationRequired: older state is preserved; explicit offline migration to schema 13 is required (file-mover --migrate-state); normal startup never applies it. Do not reinitialize or replace original state."
             ),
             Self::UnsupportedIdentity => write!(
                 f,
@@ -716,9 +720,17 @@ impl Drop for Store {
     }
 }
 
+/// Current schema (13): schema 12 tables plus the admin retry receipts.
 fn create_tables(connection: &Connection) -> Result<()> {
+    create_tables_v12(connection)?;
+    create_retry_receipt_tables(connection)
+}
+fn create_tables_v12(connection: &Connection) -> Result<()> {
     connection.execute_batch(include_str!("jobs.sql"))?;
     create_dependent_tables(connection)
+}
+fn create_retry_receipt_tables(connection: &Connection) -> Result<()> {
+    Ok(connection.execute_batch(include_str!("retry_receipts.sql"))?)
 }
 
 fn create_dependent_tables(connection: &Connection) -> Result<()> {
@@ -765,11 +777,14 @@ fn validate_schema(connection: &Connection) -> Result<()> {
 }
 fn validate_schema_for(connection: &Connection, version: i64) -> Result<()> {
     let reference = Connection::open_in_memory()?;
-    if version == 11 {
-        reference.execute_batch(include_str!("jobs_v11.sql"))?;
-        create_dependent_tables(&reference)?;
-    } else {
-        create_tables(&reference)?;
+    match version {
+        11 => {
+            reference.execute_batch(include_str!("jobs_v11.sql"))?;
+            create_dependent_tables(&reference)?;
+        }
+        12 => create_tables_v12(&reference)?,
+        13 => create_tables(&reference)?,
+        _ => return Err(StoreError::UnsupportedSchema),
     }
     if schema_definitions(connection)? != schema_definitions(&reference)? {
         return Err(StoreError::UnsupportedSchema);
@@ -901,7 +916,7 @@ impl Database {
         let version: i64 = connection.pragma_query_value(None, "user_version", |r| r.get(0))?;
         let application: i64 =
             connection.pragma_query_value(None, "application_id", |r| r.get(0))?;
-        if version == 11 && application == APPLICATION_ID {
+        if (version == 11 || version == 12) && application == APPLICATION_ID {
             return Err(StoreError::MigrationRequired);
         }
         if history_clear && (version != SCHEMA_VERSION || application != APPLICATION_ID) {

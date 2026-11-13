@@ -33,11 +33,11 @@ impl StateInspection {
         c.pragma_update(None, "trusted_schema", "OFF")?;
         let application: i64 = c.pragma_query_value(None, "application_id", |r| r.get(0))?;
         let version: i64 = c.pragma_query_value(None, "user_version", |r| r.get(0))?;
-        if application != APPLICATION_ID || ![11, 12].contains(&version) {
+        if application != APPLICATION_ID || ![11, 12, 13].contains(&version) {
             return Err(StoreError::UnsupportedSchema);
         }
         validate_schema_for(&c, version)?;
-        if version == 12 {
+        if version >= 12 {
             validate_identities(&c)?;
         }
         check_sqlite_options(&c)?;
@@ -167,6 +167,61 @@ pub(super) fn compare_rows(
         let sql = format!("SELECT {columns} FROM {table} ORDER BY {order}");
         let mut a = source.prepare(&sql)?;
         let mut b = snapshot.prepare(&sql)?;
+        let width = a.column_count();
+        if width != b.column_count() {
+            return Err(StoreError::CorruptState);
+        }
+        let mut ar = a.query([])?;
+        let mut br = b.query([])?;
+        loop {
+            match (ar.next()?, br.next()?) {
+                (None, None) => break,
+                (Some(a), Some(b)) => {
+                    for i in 0..width {
+                        if a.get_ref(i)? != b.get_ref(i)? {
+                            return Err(StoreError::CorruptState);
+                        }
+                    }
+                }
+                _ => return Err(StoreError::CorruptState),
+            }
+        }
+    }
+    compare_retry_receipts(source, snapshot)
+}
+
+// Schema 13 receipt tables. When both sides have them, every typed row must
+// match (backup verification protects exact replay). A side without them is a
+// pre-13 database, which is only equivalent when the other side holds none.
+fn compare_retry_receipts(source: &Connection, snapshot: &Connection) -> Result<()> {
+    let has = |c: &Connection| -> Result<bool> {
+        Ok(c.query_row(
+            "SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('retry_contexts','retry_outcomes')",
+            [],
+            |r| r.get::<_, i64>(0),
+        )? == 2)
+    };
+    let empty = |c: &Connection| -> Result<bool> {
+        Ok(c.query_row(
+            "SELECT (SELECT count(*) FROM retry_contexts)+(SELECT count(*) FROM retry_outcomes)",
+            [],
+            |r| r.get::<_, i64>(0),
+        )? == 0)
+    };
+    match (has(source)?, has(snapshot)?) {
+        (false, false) => return Ok(()),
+        (true, true) => {}
+        (in_source, _) => {
+            let side = if in_source { source } else { snapshot };
+            return empty(side)?.then_some(()).ok_or(StoreError::CorruptState);
+        }
+    }
+    for sql in [
+        "SELECT * FROM retry_contexts ORDER BY job_id,context_key",
+        "SELECT * FROM retry_outcomes ORDER BY job_id,context_key,occurrence",
+    ] {
+        let mut a = source.prepare(sql)?;
+        let mut b = snapshot.prepare(sql)?;
         let width = a.column_count();
         if width != b.column_count() {
             return Err(StoreError::CorruptState);

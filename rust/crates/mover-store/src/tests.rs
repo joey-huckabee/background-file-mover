@@ -2126,7 +2126,7 @@ fn compatibility_checks_all_unsupported_versions_without_initializing() {
     );
     std::fs::remove_file(recovery).unwrap();
     drop(Store::open(f.db()).unwrap());
-    for version in (1..=11).chain([13, 99]) {
+    for version in (1..=12).chain([14, 99]) {
         let c = Connection::open(f.db()).unwrap();
         c.pragma_update(None, "user_version", version).unwrap();
         drop(c);
@@ -2216,7 +2216,7 @@ fn rebuild_schema_twelve_fixture(c: &mut Connection) {
         )
         .unwrap();
     }
-    validate_schema(&tx).unwrap();
+    validate_schema_for(&tx, 12).unwrap();
     validate_job_sequence(&tx).unwrap();
     let broken: i64 = tx
         .query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| {
@@ -2224,8 +2224,7 @@ fn rebuild_schema_twelve_fixture(c: &mut Connection) {
         })
         .unwrap();
     assert_eq!(broken, 0);
-    tx.pragma_update(None, "user_version", SCHEMA_VERSION)
-        .unwrap();
+    tx.pragma_update(None, "user_version", 12).unwrap();
     tx.commit().unwrap();
     c.pragma_update(None, "foreign_keys", "ON").unwrap();
 }
@@ -2254,6 +2253,15 @@ fn schema_twelve_rebuilt_fixture_preserves_legacy_rows_indices_and_next_id() {
         );
     }
     drop(c);
+    // Schema 12 needs the guarded receipt upgrade before normal startup.
+    assert!(matches!(
+        Store::check_compatibility(f.db(), false),
+        Err(StoreError::MigrationRequired)
+    ));
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_retry_receipts(f.db(), |_| Ok(()))
+        .unwrap();
     Store::check_compatibility(f.db(), false).unwrap();
     let store = Store::open(f.db()).unwrap();
     let job = store.get(7).unwrap().unwrap();
@@ -2310,6 +2318,10 @@ fn schema_twelve_empty_rebuild_preserves_unallocated_and_cleared_sequences() {
             .unwrap();
         assert_eq!(value, high_water);
         drop(c);
+        StateInspection::open(f.db())
+            .unwrap()
+            .upgrade_retry_receipts(f.db(), |_| Ok(()))
+            .unwrap();
         let store = Store::open(f.db()).unwrap();
         assert_eq!(
             store
@@ -2574,6 +2586,13 @@ fn migration_history_fixture(path: &Path) {
     target.pragma_update(None, "foreign_keys", "OFF").unwrap();
     let tx = target.transaction().unwrap();
     for (table, values) in &mut rows {
+        if table.starts_with("retry_") {
+            assert!(
+                values.is_empty(),
+                "schema 13 receipts cannot be copied into schema 11"
+            );
+            continue;
+        }
         tx.execute(&format!("DELETE FROM {table}"), []).unwrap();
         for row in values {
             if table == "jobs" {
@@ -2609,7 +2628,15 @@ fn explicit_migration_preserves_all_tables_manifest_phases_replay_and_high_water
     let target = Connection::open(f.db()).unwrap();
     let original = Connection::open(&snapshot).unwrap();
     inspection::compare_rows(&target, &original, true).unwrap();
-    validate_schema(&target).unwrap();
+    validate_schema_for(&target, 12).unwrap();
+    drop(target);
+    let summary = StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_retry_receipts(f.db(), |_| Ok(()))
+        .unwrap();
+    assert_eq!(summary.schema_version, 13);
+    let target = Connection::open(f.db()).unwrap();
+    inspection::compare_rows(&target, &original, true).unwrap();
     drop(target);
     let store = Store::open(f.db()).unwrap();
     for id in 1..=5 {
@@ -2683,6 +2710,10 @@ fn explicit_migration_preserves_empty_sequence_absence_and_cleared_high_water() 
         StateInspection::open(f.db())
             .unwrap()
             .migrate_legacy(f.db(), snapshot, |_| Ok(()))
+            .unwrap();
+        StateInspection::open(f.db())
+            .unwrap()
+            .upgrade_retry_receipts(f.db(), |_| Ok(()))
             .unwrap();
         assert_eq!(
             Store::open(f.db())
@@ -2933,4 +2964,332 @@ fn change_listener_fires_for_writes_not_reads() {
         after_write,
         "reads must not notify"
     );
+}
+
+fn retry_occurrence(
+    s: &Store,
+    job_id: i64,
+    epoch: Option<u32>,
+    key: char,
+    occurrence: u16,
+) -> RetryOccurrence {
+    RetryOccurrence {
+        job_id,
+        context_key: key.to_string().repeat(64),
+        principal: "a".repeat(64),
+        instance_id: s.instance_id().unwrap(),
+        review_epoch: epoch,
+        reason: "Inspected destination permissions".into(),
+        occurrence,
+    }
+}
+fn retry_rows(path: &Path, key: char) -> i64 {
+    Connection::open(path)
+        .unwrap()
+        .query_row(
+            "SELECT count(*) FROM retry_contexts WHERE context_key=?1",
+            [key.to_string().repeat(64)],
+            |r| r.get(0),
+        )
+        .unwrap()
+}
+
+#[test]
+fn admin_retry_accepts_reviewed_job_and_replays_exact_receipts() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = ready_job(&s);
+    let ok = |outcome, replay| RetryResult { outcome, replay };
+    // Not in review yet: the frozen epoch matches but the job is ineligible.
+    assert_eq!(
+        s.admin_retry(&retry_occurrence(&s, j.job_id, Some(0), 'e', 0), 100)
+            .unwrap(),
+        ok(RetryOutcome::Failed, false)
+    );
+    review(&s, j.job_id);
+    let first = retry_occurrence(&s, j.job_id, Some(0), 'a', 0);
+    assert_eq!(
+        s.admin_retry(&first, 120).unwrap(),
+        ok(RetryOutcome::Accepted, false)
+    );
+    assert_eq!(s.delivery_candidates(120, 1).unwrap(), vec![j.job_id]);
+    // Exact replay returns the stored outcome, not a second scheduling.
+    assert_eq!(
+        s.admin_retry(&first, 121).unwrap(),
+        ok(RetryOutcome::Accepted, true)
+    );
+    // [42,42]: the second occurrence of the same frozen review fails.
+    let second = retry_occurrence(&s, j.job_id, Some(0), 'a', 1);
+    assert_eq!(
+        s.admin_retry(&second, 122).unwrap(),
+        ok(RetryOutcome::Failed, false)
+    );
+    assert_eq!(
+        s.admin_retry(&second, 123).unwrap(),
+        ok(RetryOutcome::Failed, true)
+    );
+    // The job fails into review again (epoch 1). The old request replays its
+    // original outcome and does not authorize another retry.
+    drop(s);
+    let s = Store::open(f.db()).unwrap();
+    review(&s, j.job_id);
+    assert_eq!(
+        s.admin_retry(&first, 999).unwrap(),
+        ok(RetryOutcome::Accepted, true)
+    );
+    assert!(s.delivery_candidates(999, 1).unwrap().is_empty());
+    // A new context frozen at the old epoch is stale.
+    assert_eq!(
+        s.admin_retry(&retry_occurrence(&s, j.job_id, Some(0), 'b', 0), 999)
+            .unwrap(),
+        ok(RetryOutcome::Failed, false)
+    );
+    // A new deliberate retry at the current epoch is accepted.
+    assert_eq!(
+        s.admin_retry(&retry_occurrence(&s, j.job_id, Some(1), 'c', 0), 999)
+            .unwrap(),
+        ok(RetryOutcome::Accepted, false)
+    );
+    // Same key and position with a different projection is a conflict.
+    let mut conflict = first.clone();
+    conflict.reason = "different reason".into();
+    assert!(matches!(
+        s.admin_retry(&conflict, 999),
+        Err(StoreError::ActionConflict)
+    ));
+    // Null epochs and missing jobs skip without storing anything.
+    assert_eq!(
+        s.admin_retry(&retry_occurrence(&s, j.job_id, None, 'd', 0), 999)
+            .unwrap(),
+        ok(RetryOutcome::Skipped, false)
+    );
+    assert_eq!(
+        s.admin_retry(&retry_occurrence(&s, 999_999, Some(0), 'd', 0), 999)
+            .unwrap(),
+        ok(RetryOutcome::Skipped, false)
+    );
+    assert_eq!(retry_rows(&f.db(), 'd'), 0);
+    // Another installation's context is refused outright.
+    let mut foreign = retry_occurrence(&s, j.job_id, Some(1), 'f', 0);
+    foreign.instance_id = "0".repeat(32);
+    assert!(matches!(
+        s.admin_retry(&foreign, 999),
+        Err(StoreError::ReviewConflict)
+    ));
+    assert!(s.job_id_high_water().unwrap() >= j.job_id);
+}
+
+#[test]
+fn admin_retry_receipt_capacity_refuses_without_eviction() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = ready_job(&s);
+    let keys: Vec<char> = "0123456789abcdef".chars().collect();
+    let mut first = None;
+    for n in 0..MAX_RETRY_CONTEXTS_PER_JOB {
+        let mut o = retry_occurrence(&s, j.job_id, Some(0), 'a', 0);
+        o.context_key = format!("{:064x}", n + 1);
+        assert_eq!(
+            s.admin_retry(&o, 100).unwrap().outcome,
+            RetryOutcome::Failed
+        );
+        first.get_or_insert(o);
+    }
+    let mut extra = retry_occurrence(&s, j.job_id, Some(0), keys[0], 0);
+    extra.context_key = format!("{:064x}", 9999);
+    assert!(matches!(
+        s.admin_retry(&extra, 100),
+        Err(StoreError::ReceiptCapacity)
+    ));
+    // Existing receipts still replay.
+    assert!(s.admin_retry(first.as_ref().unwrap(), 100).unwrap().replay);
+}
+
+#[test]
+fn admin_retry_skips_committed_jobs_and_clear_removes_only_their_receipts() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt")
+        .unwrap();
+    let done = history_job(&s, "retry-done", 4);
+    let other = history_job(&s, "retry-other", 4);
+    let o = retry_occurrence(&s, done.job_id, Some(0), 'a', 0);
+    assert_eq!(
+        s.admin_retry(&o, 100).unwrap().outcome,
+        RetryOutcome::Skipped
+    );
+    assert!(s.admin_retry(&o, 101).unwrap().replay);
+    let kept = retry_occurrence(&s, other.job_id, Some(0), 'b', 0);
+    assert_eq!(
+        s.admin_retry(&kept, 100).unwrap().outcome,
+        RetryOutcome::Skipped
+    );
+    drop(s);
+    let s = Store::open_for_history_clear(f.db()).unwrap();
+    assert_eq!(s.clear_completed_history(&[done.job_id]).unwrap(), 1);
+    drop(s);
+    assert_eq!(
+        retry_rows(&f.db(), 'a'),
+        0,
+        "cleared job's receipts are forgotten"
+    );
+    assert_eq!(
+        retry_rows(&f.db(), 'b'),
+        1,
+        "other jobs keep their receipts"
+    );
+    let s = Store::open(f.db()).unwrap();
+    // The cleared job now silently skips; nothing is recorded for it.
+    let again = s.admin_retry(&o, 102).unwrap();
+    assert_eq!(
+        (again.outcome, again.replay),
+        (RetryOutcome::Skipped, false)
+    );
+    assert!(s.admin_retry(&kept, 102).unwrap().replay);
+}
+
+#[test]
+fn schema_twelve_requires_the_guarded_receipt_upgrade() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = ready_job(&s);
+    review(&s, j.job_id);
+    drop(s);
+    // Reconstruct a schema-12 database: same rows, no receipt tables.
+    let c = Connection::open(f.db()).unwrap();
+    c.execute_batch(
+        "DROP TABLE retry_outcomes; DROP TABLE retry_contexts; PRAGMA user_version=12;",
+    )
+    .unwrap();
+    drop(c);
+    assert!(matches!(
+        Store::open(f.db()),
+        Err(StoreError::MigrationRequired)
+    ));
+    let state = StateInspection::open(f.db()).unwrap();
+    assert_eq!(state.summary().schema_version, 12);
+    let retained = state.summary().retained_jobs;
+    let mut stages = Vec::new();
+    let summary = state
+        .upgrade_retry_receipts(f.db(), |stage| {
+            stages.push(stage);
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(summary.schema_version, 13);
+    assert_eq!(summary.retained_jobs, retained);
+    assert_eq!(
+        stages,
+        [
+            "before_create",
+            "after_create",
+            "before_commit",
+            "after_commit"
+        ]
+    );
+    let s = Store::open(f.db()).unwrap();
+    assert_eq!(s.status(j.job_id).unwrap().unwrap().delivery.unwrap().0, 3);
+    // A fault before commit leaves schema 12 intact.
+    drop(s);
+    let c = Connection::open(f.db()).unwrap();
+    c.execute_batch(
+        "DROP TABLE retry_outcomes; DROP TABLE retry_contexts; PRAGMA user_version=12;",
+    )
+    .unwrap();
+    drop(c);
+    let state = StateInspection::open(f.db()).unwrap();
+    assert!(
+        state
+            .upgrade_retry_receipts(f.db(), |stage| if stage == "before_commit" {
+                Err(std::io::Error::other("injected"))
+            } else {
+                Ok(())
+            })
+            .is_err()
+    );
+    assert_eq!(
+        StateInspection::open(f.db())
+            .unwrap()
+            .summary()
+            .schema_version,
+        12
+    );
+}
+
+#[test]
+fn admin_retry_duplicate_after_acceptance_fails_across_commit_and_restart() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt")
+        .unwrap();
+    let job = history_job(&s, "retry-dup", 4);
+    let first = retry_occurrence(&s, job.job_id, Some(0), 'a', 0);
+    drop(s);
+    // Occurrence 0 was accepted while the job was in review; delivery then
+    // committed and the service restarted before occurrence 1 was processed.
+    let c = Connection::open(f.db()).unwrap();
+    c.execute(
+        "INSERT INTO retry_contexts VALUES(?1,?2,?3,?4,0,?5)",
+        params![
+            job.job_id,
+            first.context_key,
+            first.principal,
+            first.instance_id,
+            first.reason
+        ],
+    )
+    .unwrap();
+    c.execute(
+        "INSERT INTO retry_outcomes VALUES(?1,?2,0,'accepted')",
+        params![job.job_id, first.context_key],
+    )
+    .unwrap();
+    drop(c);
+    let s = Store::open(f.db()).unwrap();
+    let mut second = first.clone();
+    second.occurrence = 1;
+    let r = s.admin_retry(&second, 200).unwrap();
+    assert_eq!((r.outcome, r.replay), (RetryOutcome::Failed, false));
+    drop(s);
+    let s = Store::open(f.db()).unwrap();
+    let r = s.admin_retry(&second, 201).unwrap();
+    assert_eq!((r.outcome, r.replay), (RetryOutcome::Failed, true));
+    // A different context for the committed job still skips.
+    let other = retry_occurrence(&s, job.job_id, Some(0), 'b', 1);
+    assert_eq!(
+        s.admin_retry(&other, 202).unwrap().outcome,
+        RetryOutcome::Skipped
+    );
+}
+
+#[test]
+fn snapshot_verification_covers_retry_receipts() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = ready_job(&s);
+    review(&s, j.job_id);
+    let o = retry_occurrence(&s, j.job_id, Some(0), 'a', 0);
+    assert_eq!(
+        s.admin_retry(&o, 120).unwrap().outcome,
+        RetryOutcome::Accepted
+    );
+    drop(s);
+    for (n, tamper) in [
+        "UPDATE retry_contexts SET reason='altered'",
+        "UPDATE retry_outcomes SET outcome='failed'",
+        "DELETE FROM retry_outcomes",
+        "DELETE FROM retry_outcomes; DELETE FROM retry_contexts",
+    ]
+    .iter()
+    .enumerate()
+    {
+        let state = StateInspection::open(f.db()).unwrap();
+        let backup = f.0.join(format!("receipts-{n}.sqlite"));
+        state.snapshot_into(backup.to_str().unwrap()).unwrap();
+        state.verify_snapshot(&backup).unwrap();
+        let c = Connection::open(&backup).unwrap();
+        c.execute_batch(tamper).unwrap();
+        drop(c);
+        assert!(state.verify_snapshot(&backup).is_err(), "{tamper}");
+    }
 }
