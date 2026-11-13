@@ -33,7 +33,10 @@ DATA = Path(ACCOUNT.pw_dir) / "fm-demo"
 MARKER = DATA / ".fm-demo"
 LOCK = DATA / ".fm-demo.lock"
 # Commands that can start, stop or change demo state run one at a time.
-SERIALIZED = {"setup", "start", "stop", "reset", "add-job"}
+SERIALIZED = {"setup", "start", "stop", "reset", "add-job", "unblock"}
+# Foreign files planted by add-job --blocked; only these are ever removed by unblock.
+BLOCKERS = DATA / "blockers.json"
+BLOCKER_TEXT = b"fm-demo blocker: not written by the mover\n"
 EXE = DATA / "target/release/file-mover"
 ROOT = DATA / "run"
 CONFIG = ROOT / "config.json"
@@ -180,7 +183,7 @@ def http(sock, method, path, body=b""):
     return int(head.split()[1]), json.loads(payload or b"null")
 
 
-def submit(files, sizes):
+def submit(files, sizes, recording_id=None):
     current = ROOT / "source/current"
     for rel, size in zip(files, sizes):
         path = current / rel
@@ -192,7 +195,7 @@ def submit(files, sizes):
                 chunk = min(remaining, 4 << 20)
                 f.write(os.urandom(chunk))
                 remaining -= chunk
-    body = {"recording_id": str(uuid.uuid4()), "generator_id": "recorder", "source_directory": str(current),
+    body = {"recording_id": recording_id or str(uuid.uuid4()), "generator_id": "recorder", "source_directory": str(current),
             "files": files, "expected_sizes_bytes": {k: str(v) for k, v in zip(files, sizes)}}
     try:
         s = socket.create_connection(("127.0.0.1", PRODUCER_PORT), timeout=30)
@@ -366,22 +369,118 @@ def status_line(_=None):
         print(f"  open https://localhost:{ADMIN_PORT}/   sign in: admin / {PASSWORD}")
 
 
+def real_dir(path):
+    """True only for a real directory (never a symlink) owned by the demo user."""
+    try:
+        st = os.lstat(path)
+    except FileNotFoundError:
+        return False
+    return stat.S_ISDIR(st.st_mode) and st.st_uid == os.getuid()
+
+
+def demo_destination():
+    """The demo destination root, refusing symlinks or foreign ownership at
+    run/ and run/destination (DATA itself is validated by demo_data)."""
+    destination = ROOT / "destination"
+    for d in (ROOT, destination):
+        if not real_dir(d):
+            fail(f"{d} is not a real directory owned by {USER}; refusing")
+    return destination
+
+
+def checked_path(destination, parts):
+    """Join parts under destination; every existing directory on the way must be
+    a real owned directory, and the leaf must not be a symlink."""
+    path = destination
+    for part in parts[:-1]:
+        if part in ("", ".", "..") or "/" in part:
+            return None
+        path = path / part
+        if os.path.lexists(path) and not real_dir(path):
+            return None
+    leaf = parts[-1]
+    if leaf in ("", ".", "..") or "/" in leaf:
+        return None
+    path = path / leaf
+    return None if path.is_symlink() else path
+
+
+def load_blockers():
+    return json.loads(BLOCKERS.read_text()) if BLOCKERS.exists() else []
+
+
+def plant_blocker(recording_id, rel):
+    """A foreign file where the job's first file will be published. The mover
+    never overwrites what it did not write, so delivery stops for review."""
+    destination = demo_destination()
+    target = checked_path(destination, [recording_id, *rel.split("/")])
+    if target is None or os.path.lexists(destination / recording_id):
+        fail("unexpected blocker path; refusing")
+    target.parent.mkdir(parents=True, exist_ok=False)
+    # O_NOFOLLOW|O_EXCL: never follow or replace anything already there.
+    fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "wb") as f:
+        f.write(BLOCKER_TEXT)
+    BLOCKERS.write_text(json.dumps(load_blockers() + [{"recording_id": recording_id, "file": rel}]))
+
+
 def cmd_add_job(a):
     if not a.inner:
         inner("add-job", ["--count", str(a.count), "--interval", str(a.interval),
-                          "--size-mb", str(a.size_mb), "--files", str(a.files)])
+                          "--size-mb", str(a.size_mb), "--files", str(a.files)] + (["--blocked"] if a.blocked else []))
     if is_root():
         fail("internal add-job must not run as root")
     demo_data()
     for i in range(a.count):
         name = f"demo-{time.strftime('%H%M%S')}-{uuid.uuid4().hex[:4]}"
-        status, body = submit(*job_files(name, a.files, a.size_mb))
+        files, sizes = job_files(name, a.files, a.size_mb)
+        recording_id = str(uuid.uuid4())
+        if a.blocked:
+            plant_blocker(recording_id, files[0])
+        status, body = submit(files, sizes, recording_id)
         if status == 202:
-            say(f"job #{body['job_id']} accepted ({a.files} files, {a.size_mb:g} MiB main file)")
+            note = "; delivery will stop for review (fix with: fm-demo unblock)" if a.blocked else ""
+            say(f"job #{body['job_id']} accepted ({a.files} files, {a.size_mb:g} MiB main file){note}")
         else:
             say(f"submission refused: {status} {body}")
         if i + 1 < a.count:
             time.sleep(a.interval)
+
+
+def cmd_unblock(a):
+    """Remove only the foreign files add-job --blocked planted (exact content
+    check), so a reviewed Retry delivery can succeed."""
+    if not a.inner:
+        inner("unblock", [])
+    if is_root():
+        fail("internal unblock must not run as root")
+    demo_data()
+    destination = demo_destination()
+    removed = 0
+    for b in load_blockers():
+        target = checked_path(destination, [b["recording_id"], *b["file"].split("/")])
+        if target is None:
+            say(f"skipping unexpected blocker entry {b}")
+            continue
+        try:
+            fd = os.open(target, os.O_RDONLY | os.O_NOFOLLOW)
+        except OSError:
+            continue
+        with os.fdopen(fd, "rb") as f:
+            same = stat.S_ISREG(os.fstat(f.fileno()).st_mode) and f.read(len(BLOCKER_TEXT) + 1) == BLOCKER_TEXT
+        if same:
+            target.unlink()
+            removed += 1
+            # Remove now-empty real directories the blocker created, up to the recording folder.
+            parent = target.parent
+            top = destination / b["recording_id"]
+            while parent != destination and real_dir(parent) and not any(parent.iterdir()):
+                parent.rmdir()
+                if parent == top:
+                    break
+                parent = parent.parent
+    BLOCKERS.unlink(missing_ok=True)
+    say(f"removed {removed} blocker(s); use Retry delivery in the job's details")
 
 
 def cmd_reset(_):
@@ -425,8 +524,13 @@ def main():
     j.add_argument("--interval", type=float, default=3.0, help="seconds between jobs")
     j.add_argument("--size-mb", type=float, default=3.0, help="size of each job's main file")
     j.add_argument("--files", type=int, default=2, help="files per job (1-5 named, more as parts)")
+    j.add_argument("--blocked", action="store_true",
+                   help="plant a foreign file at the destination so delivery stops for review")
     j.add_argument("--inner", action="store_true", help=argparse.SUPPRESS)
     j.set_defaults(fn=cmd_add_job)
+    u = sub.add_parser("unblock", help="remove files planted by add-job --blocked")
+    u.add_argument("--inner", action="store_true", help=argparse.SUPPRESS)
+    u.set_defaults(fn=cmd_unblock)
     sub.add_parser("reset").set_defaults(fn=cmd_reset)
     a = p.parse_args()
     if getattr(a, "count", 1) < 1 or getattr(a, "files", 1) < 1 or getattr(a, "jobs", 0) < 0:
