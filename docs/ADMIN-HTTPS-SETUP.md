@@ -59,6 +59,9 @@ Open `https://AUTHORITY/` and sign in with the account username and password.
 - Sessions end after the inactivity timeout. Background page loads do not extend
   a session; only deliberate activity does.
 - Restarting the service ends every session.
+- The page updates itself when jobs change (indicator "Live" next to Sign out);
+  no reload needed. Up to two open pages get live updates at once; others show
+  "Live updates unavailable" and still work with Refresh.
 - To change the password: stop the mover, run `--admin-password-change`
   ([guide](ADMIN-ACCOUNT-SETUP.md)), then start it. All sessions end.
 

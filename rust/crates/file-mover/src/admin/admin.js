@@ -170,9 +170,11 @@
     if (cursors[page]) { q += "&cursor=" + encodeURIComponent(cursors[page]); }
     return "/api/v2/admin/jobs" + q;
   }
-  function loadPage(deliberate) {
-    $("history-status").textContent = "Loading…";
-    $("prev").disabled = true; $("next").disabled = true;
+  function loadPage(deliberate, live) {
+    if (!live) {
+      $("history-status").textContent = "Loading…";
+      $("prev").disabled = true; $("next").disabled = true;
+    }
     return request(pagePath(), deliberate, "page").then(function (r) {
       if (!r.current) { return false; }
       if (r.status !== 200 || !r.body) {
@@ -180,15 +182,17 @@
         $("prev").disabled = page === 0;
         return false;
       }
-      renderPage(r.body);
-      return true;
+      return renderPage(r.body, live).then(function () { return true; });
     }).catch(function (e) {
       if (!quiet(e)) { $("history-status").textContent = "The service could not be reached."; }
       return false;
     });
   }
-  function renderPage(body) {
+  function renderPage(body, live) {
     var rows = $("history-rows");
+    // A live refresh keeps the open detail panel and refreshes it in place.
+    var kept = live ? document.querySelector("tr.detail-row") : null;
+    if (kept) { kept.remove(); }
     clear(rows);
     rowsById = {};
     var items = body.items;
@@ -223,10 +227,17 @@
     if (body.next_cursor !== null) { cursors[page + 1] = body.next_cursor; cursors.length = page + 2; }
     if (openJob && rowsById[openJob]) {
       var row = rows.querySelector('tr[data-job="' + CSS.escape(openJob) + '"]');
-      if (row) { insertDetail(openJob, row, row.querySelector("button"), false); }
+      if (row && kept) {
+        row.after(kept);
+        row.querySelector("button").setAttribute("aria-expanded", "true");
+        return loadDetailInto(kept.querySelector(".detail"), openJob, false, true);
+      } else if (row) {
+        return insertDetail(openJob, row, row.querySelector("button"), false);
+      }
     } else {
       openJob = null;
     }
+    return Promise.resolve();
   }
 
   function closeDetail() {
@@ -255,20 +266,37 @@
     box.appendChild(el("p", "Loading…", "muted"));
     td.appendChild(box); tr.appendChild(td);
     row.after(tr);
-    // Sequential reads: detail, then this job's reservations.
-    request("/api/v2/jobs/" + encodeURIComponent(jobId), deliberate, "detail").then(function (r) {
+    return loadDetailInto(box, jobId, deliberate, false);
+  }
+
+  // Sequential reads: detail, then this job's reservations. With keep=true the
+  // current content stays until the new detail arrives (live refresh).
+  function loadDetailInto(box, jobId, deliberate, keep) {
+    return request("/api/v2/jobs/" + encodeURIComponent(jobId), deliberate, "detail").then(function (r) {
       if (!r.current) { return; }
-      clear(box);
-      if (r.status === 404) { box.appendChild(el("p", "This job is no longer tracked. Refresh the history.", "notice")); return; }
-      if (r.status !== 200 || !r.body) { box.appendChild(el("p", "Job details are unavailable (" + r.status + ").", "notice")); return; }
-      var reserved = renderDetail(box, r.body, rowsById[jobId] || {});
+      var fresh = el("div");
+      if (r.status === 404) {
+        fresh.appendChild(el("p", "This job is no longer tracked. Refresh the history.", "notice"));
+        box.replaceChildren.apply(box, Array.prototype.slice.call(fresh.childNodes));
+        return;
+      }
+      if (r.status !== 200 || !r.body) {
+        if (keep) { return; }
+        fresh.appendChild(el("p", "Job details are unavailable (" + r.status + ").", "notice"));
+        box.replaceChildren.apply(box, Array.prototype.slice.call(fresh.childNodes));
+        return;
+      }
+      var reserved = renderDetail(fresh, r.body, rowsById[jobId] || {});
+      box.replaceChildren.apply(box, Array.prototype.slice.call(fresh.childNodes));
       return request("/api/v2/jobs/" + encodeURIComponent(jobId) + "/retention", false, "detail").then(function (rr) {
         if (!rr.current) { return; }
         clear(reserved);
         if (rr.status === 200 && rr.body) { renderJobStorage(reserved, rr.body.details); }
         else { reserved.appendChild(el("p", "Reservations unavailable (" + rr.status + ").", "muted")); }
       });
-    }).catch(function (e) { if (!quiet(e)) { clear(box); box.appendChild(el("p", "The service could not be reached.", "notice")); } });
+    }).catch(function (e) {
+      if (!quiet(e) && !keep) { clear(box); box.appendChild(el("p", "The service could not be reached.", "notice")); }
+    });
   }
 
   function fact(list, name, value, hover) {
@@ -398,8 +426,8 @@
     box.appendChild(p);
     if (u > l) { box.appendChild(el("small", "Over the configured limit", "over")); }
   }
-  function loadStorage(deliberate) {
-    $("storage-status").textContent = "Loading…";
+  function loadStorage(deliberate, live) {
+    if (!live) { $("storage-status").textContent = "Loading…"; }
     return request("/api/v2/retention", deliberate, "storage").then(function (r) {
       if (!r.current) { return; }
       if (r.status !== 200 || !r.body) { $("storage-status").textContent = "Storage is unavailable (" + r.status + "). Try Refresh."; return; }
@@ -554,10 +582,71 @@
     fact(dl, "Protected ingress", i.protected_ingress ? "Configured" : "Not used", "protected_ingress");
   }
 
+  // ---- Live updates (Server-Sent Events; no polling) ----
+  var events = null, liveRetry = null, liveBusy = false, livePending = false, liveConnected = false;
+  function setLive(text, cls, hover) {
+    var e = $("live");
+    e.textContent = text;
+    e.className = "live " + cls;
+    e.title = hover;
+  }
+  function refreshVisible() {
+    if (liveBusy) { livePending = true; return; }
+    liveBusy = true;
+    var work = view === "history" ? loadPage(false, true)
+      : view === "storage" ? loadStorage(false, true) : Promise.resolve();
+    var done = function () {
+      liveBusy = false;
+      if (livePending) { livePending = false; refreshVisible(); }
+    };
+    work.then(done, done);
+  }
+  function stopLive() {
+    if (events) { events.close(); events = null; }
+    if (liveRetry) { clearTimeout(liveRetry); liveRetry = null; }
+    liveConnected = false;
+  }
+  function startLive() {
+    stopLive();
+    if (typeof EventSource === "undefined") {
+      setLive("Live updates unavailable", "off", "This browser does not support live updates; use Refresh.");
+      return;
+    }
+    setLive("Connecting…", "wait", "Connecting to live updates");
+    events = new EventSource("/api/v2/admin/events");
+    events.addEventListener("ready", function () {
+      setLive("Live", "on", "This page updates automatically when jobs change.");
+      // Any change between the last read and this subscription would otherwise
+      // be lost: re-read what is visible on every (re)connect.
+      liveConnected = true;
+      refreshVisible();
+    });
+    events.addEventListener("changed", function () { refreshVisible(); });
+    events.addEventListener("signed-out", function () { stopLive(); show(false); });
+    events.onerror = function () {
+      if (!events) { return; }
+      if (events.readyState === EventSource.CONNECTING) {
+        setLive("Reconnecting…", "wait", "Live updates paused; reconnecting");
+        return;
+      }
+      // Closed for good: EventSource hides the status, so ask the session.
+      stopLive();
+      fetch("/api/v2/admin/session", { credentials: "same-origin", cache: "no-store" }).then(function (r) {
+        if (r.status === 401) { show(false); return; }
+        setLive("Live updates unavailable", "off", "Live updates are unavailable right now; use Refresh. Retrying in 30 seconds.");
+        liveRetry = setTimeout(startLive, 30000);
+      }).catch(function () {
+        setLive("Live updates unavailable", "off", "The service could not be reached.");
+        liveRetry = setTimeout(startLive, 30000);
+      });
+    };
+  }
+
   // ---- Session ----
   function show(signedIn) {
     $("signin").hidden = signedIn;
     $("shell").hidden = !signedIn;
+    if (signedIn) { if (!events) { startLive(); } } else { stopLive(); }
     if (!signedIn) {
       Object.keys(ctl).forEach(function (k) { if (ctl[k]) { ctl[k].abort(); } gen[k]++; });
       csrf = null; cursors = [null]; page = 0; openJob = null; descending = false;

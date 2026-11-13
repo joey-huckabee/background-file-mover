@@ -274,6 +274,7 @@ impl Worker {
         guard: mover_fs::LocalClaimLock,
         stop: Arc<AtomicBool>,
         control: control::Server,
+        changes: Option<tokio::sync::watch::Sender<u64>>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         c.validate()?;
         let mut guard = guard;
@@ -281,6 +282,10 @@ impl Worker {
         instance.validate()?;
         instance.prepare_database(&c.state_database)?;
         let store = Arc::new(Store::open(&c.state_database)?);
+        if let Some(changes) = changes {
+            // Live dashboard signal: "state may have changed", never data.
+            store.set_change_listener(move || changes.send_modify(|v| *v = v.wrapping_add(1)));
+        }
         enrollment::authorize(c, &store, &mut guard, false, &stop)?;
         let guard = Arc::new(guard);
         store.require_destination_bindings()?;
@@ -1255,12 +1260,40 @@ const OPERATOR_RESERVED: usize = 1;
 const ADMIN_CONNECTIONS: usize = 4;
 // Both the deadline watcher and TLS job retain admission and instance ownership.
 struct TlsBudget {
+    /// Request-budget permits; an admin connection that becomes an event stream
+    /// returns them early (it then holds a stream permit instead).
+    request: std::sync::Mutex<Option<RequestPermits>>,
+    _guard: Arc<mover_fs::InstanceGuard>,
+}
+struct RequestPermits {
     _permit: tokio::sync::OwnedSemaphorePermit,
     /// Producer or admin audience permit, whichever admitted this connection.
     _producer_permit: Option<tokio::sync::OwnedSemaphorePermit>,
     /// Shared producer+admin network permit (keeps an operator slot free).
     _network_permit: Option<tokio::sync::OwnedSemaphorePermit>,
-    _guard: Arc<mover_fs::InstanceGuard>,
+}
+impl TlsBudget {
+    fn new(
+        permit: tokio::sync::OwnedSemaphorePermit,
+        producer_permit: Option<tokio::sync::OwnedSemaphorePermit>,
+        network_permit: Option<tokio::sync::OwnedSemaphorePermit>,
+        guard: Arc<mover_fs::InstanceGuard>,
+    ) -> Self {
+        Self {
+            request: std::sync::Mutex::new(Some(RequestPermits {
+                _permit: permit,
+                _producer_permit: producer_permit,
+                _network_permit: network_permit,
+            })),
+            _guard: guard,
+        }
+    }
+    fn release_request(&self) {
+        self.request
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .take();
+    }
 }
 // Fields drop in declaration order, even when the future was never polled.
 struct TlsJob {
@@ -1396,9 +1429,16 @@ async fn serve_inner(
                 if startup_stop.load(Ordering::Relaxed) {
                     return Err("startup stopped".into());
                 }
-                Worker::start(&startup_config, guard, startup_stop.clone(), control)
-                    .map(|worker| (worker, endpoints, native, admin_ingress))
-                    .map_err(|e| e.to_string())
+                let changes = admin_ingress.as_ref().map(admin::Prepared::changes);
+                Worker::start(
+                    &startup_config,
+                    guard,
+                    startup_stop.clone(),
+                    control,
+                    changes,
+                )
+                .map(|worker| (worker, endpoints, native, admin_ingress))
+                .map_err(|e| e.to_string())
             });
             let _ = ready.send(result);
         })?;
@@ -1502,12 +1542,16 @@ async fn serve_inner(
                 let stream = stream.into_std()?;
                 let socket = Arc::new(stream.try_clone()?);
                 let close = CloseTlsWire(socket.clone());
-                let budget = Arc::new(TlsBudget {
-                    _permit: permit,
-                    _producer_permit: Some(admin_permit),
-                    _network_permit: Some(network_permit),
-                    _guard: worker._instance.clone(),
-                });
+                let budget = Arc::new(TlsBudget::new(
+                    permit,
+                    Some(admin_permit),
+                    Some(network_permit),
+                    worker._instance.clone(),
+                ));
+                let release = {
+                    let budget = budget.clone();
+                    move || budget.release_request()
+                };
                 let watch = HandshakeWatch {
                     socket,
                     _budget: budget.clone(),
@@ -1537,7 +1581,7 @@ async fn serve_inner(
                         return;
                     };
                     let _ = handshake_done.send(());
-                    admin::connection(stream, admin, observer).await;
+                    admin::connection(stream, admin, observer, Box::new(release)).await;
                 });
                 let _ = pool.try_spawn(Box::pin(TlsJob {
                     future,
@@ -1607,12 +1651,12 @@ async fn serve_inner(
                 let stream = stream.into_std()?;
                 let socket = Arc::new(stream.try_clone()?);
                 let close = CloseTlsWire(socket.clone());
-                let budget = Arc::new(TlsBudget {
-                    _permit: permit,
-                    _producer_permit: producer_permit,
-                    _network_permit: network_permit,
-                    _guard: worker._instance.clone(),
-                });
+                let budget = Arc::new(TlsBudget::new(
+                    permit,
+                    producer_permit,
+                    network_permit,
+                    worker._instance.clone(),
+                ));
                 let watch = HandshakeWatch {
                     socket,
                     _budget: budget.clone(),

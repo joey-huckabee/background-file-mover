@@ -12,7 +12,7 @@ use sha2::{Digest, Sha256};
 use std::{
     fmt,
     path::{Path, PathBuf},
-    sync::mpsc,
+    sync::{Arc, mpsc},
     thread,
     time::Duration,
 };
@@ -257,7 +257,11 @@ fn status_in(tx: &rusqlite::Transaction<'_>, job_id: i64) -> Result<Option<JobSt
 pub struct Store {
     commands: mpsc::SyncSender<Command>,
     worker: Option<thread::JoinHandle<()>>,
+    listener: ChangeListener,
 }
+/// Called on the store worker thread after any operation that changed rows.
+/// It must be quick and must not call back into the store.
+type ChangeListener = Arc<std::sync::Mutex<Option<Box<dyn Fn() + Send + Sync>>>>;
 type Operation = Box<dyn FnOnce(&mut Database) + Send>;
 enum Command {
     Run(Operation),
@@ -408,8 +412,15 @@ impl Store {
     pub fn open_for_history_clear(path: impl AsRef<Path>) -> Result<Self> {
         Self::start(path.as_ref().to_owned(), false, true)
     }
+    /// Register the change listener (replaces any previous one). A change means
+    /// "state may have changed": a rolled-back write can also trigger it.
+    pub fn set_change_listener(&self, listener: impl Fn() + Send + Sync + 'static) {
+        *self.listener.lock().unwrap_or_else(|p| p.into_inner()) = Some(Box::new(listener));
+    }
     fn start(path: PathBuf, read_only: bool, history_clear: bool) -> Result<Self> {
         let (commands, receiver) = mpsc::sync_channel(32);
+        let listener: ChangeListener = Arc::new(std::sync::Mutex::new(None));
+        let worker_listener = listener.clone();
         let (startup, ready) = mpsc::sync_channel(1);
         let worker = thread::Builder::new()
             .name("mover-sqlite".into())
@@ -433,7 +444,18 @@ impl Store {
                 };
                 while let Ok(command) = receiver.recv() {
                     match command {
-                        Command::Run(operation) => operation(&mut database),
+                        Command::Run(operation) => {
+                            let before = database.connection.total_changes();
+                            operation(&mut database);
+                            if database.connection.total_changes() != before
+                                && let Some(notify) = worker_listener
+                                    .lock()
+                                    .unwrap_or_else(|p| p.into_inner())
+                                    .as_ref()
+                            {
+                                notify();
+                            }
+                        }
                         Command::Stop => break,
                     }
                 }
@@ -442,6 +464,7 @@ impl Store {
             Ok(()) => Ok(Self {
                 commands,
                 worker: Some(worker),
+                listener,
             }),
             Err(error) => {
                 let _ = worker.join();
