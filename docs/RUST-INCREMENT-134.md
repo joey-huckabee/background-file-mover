@@ -79,4 +79,11 @@ roots, which can differ from Settings for older jobs.
 
 ## Validation status
 
-Pending PR CI for both full SLES modes, independent review and the user's live review.
+PR34 CI run
+[43347988852](https://github.com/joey-huckabee/background-file-mover/actions/runs/43347988852)
+at `92bb14d` passes both full modes: production **381 tests per debug/release
+profile** and nfs-qualification **385/profile** (increment133's 377/381 plus the
+certificate reader, cursor encoding and wrong-address page unit tests; the
+real-service history test was extended). Independent review: no remaining
+findings. The user reviewed the hosted demo and approved the merge. Merged to
+main as `9108e3a`.
