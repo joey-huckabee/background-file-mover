@@ -186,7 +186,7 @@ pub(crate) fn claim(
         &mut diagnostic,
     );
     if let Err(error) = &result
-        && (diagnostic.is_some() || matches!(error, ClaimError::Io(_) | ClaimError::Operation(..)))
+        && filesystem_failure(error, diagnostic.as_deref())
         && !stop.load(std::sync::atomic::Ordering::Relaxed)
     {
         let text = diagnostic.unwrap_or_else(|| super::diagnostic::describe(error));
@@ -201,6 +201,17 @@ pub(crate) fn claim(
         }
     }
     result
+}
+
+/// True only for storage failures worth showing as a job problem. Typed policy
+/// refusals never qualify; a child refusal (`blocked: ...`) carries no OS error,
+/// while a child storage failure reports `errno=`/`kind=` in its diagnostic.
+fn filesystem_failure(error: &ClaimError, diagnostic: Option<&str>) -> bool {
+    match error {
+        ClaimError::MissingSource | ClaimError::ExpectedSizeMismatch => false,
+        ClaimError::Io(_) | ClaimError::Operation(..) => true,
+        _ => diagnostic.is_some_and(|d| d.contains("errno=") || d.contains(" kind=")),
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -456,6 +467,39 @@ pub(crate) fn validate_handoff(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn only_storage_failures_become_job_problems() {
+        use super::filesystem_failure as f;
+        let blocked = ClaimError::Blocked("claim operation blocked");
+        // Child storage failures carry an OS error.
+        assert!(f(
+            &blocked,
+            Some("observe: payload_source_read errno=13; inspect storage")
+        ));
+        assert!(f(
+            &blocked,
+            Some("relocate: relocate.rename_noreplace errno=1")
+        ));
+        assert!(f(
+            &blocked,
+            Some("copy: payload_copy_write kind=other; inspect storage")
+        ));
+        // Policy refusals never do, whatever the diagnostic says.
+        assert!(!f(
+            &ClaimError::MissingSource,
+            Some("observe: missing_source errno=2")
+        ));
+        assert!(!f(
+            &ClaimError::ExpectedSizeMismatch,
+            Some("observe: expected_size_mismatch")
+        ));
+        assert!(!f(
+            &blocked,
+            Some("custody_after: blocked: custody changed")
+        ));
+        assert!(!f(&blocked, Some("observe: blocked: path refused")));
+        assert!(!f(&blocked, None));
+    }
     use super::*;
     #[test]
     fn unusable_receipts_are_pending_but_explicit_unsafe_receipts_block() {
