@@ -362,6 +362,24 @@ fn admin_https_login_session_logout_and_boundary_precedence() {
     // Target authority, forwarded identity and unimplemented routes.
     let wrong_host = a.raw(b"GET / HTTP/1.1\r\nHost: evil.example\r\nContent-Length: 0\r\n\r\n");
     assert_eq!(wrong_host.status, 403);
+    // A browser page load gets directions to the configured address only.
+    assert_eq!(
+        wrong_host.header("content-type"),
+        Some("text/html; charset=utf-8")
+    );
+    assert!(wrong_host.header("content-security-policy").is_some());
+    let page = String::from_utf8(wrong_host.body.clone()).unwrap();
+    assert!(
+        page.contains(&format!("https://localhost:{}/", a.port)),
+        "{page}"
+    );
+    assert!(!page.contains("evil.example"));
+    // API calls under a wrong address keep the JSON refusal.
+    let api = a.raw(
+        b"GET /api/v2/admin/session HTTP/1.1\r\nHost: evil.example\r\nContent-Length: 0\r\n\r\n",
+    );
+    assert_eq!(api.status, 403);
+    assert_eq!(api.json(), json!({"error":"admin_request_forbidden"}));
     assert_eq!(
         a.call("GET", "/", "X-Forwarded-For: 10.0.0.1\r\n", &[])
             .status,

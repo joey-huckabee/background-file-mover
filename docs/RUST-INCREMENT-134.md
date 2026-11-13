@@ -20,6 +20,10 @@ No action, dependency or real state.
   blue, Acquired teal, Copied/Moved solid green; unreached steps outlined grey),
   and "Sign out everywhere" is labelled **Sign out** (hover: signs out every
   session; transfers keep running).
+- Opening the dashboard under another address (for example `127.0.0.1` instead of
+  the configured `localhost`) now shows a small "Wrong address" page linking to
+  the configured origin, for `GET /` only; API calls keep the JSON 403. The link
+  is the HTML-escaped configured origin, never the request's Host.
 - **Job detail** opens **inline** under the selected row (one open at a time) in
   a three-panel layout (Job, Activity, Storage reserved) above the files table.
   All facts in plain wording; hover shows the technical field and value. Files:

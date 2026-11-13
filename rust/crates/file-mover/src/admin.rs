@@ -367,6 +367,17 @@ async fn handle(
     match header(r, "host") {
         None | Some(b"") => return Reply::error(400, "invalid_http"),
         Some(host) if !admin.hosts.iter().any(|h| h.as_bytes() == host) => {
+            // A person opening the page under another name gets directions; the
+            // address shown is the configured origin, never the request's Host.
+            if r.head.method == "GET" && r.head.target == b"/" {
+                return Reply {
+                    status: 403,
+                    content_type: "text/html; charset=utf-8",
+                    body: wrong_address_page(&admin.origin).into_bytes(),
+                    headers: Zeroizing::new(String::new()),
+                    document: true,
+                };
+            }
             return Reply::forbidden();
         }
         Some(_) => (),
@@ -882,6 +893,27 @@ fn settings(
     }))
 }
 
+/// Static page for a browser that used an address other than the configured
+/// one. No styles or scripts, so the document CSP still applies unchanged.
+fn wrong_address_page(origin: &str) -> String {
+    let escaped: String = origin
+        .chars()
+        .map(|c| match c {
+            '&' => "&amp;".to_owned(),
+            '<' => "&lt;".to_owned(),
+            '>' => "&gt;".to_owned(),
+            '"' => "&quot;".to_owned(),
+            '\'' => "&#39;".to_owned(),
+            c => c.to_string(),
+        })
+        .collect();
+    format!(
+        "<!doctype html>\n<html lang=\"en\">\n<meta charset=\"utf-8\">\n<title>File Mover</title>\n\
+         <h1>Wrong address</h1>\n<p>This dashboard is served at \
+         <a href=\"{escaped}/\">{escaped}/</a>. Open that address instead.</p>\n</html>\n"
+    )
+}
+
 /// Exact accepted Host values and the browser-serialized origin for a validated
 /// canonical `host:port` authority. Browsers omit `:443` from both Origin and
 /// Host; other ports stay explicit.
@@ -1082,6 +1114,19 @@ mod tests {
                 String::from_utf8_lossy(bad)
             );
         }
+    }
+
+    #[test]
+    fn wrong_address_page_shows_only_the_escaped_configured_origin() {
+        let page = wrong_address_page("https://mover.example:9443");
+        assert!(
+            page.contains(
+                "<a href=\"https://mover.example:9443/\">https://mover.example:9443/</a>"
+            )
+        );
+        assert!(!page.contains("<script") && !page.contains("<style") && !page.contains(" style="));
+        let hostile = wrong_address_page("https://x\"><script>");
+        assert!(!hostile.contains("<script>") && hostile.contains("&quot;&gt;&lt;script&gt;"));
     }
 
     #[test]
