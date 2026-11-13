@@ -23,8 +23,13 @@ use tokio::{
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 pub(crate) type Job = Pin<Box<dyn Future<Output = ()> + Send + 'static>>;
 const THREADS: usize = 2;
-const QUEUE: usize = 3;
-const JOBS: usize = 6;
+/// Request/producer TLS jobs, as qualified before live updates.
+const REQUEST_JOBS: usize = 6;
+/// Long-lived admin event streams get their own slots so they never take
+/// capacity producers had (see docs/dashboard/LIVE-UPDATES-DESIGN.md).
+pub(crate) const STREAM_JOBS: usize = 2;
+const JOBS: usize = REQUEST_JOBS + STREAM_JOBS;
+const QUEUE: usize = JOBS / THREADS;
 const STOP_POLL: Duration = Duration::from_millis(100);
 const START_WAIT: Duration = Duration::from_secs(5);
 
@@ -323,7 +328,7 @@ mod tests {
     }
 
     #[test]
-    fn six_jobs_bound_queued_and_running_and_stop_drops_every_future() {
+    fn bounded_jobs_queued_and_running_and_stop_drops_every_future() {
         let fixture = Fixture::new();
         let (pool, stop) = fixture.pool();
         let started = Arc::new(AtomicUsize::new(0));

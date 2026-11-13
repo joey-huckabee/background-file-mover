@@ -2905,3 +2905,28 @@ fn status_page_is_bounded_ascending_and_reports_more() {
         assert_eq!(status.transfers.len(), single.transfers.len());
     }
 }
+
+#[test]
+fn change_listener_fires_for_writes_not_reads() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let count = Arc::new(AtomicUsize::new(0));
+    let seen = count.clone();
+    s.set_change_listener(move || {
+        seen.fetch_add(1, Ordering::SeqCst);
+    });
+    let submission = Submission::new(
+        "g",
+        "listener-1",
+        "/mnt/recordings/current",
+        vec![FileSpec::new("listener-data", None).unwrap()],
+    )
+    .unwrap();
+    let job = s.accept(&submission, &context()).unwrap();
+    let after_write = count.load(Ordering::SeqCst);
+    assert!(after_write >= 1, "accept must notify");
+    s.status(job.job_id).unwrap();
+    s.status_page(0, 10, false).unwrap();
+    assert_eq!(count.load(Ordering::SeqCst), after_write, "reads must not notify");
+}

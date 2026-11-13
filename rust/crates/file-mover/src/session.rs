@@ -108,6 +108,9 @@ pub struct Sessions {
     state: Mutex<State>,
     idle: Duration,
     entropy: Entropy,
+    /// Bumped on global revocation, activation and shutdown so open event
+    /// streams close immediately instead of at their next session check.
+    revoked: tokio::sync::watch::Sender<u64>,
 }
 
 impl Sessions {
@@ -131,7 +134,16 @@ impl Sessions {
             }),
             idle,
             entropy,
+            revoked: tokio::sync::watch::Sender::new(0),
         }
+    }
+
+    /// Subscribe to revocation notices (logout, password activation, shutdown).
+    pub(crate) fn revocations(&self) -> tokio::sync::watch::Receiver<u64> {
+        self.revoked.subscribe()
+    }
+    fn announce_revocation(&self) {
+        self.revoked.send_modify(|v| *v = v.wrapping_add(1));
     }
 
     fn lock(&self) -> MutexGuard<'_, State> {
@@ -335,8 +347,12 @@ impl Sessions {
     /// Global manual logout: revoke every session and in-flight login authority.
     /// Generation exhaustion closes the manager rather than wrapping.
     pub fn logout_all(&self) -> Result<u64, ActivationError> {
-        let mut state = self.lock();
-        Self::revoke(&mut state)
+        let result = {
+            let mut state = self.lock();
+            Self::revoke(&mut state)
+        };
+        self.announce_revocation();
+        result
     }
 
     fn revoke(state: &mut State) -> Result<u64, ActivationError> {
@@ -370,17 +386,24 @@ impl Sessions {
             return Err(ActivationError::Rejected);
         }
         state.account = Arc::new(record);
-        Self::revoke(&mut state)
+        let result = Self::revoke(&mut state);
+        drop(state);
+        self.announce_revocation();
+        result
     }
 
     /// Refuse all further work and hand back the verifier thread, if any. The
     /// owner must join it (off the async runtime) before releasing instance
     /// ownership; a timed-out verifier may still be running.
     pub fn shutdown(&self) -> Option<JoinHandle<()>> {
-        let mut state = self.lock();
-        state.closed = true;
-        state.sessions.clear();
-        state.worker.take()
+        let worker = {
+            let mut state = self.lock();
+            state.closed = true;
+            state.sessions.clear();
+            state.worker.take()
+        };
+        self.announce_revocation();
+        worker
     }
 }
 

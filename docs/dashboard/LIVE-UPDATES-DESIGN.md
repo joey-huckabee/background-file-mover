@@ -2,8 +2,8 @@
 
 User request 2026-11-12: push status changes to the open dashboard without
 polling and without a full-page refresh. The user approved proceeding on the
-recommendations below ("Go with your recommendations"). Implemented in
-[increment136](../RUST-INCREMENT-136.md).
+recommendations below ("Go with your recommendations"). Implementation in
+progress as increment136; this note is the reviewed design.
 
 ## Transport
 
@@ -29,6 +29,17 @@ recommendations below ("Go with your recommendations"). Implemented in
   data. Events carry no job data: the page re-reads authoritative state.
 - Bursts are coalesced: after a change the stream waits 250 ms and sends one
   event with the latest version.
+
+## Slow or stalled clients
+
+- Every stream write and flush (head, events, keepalives, `signed-out`) is
+  bounded by 2 s. A client that stops reading is disconnected at the next write
+  instead of holding capacity.
+- Revocation and shutdown wake the stream immediately; its final `signed-out`
+  write is bounded the same way, then the connection closes.
+- After the request-permit handover the stream keeps its stream permit and the
+  instance-ownership reference until its executor job is actually destroyed, as
+  every TLS job does today.
 
 ## Session handling
 
@@ -59,11 +70,17 @@ recommendations below ("Go with your recommendations"). Implemented in
   and paging stay. The previous content stays until the new data arrives, so
   nothing flashes "Loading…".
 - On reconnect the page re-reads visible state once, so a missed event cannot
-  leave it stale. On `signed-out` or a 401 the page returns to sign-in.
+  leave it stale. On `signed-out` the page returns to sign-in.
+- `EventSource` does not expose HTTP status codes. When the stream fails
+  permanently (`readyState` closed, for example a 401 after a restart or a 503 at
+  capacity) the page performs one unmarked session check: 401 returns to sign-in;
+  200 shows "Live updates unavailable" and tries one new stream after 30 s.
 - One refresh cycle at a time; an event arriving during a refresh schedules a
   single follow-up refresh.
 
 ## Out of scope
 
 Per-job event payloads, history of missed events, live updates for Settings
-(configuration only changes on restart).
+(configuration only changes on restart), and the cached **source free-space
+reading** on the Storage page: it changes without a database write, so it is not
+pushed; Refresh updates it. Everything else shown comes from the state database.
