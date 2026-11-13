@@ -1246,11 +1246,20 @@ pub async fn serve_controlled(
     }
     serve_inner(Some(listener), c, lifecycle).await
 }
+/// Global connection budget across producer, admin and private operator sockets.
+const TOTAL_CONNECTIONS: usize = 8;
+/// Global slots producer and admin TCP connections can never take together.
+const OPERATOR_RESERVED: usize = 1;
+/// Concurrent admin browser connections (each also needs a TLS executor slot,
+/// shared with producer TLS; a full producer pool can still refuse admin).
+const ADMIN_CONNECTIONS: usize = 4;
 // Both the deadline watcher and TLS job retain admission and instance ownership.
 struct TlsBudget {
     _permit: tokio::sync::OwnedSemaphorePermit,
     /// Producer or admin audience permit, whichever admitted this connection.
     _producer_permit: Option<tokio::sync::OwnedSemaphorePermit>,
+    /// Shared producer+admin network permit (keeps an operator slot free).
+    _network_permit: Option<tokio::sync::OwnedSemaphorePermit>,
     _guard: Arc<mover_fs::InstanceGuard>,
 }
 // Fields drop in declaration order, even when the future was never polled.
@@ -1422,11 +1431,13 @@ async fn serve_inner(
         } else {
             None
         };
-    let permits = Arc::new(Semaphore::new(8));
+    let permits = Arc::new(Semaphore::new(TOTAL_CONNECTIONS));
     let producer_permits = Arc::new(Semaphore::new(6));
-    // Initial admin admission: one connection at a time inside the global budget,
-    // leaving room for a private operator connection under full producer load.
-    let admin_permits = Arc::new(Semaphore::new(1));
+    // Several independent browser connections, each counted in the global budget.
+    let admin_permits = Arc::new(Semaphore::new(ADMIN_CONNECTIONS));
+    // Producer and admin TCP connections together leave one global slot that
+    // only the private operator socket can use, whatever the network load.
+    let network_permits = Arc::new(Semaphore::new(TOTAL_CONNECTIONS - OPERATOR_RESERVED));
     if let Some(manager) = native.as_ref().and_then(|n| n.manager.as_ref()) {
         manager.set_budget(producer_permits.clone());
     }
@@ -1477,6 +1488,10 @@ async fn serve_inner(
                     drop(stream);
                     continue;
                 };
+                let Ok(network_permit) = network_permits.clone().try_acquire_owned() else {
+                    drop(stream);
+                    continue;
+                };
                 let Ok(permit) = permits.clone().try_acquire_owned() else {
                     drop(stream);
                     continue;
@@ -1490,6 +1505,7 @@ async fn serve_inner(
                 let budget = Arc::new(TlsBudget {
                     _permit: permit,
                     _producer_permit: Some(admin_permit),
+                    _network_permit: Some(network_permit),
                     _guard: worker._instance.clone(),
                 });
                 let watch = HandshakeWatch {
@@ -1548,9 +1564,12 @@ async fn serve_inner(
                 continue;
             }
             let producer_permit = if audience.producer() {
-                match producer_permits.clone().try_acquire_owned() {
-                    Ok(p) => Some(p),
-                    Err(_) => {
+                match (
+                    producer_permits.clone().try_acquire_owned(),
+                    network_permits.clone().try_acquire_owned(),
+                ) {
+                    (Ok(p), Ok(n)) => Some((p, n)),
+                    _ => {
                         // No plaintext HTTP response before a TLS handshake.
                         if tls_manager.is_some() {
                             drop(stream);
@@ -1567,6 +1586,10 @@ async fn serve_inner(
                 }
             } else {
                 None
+            };
+            let (producer_permit, network_permit) = match producer_permit {
+                Some((p, n)) => (Some(p), Some(n)),
+                None => (None, None),
             };
             let Ok(permit) = permits.clone().try_acquire_owned() else {
                 drop(stream);
@@ -1587,6 +1610,7 @@ async fn serve_inner(
                 let budget = Arc::new(TlsBudget {
                     _permit: permit,
                     _producer_permit: producer_permit,
+                    _network_permit: network_permit,
                     _guard: worker._instance.clone(),
                 });
                 let watch = HandshakeWatch {
@@ -1659,6 +1683,7 @@ async fn serve_inner(
                 tasks.spawn(async move {
                     let _permit = permit;
                     let _producer_permit = producer_permit;
+                    let _network_permit = network_permit;
                     connection(stream, c, sender, observer, admission, audience, None).await;
                 });
             }

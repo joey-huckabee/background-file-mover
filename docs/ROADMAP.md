@@ -48,7 +48,9 @@ dashboard remain unfinished. Packaging is not the next dashboard milestone.
 - [ ] Add reviewed-state retry, then safe cancellation, confirmed history clear
   and separately confirmed owned-data deletion in bounded increments. Preserve
   exact replay, actual effect settlement and group-50 complete forgetting.
-- [ ] **Multiple admin browser connections (user request 2026-11-12, soon):**
+- [x] **Multiple admin browser connections (user request 2026-11-12, soon):**
+  done in [increment135](RUST-INCREMENT-135.md): four admin connections, one
+  global slot always reserved for the private operator.
   the admin listener admits one connection at a time. Allow several independent
   browser connections while keeping a guaranteed private-operator slot and the
   bounded global budget; measure under producer load. Prerequisite for live updates.

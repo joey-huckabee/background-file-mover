@@ -62,10 +62,10 @@ Open `https://AUTHORITY/` and sign in with the account username and password.
 - To change the password: stop the mover, run `--admin-password-change`
   ([guide](ADMIN-ACCOUNT-SETUP.md)), then start it. All sessions end.
 
-At most one admin connection is served at a time, inside the service's global
-connection limit. Extra simultaneous connections are closed, not queued. The
-page is a single self-contained document, so a normal browser needs only one
-connection at a time.
+Up to four admin connections are served at once, inside the service's global
+limit of eight, with one slot always kept for the local operator. Extra
+simultaneous connections are closed, not queued. Under a full producer load the
+shared TLS workers may still refuse admin connections until producers finish.
 
 ## Troubleshooting
 

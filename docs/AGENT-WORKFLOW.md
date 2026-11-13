@@ -173,6 +173,10 @@ Recorded 2026-11-11 from the retired model handoff.
   has `coordinator` (the D: checkout) and `origin` (GitHub). A plain `git fetch
   coordinator` can miss new branches; fetch the branch explicitly, e.g.
   `git fetch coordinator BRANCH:refs/remotes/coordinator/BRANCH`.
+- Real-service TLS/admin tests can run natively in WSL in about 30 seconds:
+  `wsl -u root -- bash scripts/dev-wsl-namespace.sh bash scripts/dev-local-tls-tests.sh [FILTER]`
+  (gate SQLite flags; private mount namespace hides the WSLg mirror of `/` that
+  the mover's alias checks otherwise refuse). Fast feedback only, not gate evidence.
 - Native `cargo fmt`, `cargo clippy` and focused `cargo test` in the WSL clone are
   quick pre-checks only. Some tests need gate-provided environment (for example
   `FILE_MOVER_TLS_FIXTURES`) and fail outside the gate. PR CI runs both full modes.
