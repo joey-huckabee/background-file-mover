@@ -17,6 +17,8 @@ use std::{
     time::Duration,
 };
 mod admin_retry;
+mod problems;
+pub use problems::{JobProblem, ProblemStage, valid_diagnostic};
 mod history;
 mod inspection;
 mod migration;
@@ -32,7 +34,7 @@ pub use retention::RetentionSnapshot;
 pub use source_ownership::SourceOwnership;
 
 const APPLICATION_ID: i64 = 0x42464d52;
-const SCHEMA_VERSION: i64 = 13;
+const SCHEMA_VERSION: i64 = 14;
 
 #[derive(Debug)]
 pub enum StoreError {
@@ -70,11 +72,11 @@ impl fmt::Display for StoreError {
             Self::Io(error) => write!(f, "I/O: {error}"),
             Self::UnsupportedSchema => write!(
                 f,
-                "UnsupportedSchema: schema 13 mover state required; automatic upgrades are disabled. Preserve original state and use compatible software; do not reinitialize or restore a stale database."
+                "UnsupportedSchema: schema 14 mover state required; automatic upgrades are disabled. Preserve original state and use compatible software; do not reinitialize or restore a stale database."
             ),
             Self::MigrationRequired => write!(
                 f,
-                "MigrationRequired: older state is preserved; explicit offline migration to schema 13 is required (file-mover --migrate-state); normal startup never applies it. Do not reinitialize or replace original state."
+                "MigrationRequired: older state is preserved; explicit offline migration to schema 14 is required (file-mover --migrate-state); normal startup never applies it. Do not reinitialize or replace original state."
             ),
             Self::UnsupportedIdentity => write!(
                 f,
@@ -202,6 +204,8 @@ pub struct JobStatus {
     pub latest_resume: Option<ResumeAudit>,
     pub missing_review_epoch: u32,
     pub latest_missing_reset: Option<MissingResetAudit>,
+    /// Latest recorded claim/delivery problem (informational).
+    pub problem: Option<JobProblem>,
 }
 
 fn status_in(tx: &rusqlite::Transaction<'_>, job_id: i64) -> Result<Option<JobStatus>> {
@@ -243,6 +247,7 @@ fn status_in(tx: &rusqlite::Transaction<'_>, job_id: i64) -> Result<Option<JobSt
     let latest_resume = operators::latest(tx, job_id)?;
     let missing_review_epoch = missing_resets::epoch(tx, job_id)?;
     let latest_missing_reset = missing_resets::latest(tx, job_id)?;
+    let problem = problems::latest(tx, job_id)?;
     Ok(Some(JobStatus {
         job,
         transfers,
@@ -253,6 +258,7 @@ fn status_in(tx: &rusqlite::Transaction<'_>, job_id: i64) -> Result<Option<JobSt
         latest_resume,
         missing_review_epoch,
         latest_missing_reset,
+        problem,
     }))
 }
 
@@ -720,10 +726,18 @@ impl Drop for Store {
     }
 }
 
-/// Current schema (13): schema 12 tables plus the admin retry receipts.
+/// Current schema (14): schema 13 plus the per-job problem record.
 fn create_tables(connection: &Connection) -> Result<()> {
+    create_tables_v13(connection)?;
+    create_problem_tables(connection)
+}
+/// Schema 13: schema 12 tables plus the admin retry receipts.
+fn create_tables_v13(connection: &Connection) -> Result<()> {
     create_tables_v12(connection)?;
     create_retry_receipt_tables(connection)
+}
+fn create_problem_tables(connection: &Connection) -> Result<()> {
+    Ok(connection.execute_batch(include_str!("job_problems.sql"))?)
 }
 fn create_tables_v12(connection: &Connection) -> Result<()> {
     connection.execute_batch(include_str!("jobs.sql"))?;
@@ -783,7 +797,8 @@ fn validate_schema_for(connection: &Connection, version: i64) -> Result<()> {
             create_dependent_tables(&reference)?;
         }
         12 => create_tables_v12(&reference)?,
-        13 => create_tables(&reference)?,
+        13 => create_tables_v13(&reference)?,
+        14 => create_tables(&reference)?,
         _ => return Err(StoreError::UnsupportedSchema),
     }
     if schema_definitions(connection)? != schema_definitions(&reference)? {
@@ -916,7 +931,7 @@ impl Database {
         let version: i64 = connection.pragma_query_value(None, "user_version", |r| r.get(0))?;
         let application: i64 =
             connection.pragma_query_value(None, "application_id", |r| r.get(0))?;
-        if (version == 11 || version == 12) && application == APPLICATION_ID {
+        if (11..=13).contains(&version) && application == APPLICATION_ID {
             return Err(StoreError::MigrationRequired);
         }
         if history_clear && (version != SCHEMA_VERSION || application != APPLICATION_ID) {

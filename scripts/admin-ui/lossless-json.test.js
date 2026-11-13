@@ -71,3 +71,35 @@ console.log('byte formatting ok');
   assert.match(retryOutcome(parseJSON('{"accepted_count":0,"failed_count":0,"skipped_count":1}')), /Nothing/);
   console.log('retry context encoder ok (' + checked + ' known answer)');
 })().catch(e => { console.error(e); process.exit(1); });
+
+// Problem descriptions: plain language from recorded diagnostics.
+{
+  const probSrc = src.slice(src.indexOf('  var ERRNO = {'), src.indexOf('  function problemPanel('));
+  const describeProblem = new Function(probSrc + '; return describeProblem;')();
+  const folders = { source: 'cam1/', destination: 'archive/' };
+  const p = (text, stage) => {
+    const json = parseJSON(text);
+    return describeProblem(Object.assign({ stage: stage || 'delivery', errno: null }, json), folders);
+  };
+  let d = p('{"operation":"staging_directory_create","errno":17}');
+  assert.strictEqual(d.title, 'Something is already there');
+  assert.strictEqual(d.side, 'destination');
+  assert.match(d.advice, /destination folder archive\/.*Find out what it is first.*leave it in place.*not the mover's/);
+  assert.doesNotMatch(d.advice, /Move or rename it/);
+  d = p('{"operation":"payload_source_read","errno":13}');
+  assert.strictEqual(d.title, 'Permission denied');
+  assert.match(d.advice, /permission in the source folder cam1\//);
+  d = p('{"operation":"payload_copy_write","errno":28}');
+  assert.match(d.title + d.advice, /No space left.*destination storage is full/);
+  d = p('{"operation":"relocate.rename_noreplace","errno":1}', 'claim');
+  assert.strictEqual(d.side, 'source');
+  d = p('{"operation":"destination_binding_refused"}');
+  assert.strictEqual(d.title, 'Destination changed');
+  d = p('{"operation":"blocked: custody changed"}');
+  assert.match(d.advice, /custody changed/);
+  d = p('{"operation":"something_new","errno":99}');
+  assert.strictEqual(d.title, 'System error 99');
+  d = p('{"operation":"x"}', 'claim');
+  assert.strictEqual(d.side, 'source');
+  console.log('problem descriptions ok');
+}

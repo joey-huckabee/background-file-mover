@@ -209,7 +209,7 @@ pub(crate) fn account_scope(
     instance: &mover_fs::InstanceGuard,
 ) -> Result<(String, Vec<String>)> {
     let state = mover_store::StateInspection::open(&config.state_database)?;
-    if state.summary().schema_version != 13
+    if state.summary().schema_version != 14
         || mover_fs::validate_inspected_state(&state)? != "RecordedActive"
     {
         return Err(

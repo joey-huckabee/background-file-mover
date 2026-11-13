@@ -1118,6 +1118,9 @@
               "type": "null"
             }
           ]
+        },
+        "last_problem": {
+          "$ref": "#/$defs/JobProblem"
         }
       },
       "required": [
@@ -2266,6 +2269,75 @@
           "type": "object"
         }
       }
+    },
+    "JobProblem": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "stage": {
+          "type": "string",
+          "enum": [
+            "claim",
+            "delivery"
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "maxLength": 240,
+          "not": {
+            "pattern": "[^ -~]"
+          }
+        },
+        "errno": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "file_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,2})$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "diagnostic": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240,
+          "not": {
+            "pattern": "[^ -~]"
+          }
+        },
+        "recorded_at": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "stage",
+        "operation",
+        "errno",
+        "file_id",
+        "diagnostic",
+        "recorded_at"
+      ],
+      "x-status": "implemented increment139 (state schema 14)",
+      "x-semantic-rules": [
+        "Optional in JobDetails: omitted when no problem was recorded, never null.",
+        "Informational only: never an effect receipt, retry authorization, custody fact or proof of safe disposition.",
+        "diagnostic is the bounded printable-ASCII worker diagnostic; it carries no paths or payload bytes. operation/errno are parsed from it when it has the '<operation> errno=<n>' form.",
+        "file_id is the decimal file index the failed step was processing, or null for job-level steps."
+      ]
     }
   },
   "x-history-clear-policy": "Group50: after safe stop/settlement, successful eligible clear forgets all source/destination linkage, ownership/accounting/inventory and action results. Files remain unmanaged; no post-clear cleanup or reconstruction.",

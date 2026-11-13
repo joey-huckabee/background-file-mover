@@ -368,12 +368,26 @@ impl Worker {
                                 if delivery_stop.load(Ordering::Relaxed) {
                                     break;
                                 }
+                                let mut problem = None;
                                 let result = delivery_worker::deliver(
                                     &delivery_store,
                                     id,
                                     &delivery_guard,
                                     &delivery_stop,
+                                    &mut problem,
                                 );
+                                // Informational record first, so the review shows the cause.
+                                if let Some(p) = problem
+                                    && let Err(error) = delivery_store.record_problem(
+                                        id,
+                                        mover_store::ProblemStage::Delivery,
+                                        &p.diagnostic,
+                                        p.file,
+                                        now(),
+                                    )
+                                {
+                                    eprintln!("Delivery {id} problem record failed: {error}");
+                                }
                                 if matches!(&result, Err(error) if error.is::<delivery_worker::DestinationBindingRefused>()) {
                                     if let Err(error)=delivery_store.destination_binding_refused(id,now()) {
                                         eprintln!("Destination refusal persistence failed: {error}");
@@ -599,6 +613,30 @@ fn process(
         details: None,
     }
 }
+/// Latest recorded claim/delivery problem. `operation` and `errno` are parsed
+/// from the bounded worker diagnostic ("<operation> errno=<n>; ...") when it has
+/// that form; the raw diagnostic is always included. Omitted when none exists.
+fn problem_view(problem: &mover_store::JobProblem) -> serde_json::Value {
+    let head = problem.diagnostic.split(';').next().unwrap_or_default();
+    let (operation, errno) = match head.split_once("errno=") {
+        Some((operation, number)) => (
+            operation.trim(),
+            number.trim().parse::<i32>().ok().filter(|n| *n > 0),
+        ),
+        None => (head.trim(), None),
+    };
+    serde_json::json!({
+        "stage": match problem.stage {
+            mover_store::ProblemStage::Claim => "claim",
+            mover_store::ProblemStage::Delivery => "delivery",
+        },
+        "operation": operation,
+        "errno": errno,
+        "file_id": problem.file_index.map(|i| i.to_string()),
+        "diagnostic": problem.diagnostic,
+        "recorded_at": problem.recorded_at,
+    })
+}
 fn status_response(store: &Store, id: i64) -> Response {
     let snapshot = match store.status(id) {
         Ok(Some(s)) => s,
@@ -657,6 +695,12 @@ fn job_view(snapshot: &mover_store::JobStatus) -> JobView {
         "latest_missing_reset":snapshot.latest_missing_reset.as_ref().map(|a|serde_json::json!({"command_id":a.request.command_id,"review_epoch":a.request.review_epoch,"file_id":a.request.file_index.to_string(),"retry_window_seconds":a.request.retry_window_seconds,"actor":a.request.actor,"reason":a.request.reason,"recorded_at":a.recorded_at,"prior_deadline":a.prior_deadline,"prior_blocked":a.prior_blocked,"new_deadline":a.new_deadline})),
         "latest_resume":snapshot.latest_resume.as_ref().map(|a|serde_json::json!({"command_id":a.command_id,"review_epoch":a.review_epoch,"actor":a.actor,"reason":a.reason,"recorded_at":a.recorded_at,"prior_retry_after":a.prior_retry_after,"prior_code":a.prior_code})),
         "files":files,"missing":missing,"delivery_retry":snapshot.delivery.as_ref().map(|(failures,retry_after,code)|serde_json::json!({"failures":failures,"retry_after":retry_after,"code":code}))});
+    if let Some(problem) = &snapshot.problem {
+        details
+            .as_object_mut()
+            .expect("status object")
+            .insert("last_problem".into(), problem_view(problem));
+    }
     if let Some(request) = recording.submission().producer() {
         let object = details.as_object_mut().expect("status object");
         object.remove("submission_id");

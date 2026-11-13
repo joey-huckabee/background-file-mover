@@ -2126,7 +2126,7 @@ fn compatibility_checks_all_unsupported_versions_without_initializing() {
     );
     std::fs::remove_file(recovery).unwrap();
     drop(Store::open(f.db()).unwrap());
-    for version in (1..=12).chain([14, 99]) {
+    for version in (1..=13).chain([15, 99]) {
         let c = Connection::open(f.db()).unwrap();
         c.pragma_update(None, "user_version", version).unwrap();
         drop(c);
@@ -2262,6 +2262,10 @@ fn schema_twelve_rebuilt_fixture_preserves_legacy_rows_indices_and_next_id() {
         .unwrap()
         .upgrade_retry_receipts(f.db(), |_| Ok(()))
         .unwrap();
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_job_problems(f.db(), |_| Ok(()))
+        .unwrap();
     Store::check_compatibility(f.db(), false).unwrap();
     let store = Store::open(f.db()).unwrap();
     let job = store.get(7).unwrap().unwrap();
@@ -2321,6 +2325,10 @@ fn schema_twelve_empty_rebuild_preserves_unallocated_and_cleared_sequences() {
         StateInspection::open(f.db())
             .unwrap()
             .upgrade_retry_receipts(f.db(), |_| Ok(()))
+            .unwrap();
+        StateInspection::open(f.db())
+            .unwrap()
+            .upgrade_job_problems(f.db(), |_| Ok(()))
             .unwrap();
         let store = Store::open(f.db()).unwrap();
         assert_eq!(
@@ -2555,7 +2563,7 @@ fn inspection_refuses_missing_empty_foreign_changed_and_unsupported_state() {
             match case {
                 "foreign"=>c.pragma_update(None,"application_id",123).unwrap(),
                 "old"=>c.pragma_update(None,"user_version",10).unwrap(),
-                "future"=>c.pragma_update(None,"user_version",13).unwrap(),
+                "future"=>c.pragma_update(None,"user_version",15).unwrap(),
                 "trigger"=>c.execute_batch("CREATE TRIGGER sqliteXblock AFTER INSERT ON jobs BEGIN SELECT RAISE(ABORT,'blocked'); END;").unwrap(),
                 "sequence"=>{c.execute("UPDATE sqlite_sequence SET seq=1 WHERE name='jobs'",[]).unwrap();},
                 "uuid"=>{rebuild_schema_twelve_fixture(&mut c); insert_uuid_fixture(&c,"g",rusqlite::types::Value::Blob(vec![1;16]),rusqlite::types::Value::Integer(1),rusqlite::types::Value::Blob(vec![2;32])).unwrap();},
@@ -2586,10 +2594,10 @@ fn migration_history_fixture(path: &Path) {
     target.pragma_update(None, "foreign_keys", "OFF").unwrap();
     let tx = target.transaction().unwrap();
     for (table, values) in &mut rows {
-        if table.starts_with("retry_") {
+        if table.starts_with("retry_") || table == "job_problems" {
             assert!(
                 values.is_empty(),
-                "schema 13 receipts cannot be copied into schema 11"
+                "schema 13/14 rows cannot be copied into schema 11"
             );
             continue;
         }
@@ -2633,6 +2641,10 @@ fn explicit_migration_preserves_all_tables_manifest_phases_replay_and_high_water
     let summary = StateInspection::open(f.db())
         .unwrap()
         .upgrade_retry_receipts(f.db(), |_| Ok(()))
+        .unwrap();
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_job_problems(f.db(), |_| Ok(()))
         .unwrap();
     assert_eq!(summary.schema_version, 13);
     let target = Connection::open(f.db()).unwrap();
@@ -2714,6 +2726,10 @@ fn explicit_migration_preserves_empty_sequence_absence_and_cleared_high_water() 
         StateInspection::open(f.db())
             .unwrap()
             .upgrade_retry_receipts(f.db(), |_| Ok(()))
+            .unwrap();
+        StateInspection::open(f.db())
+            .unwrap()
+            .upgrade_job_problems(f.db(), |_| Ok(()))
             .unwrap();
         assert_eq!(
             Store::open(f.db())
@@ -3158,7 +3174,7 @@ fn schema_twelve_requires_the_guarded_receipt_upgrade() {
     // Reconstruct a schema-12 database: same rows, no receipt tables.
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
-        "DROP TABLE retry_outcomes; DROP TABLE retry_contexts; PRAGMA user_version=12;",
+        "DROP TABLE job_problems; DROP TABLE retry_outcomes; DROP TABLE retry_contexts; PRAGMA user_version=12;",
     )
     .unwrap();
     drop(c);
@@ -3187,13 +3203,22 @@ fn schema_twelve_requires_the_guarded_receipt_upgrade() {
             "after_commit"
         ]
     );
+    assert!(matches!(
+        Store::open(f.db()),
+        Err(StoreError::MigrationRequired)
+    ));
+    let summary = StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_job_problems(f.db(), |_| Ok(()))
+        .unwrap();
+    assert_eq!(summary.schema_version, 14);
     let s = Store::open(f.db()).unwrap();
     assert_eq!(s.status(j.job_id).unwrap().unwrap().delivery.unwrap().0, 3);
     // A fault before commit leaves schema 12 intact.
     drop(s);
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
-        "DROP TABLE retry_outcomes; DROP TABLE retry_contexts; PRAGMA user_version=12;",
+        "DROP TABLE job_problems; DROP TABLE retry_outcomes; DROP TABLE retry_contexts; PRAGMA user_version=12;",
     )
     .unwrap();
     drop(c);
@@ -3292,4 +3317,159 @@ fn snapshot_verification_covers_retry_receipts() {
         drop(c);
         assert!(state.verify_snapshot(&backup).is_err(), "{tamper}");
     }
+}
+
+#[test]
+fn job_problems_record_latest_cause_and_are_cleared_with_history() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = ready_job(&s);
+    assert_eq!(s.status(j.job_id).unwrap().unwrap().problem, None);
+    s.record_problem(
+        j.job_id,
+        ProblemStage::Delivery,
+        "staging_directory_create errno=17; inspect storage",
+        Some(1),
+        100,
+    )
+    .unwrap();
+    let p = s.status(j.job_id).unwrap().unwrap().problem.unwrap();
+    assert_eq!(
+        (p.stage, p.diagnostic.as_str(), p.file_index, p.recorded_at),
+        (
+            ProblemStage::Delivery,
+            "staging_directory_create errno=17; inspect storage",
+            Some(1),
+            100
+        )
+    );
+    // A newer problem replaces it; there is one row per job.
+    s.record_problem(j.job_id, ProblemStage::Claim, "errno=13", None, 120)
+        .unwrap();
+    let p = s.status(j.job_id).unwrap().unwrap().problem.unwrap();
+    assert_eq!(
+        (p.stage, p.file_index, p.recorded_at),
+        (ProblemStage::Claim, None, 120)
+    );
+    // Unsafe or unbounded text is refused, never stored.
+    for bad in ["", "line\nbreak", "caf\u{e9}", &"x".repeat(241)] {
+        assert!(matches!(
+            s.record_problem(j.job_id, ProblemStage::Claim, bad, None, 130),
+            Err(StoreError::InvalidContext)
+        ));
+    }
+    assert!(
+        s.record_problem(j.job_id, ProblemStage::Claim, "x", Some(256), 130)
+            .is_err()
+    );
+    // Unknown jobs are ignored without creating rows.
+    s.record_problem(999_999, ProblemStage::Claim, "errno=13", None, 130)
+        .unwrap();
+    drop(s);
+    let c = Connection::open(f.db()).unwrap();
+    let rows: i64 = c
+        .query_row("SELECT count(*) FROM job_problems", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(rows, 1);
+    // The database CHECK also refuses non-printable text written directly.
+    assert!(
+        c.execute("UPDATE job_problems SET diagnostic=?1", ["tab\there"],)
+            .is_err()
+    );
+    drop(c);
+    // Clearing a completed job's history removes its problem record.
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt")
+        .unwrap();
+    let done = history_job(&s, "problem-done", 4);
+    s.record_problem(done.job_id, ProblemStage::Delivery, "errno=5", Some(0), 140)
+        .unwrap();
+    drop(s);
+    let s = Store::open_for_history_clear(f.db()).unwrap();
+    assert_eq!(s.clear_completed_history(&[done.job_id]).unwrap(), 1);
+    drop(s);
+    let c = Connection::open(f.db()).unwrap();
+    let rows: i64 = c
+        .query_row(
+            "SELECT count(*) FROM job_problems WHERE job_id=?1",
+            [done.job_id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(rows, 0);
+}
+
+#[test]
+fn schema_thirteen_requires_the_guarded_problem_upgrade_and_snapshots_cover_it() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = ready_job(&s);
+    review(&s, j.job_id);
+    s.record_problem(j.job_id, ProblemStage::Delivery, "errno=13", Some(0), 100)
+        .unwrap();
+    drop(s);
+    // Backups compare the problem rows too.
+    let state = StateInspection::open(f.db()).unwrap();
+    let backup = f.0.join("problems.sqlite");
+    state.snapshot_into(backup.to_str().unwrap()).unwrap();
+    state.verify_snapshot(&backup).unwrap();
+    let c = Connection::open(&backup).unwrap();
+    c.execute("UPDATE job_problems SET diagnostic='errno=5'", [])
+        .unwrap();
+    drop(c);
+    assert!(state.verify_snapshot(&backup).is_err());
+    drop(state);
+    // Reconstruct schema 13: same rows, no problem table.
+    let c = Connection::open(f.db()).unwrap();
+    c.execute_batch("DROP TABLE job_problems; PRAGMA user_version=13;")
+        .unwrap();
+    drop(c);
+    assert!(matches!(
+        Store::open(f.db()),
+        Err(StoreError::MigrationRequired)
+    ));
+    let state = StateInspection::open(f.db()).unwrap();
+    assert_eq!(state.summary().schema_version, 13);
+    // The receipt step refuses a database that is not schema 12.
+    assert!(matches!(
+        state.upgrade_retry_receipts(f.db(), |_| Ok(())),
+        Err(StoreError::UnsupportedSchema)
+    ));
+    // A fault before commit leaves schema 13 intact.
+    let state = StateInspection::open(f.db()).unwrap();
+    assert!(
+        state
+            .upgrade_job_problems(f.db(), |stage| if stage == "before_commit" {
+                Err(std::io::Error::other("injected"))
+            } else {
+                Ok(())
+            })
+            .is_err()
+    );
+    let state = StateInspection::open(f.db()).unwrap();
+    assert_eq!(state.summary().schema_version, 13);
+    let retained = state.summary().retained_jobs;
+    let mut stages = Vec::new();
+    let summary = state
+        .upgrade_job_problems(f.db(), |stage| {
+            stages.push(stage);
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(summary.schema_version, 14);
+    assert_eq!(summary.retained_jobs, retained);
+    assert_eq!(
+        stages,
+        [
+            "before_create",
+            "after_create",
+            "before_commit",
+            "after_commit"
+        ]
+    );
+    let s = Store::open(f.db()).unwrap();
+    let status = s.status(j.job_id).unwrap().unwrap();
+    assert_eq!(status.delivery.unwrap().0, 3);
+    assert_eq!(status.problem, None);
 }

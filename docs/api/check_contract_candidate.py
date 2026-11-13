@@ -224,6 +224,8 @@ def main():
         ("get", "/api/v2/admin/session"), ("get", "/api/v2/admin/jobs"),
         ("get", "/api/v2/jobs/{job_id}"), ("get", "/api/v2/retention"),
         ("get", "/api/v2/jobs/{job_id}/retention"),
+        # Added with the dashboard settings view and live updates (increments 133/136).
+        ("get", "/api/v2/admin/settings"), ("get", "/api/v2/admin/events"),
         *(('post', '/api/v2/admin/jobs/' + action)
           for action in ('cancel', 'retry', 'clear-history', 'delete-data')),
         ("post", "/api/v2/jobs/{job_id}/resume"),
@@ -265,7 +267,9 @@ def main():
             require("recording_blocked" in op["responses"]["409"]["x-error-codes"],
                     "existing instance-validation error missing")
         for status, response in op["responses"].items():
-            require(status == "204" or "application/json" in response.get("content", {}),
+            # The live-updates stream is the one documented non-JSON success body.
+            streamed = path == "/api/v2/admin/events" and status == "200"                 and "text/event-stream" in response.get("content", {})
+            require(status == "204" or streamed or "application/json" in response.get("content", {}),
                     "mover response schema missing: " + path + " " + status)
             for media in response.get("content", {}).values():
                 require("schema" in media, "missing response schema")

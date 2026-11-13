@@ -299,6 +299,86 @@
     });
   }
 
+  // Plain-language view of the job's last recorded problem (last_problem).
+  // The service records only a bounded, path-free diagnostic; folder names come
+  // from the job itself.
+  var ERRNO = {
+    1: ["Operation not permitted", "access"], 2: ["Not found", "missing"], 5: ["Storage I/O error", "io"],
+    13: ["Permission denied", "access"], 16: ["Busy", "busy"], 17: ["Something is already there", "exists"],
+    18: ["Crosses file systems", "layout"], 20: ["Not a folder", "layout"], 21: ["Is a folder", "layout"],
+    28: ["No space left", "space"], 30: ["Read-only storage", "readonly"], 36: ["Name too long", "layout"],
+    39: ["Folder not empty", "exists"], 40: ["Link refused", "layout"], 95: ["Not supported by this storage", "layout"],
+    110: ["Storage timed out", "io"], 116: ["Stale network file handle", "io"], 122: ["Storage quota exceeded", "space"]
+  };
+  var STEPS = [
+    ["payload_source_read", "reading the source file", "source"],
+    ["relocate.", "taking over the source file", "source"],
+    ["payload_copy_write", "writing the copy", "destination"],
+    ["payload_verification_read", "verifying the copy", "destination"],
+    ["staging_", "creating the staging folder", "destination"],
+    ["payload_publication", "publishing the delivered file", "destination"],
+    ["payload_copy", "saving the copy to disk", "destination"],
+    ["enrollment_", "recording the source folder's identity", "source"]
+  ];
+  var SPECIAL = {
+    destination_binding_refused: ["Destination changed", "The destination folder no longer matches the one this job was set up with (for example a different mount). Check the destination mount."],
+    blocked_or_uncertain: ["Result could not be confirmed", "A step stopped without a confirmed result. Check the service log, fix the cause, then retry."],
+    missing_source: ["Source file missing", "A source file is not where the sender said it would be."],
+    expected_size_mismatch: ["Size differs", "A source file's size differs from what the sender declared."],
+    worker_outcome_uncertain: ["Result could not be confirmed", "A worker stopped without a confirmed result. Check the service log, then retry."],
+    store_error: ["State database problem", "The mover could not update its state database. Check the service log."]
+  };
+  function describeProblem(p, folders) {
+    var step = null;
+    STEPS.forEach(function (s) { if (!step && p.operation.indexOf(s[0]) === 0) { step = s; } });
+    var side = step ? step[2] : (p.stage === "claim" ? "source" : "destination");
+    var place = side === "source" ? folders.source : folders.destination;
+    var where = side + " folder" + (place ? " " + place : "");
+    var errno = p.errno !== null && p.errno !== undefined ? Number(p.errno) : null;
+    var known = errno !== null ? ERRNO[errno] : null;
+    var special = SPECIAL[p.operation];
+    var title, advice;
+    if (special) {
+      title = special[0]; advice = special[1];
+    } else if (p.operation.indexOf("blocked: ") === 0) {
+      title = "Stopped for safety"; advice = "The mover refused to continue: " + p.operation.slice(9) + ".";
+    } else if (known) {
+      title = known[0];
+      advice = {
+        access: "Give the mover's service account permission in the " + where + ", then retry.",
+        missing: "Something the mover expected in the " + where + " is missing. Check that it is mounted and intact.",
+        io: "The " + side + " storage reported an error. Check the disk or network storage, then retry.",
+        busy: "The " + where + " is in use by something else. Try again shortly.",
+        // A collision says nothing about ownership: never suggest moving mover-owned data.
+        exists: "Something is already in the " + where + " where the mover needs to write. Find out what it is first: " +
+          "if it is the mover's own (an earlier delivery or retained copy), leave it in place and check the job history. " +
+          "Only move an item you know is not the mover's, then retry.",
+        layout: "The " + where + " has an unexpected layout for this step. Check it, then retry.",
+        space: "The " + side + " storage is full. Free space, then retry.",
+        readonly: "The " + side + " storage is read-only. Make it writable, then retry."
+      }[known[1]];
+    } else {
+      title = errno !== null ? "System error " + errno : "Problem";
+      advice = "Check the service log for details.";
+    }
+    var during = step ? step[1] : (p.stage === "claim" ? "taking over the source files" : "delivering to the destination");
+    return { title: title, during: during, advice: advice, side: side };
+  }
+  function problemPanel(job, d, row) {
+    var p = d.last_problem;
+    var names = {};
+    d.files.forEach(function (f) { names[f.file_id] = f.name; });
+    var info = describeProblem(p, { source: row.source_folder, destination: row.destination_folder });
+    var resolved = job.state === "Committed";
+    var box = el("div", null, resolved ? "problem resolved" : "problem");
+    box.appendChild(el("strong", (resolved ? "Earlier problem (resolved): " : "Problem: ") + info.title));
+    box.appendChild(el("p", "While " + info.during + (p.file_id !== null && names[p.file_id] !== undefined ? " · file " + names[p.file_id] : "") +
+      " · " + time(p.recorded_at), "muted"));
+    if (!resolved) { box.appendChild(el("p", info.advice)); }
+    box.appendChild(el("p", p.diagnostic, "mono muted", "Technical detail recorded by the service (last_problem.diagnostic)"));
+    return box;
+  }
+
   function fact(list, name, value, hover) {
     list.appendChild(el("dt", name, null, hover));
     list.appendChild(el("dd", value, null, hover));
@@ -340,6 +420,10 @@
 
     var activity = section(grid, "Activity");
     var quietJob = true;
+    if (d.last_problem) {
+      quietJob = false;
+      activity.appendChild(problemPanel(job, d, row));
+    }
     if (d.delivery_retry) {
       quietJob = false;
       activity.appendChild(el("p", d.delivery_retry.failures.toString() + " delivery failure(s); next attempt after " +

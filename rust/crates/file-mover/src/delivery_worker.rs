@@ -196,6 +196,14 @@ struct Session {
     channel: UnixStream,
     sequence: u64,
     source_authorization: Option<mover_fs::SourceAuthorization>,
+    /// Last validated child diagnostic (bounded, path-free).
+    diagnostic: Option<String>,
+}
+
+/// What went wrong in a failed delivery, for the job's problem record.
+pub(crate) struct Problem {
+    pub(crate) diagnostic: String,
+    pub(crate) file: Option<usize>,
 }
 impl Session {
     fn start(guard: &LocalClaimLock) -> Result<Self> {
@@ -219,6 +227,7 @@ impl Session {
             channel,
             sequence: 0,
             source_authorization: guard.source_authorization().cloned(),
+            diagnostic: None,
         })
     }
     fn read(&mut self, mut output: &mut [u8], stop: &AtomicBool) -> Result<()> {
@@ -283,6 +292,7 @@ impl Session {
                 return Err("invalid failure diagnostic".into());
             }
             eprintln!("Delivery worker sequence {}: {detail}", self.sequence);
+            self.diagnostic = Some(detail.clone());
         }
         if capacity {
             return Err(Box::new(DestinationCapacity));
@@ -317,11 +327,43 @@ fn claim(store: &Store, id: i64, index: usize) -> Result<ClaimIntent> {
     Ok(c)
 }
 /// Returns false only for a confirmed unavailable destination, with no allocation.
+/// Deliver one job. On failure `problem` receives the worker's diagnostic (or a
+/// fixed code) and the file being processed, unless the service is stopping.
 pub(crate) fn deliver(
     store: &Store,
     id: i64,
     guard: &LocalClaimLock,
     stop: &AtomicBool,
+    problem: &mut Option<Problem>,
+) -> Result<bool> {
+    let mut session = None;
+    let mut file = None;
+    let result = deliver_steps(store, id, guard, stop, &mut session, &mut file);
+    if let Err(error) = &result
+        && !stop.load(Ordering::Relaxed)
+    {
+        let diagnostic = session
+            .as_mut()
+            .and_then(|s: &mut Session| s.diagnostic.take())
+            .unwrap_or_else(|| {
+                if error.is::<DestinationBindingRefused>() {
+                    "destination_binding_refused".into()
+                } else {
+                    super::diagnostic::describe(error.as_ref())
+                }
+            });
+        *problem = Some(Problem { diagnostic, file });
+    }
+    result
+}
+
+fn deliver_steps(
+    store: &Store,
+    id: i64,
+    guard: &LocalClaimLock,
+    stop: &AtomicBool,
+    slot: &mut Option<Session>,
+    file: &mut Option<usize>,
 ) -> Result<bool> {
     let job = store.get(id)?.ok_or("unknown job")?;
     if job.recording.handoff() != Handoff::Ready202
@@ -330,7 +372,7 @@ pub(crate) fn deliver(
     {
         return Err("invalid delivery context".into());
     }
-    let mut session = Session::start(guard)?;
+    let session = slot.insert(Session::start(guard)?);
     let opened = session.call(
         Operation::Open {
             job_id: id,
@@ -368,6 +410,7 @@ pub(crate) fn deliver(
         return Err("destination policy required".into());
     }
     for index in 0..job.recording.submission().files().len() {
+        *file = Some(index);
         let c = claim(store, id, index)?;
         let existing = store.transfer(id, index)?;
         let mut t = match existing {
@@ -486,6 +529,7 @@ pub(crate) fn deliver(
     }
     // Recheck every published file before constructing the recording commitment.
     for index in 0..job.recording.submission().files().len() {
+        *file = Some(index);
         let c = claim(store, id, index)?;
         let t = store.transfer(id, index)?.ok_or("missing published file")?;
         if session.transfer(
@@ -499,6 +543,7 @@ pub(crate) fn deliver(
             return Err("custody receipt mismatch".into());
         }
     }
+    *file = None;
     let expected = mover_fs::expected_manifest(store, id)?;
     let mut m = match store.manifest(id)? {
         Some(m) => m,
