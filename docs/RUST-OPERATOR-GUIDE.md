@@ -133,10 +133,12 @@ initialization and supports legacy jobs in that layout. Its guarded checks run
 before source bootstrap for daemon startup, initialization and single-transfer
 commands, and before offline history-clear preview/apply opens a Store.
 
-Normal startup returns MigrationRequired for schema 11 and leaves it untouched.
-Use the explicit [offline migration procedure](OFFLINE-STATE-MIGRATION.md) after
-stopping the service and confirming old-worker exit. It creates its own verified
-backup under continuous exclusion before converting validated schema 11 to 12.
+Normal startup returns MigrationRequired for schemas 11 and 12 and leaves them
+untouched. Use the explicit [offline migration procedure](OFFLINE-STATE-MIGRATION.md)
+after stopping the service and confirming old-worker exit. It creates its own
+verified backup under continuous exclusion before converting validated schema 11
+to 12, then 12 to 13 ([increment137](RUST-INCREMENT-137.md): adds the empty admin
+retry receipt tables; existing rows are untouched).
 See [increment 115](RUST-INCREMENT-115.md) for actual qualification and limits. Schemas 1-10, foreign/newer formats, unexpected schema objects and
 corrupt state refuse. UUID-bearing schema-12 state returns UnsupportedIdentity;
 UUID producer and manifest-v2 runtime are not enabled in this build.
@@ -192,7 +194,7 @@ mover should remove retained data, that separate deletion feature must be
 implemented/qualified and used before clear; no payload deletion is provided
 by this command. Old private source/destination files still consume real space.
 
-The original database must exist in the supported current schema 12. This command never initializes
+The original database must exist in the supported current schema 13. This command never initializes
 or migrates state and never acquires source/destination roots, so unavailable
 payload mounts do not block its database-only work. Shared instance identity,
 source enrollment and the monotonically increasing job sequence stay intact.
