@@ -7,15 +7,17 @@
       try { deletionEnabled = parseJSON(text).data_deletion_enabled === true; } catch (e) { deletionEnabled = false; }
     });
   }
-  var view = "history";
-  var cursors = [null];   // cursor stack: index = page number - 1
+  var view = "overview";
+  var allItems = [];      // every kept job (bounded), ascending job ID
+  var filter = "all", query = "";
+  var PAGE_SIZE = 50;
   var page = 0;
   var descending = false;
   var openJob = null;     // job ID whose inline detail is open
   var rowsById = {};      // list rows on the current page, by job ID
   // At most one read of each kind in flight; a new read aborts the old one.
-  var ctl = { page: null, detail: null, storage: null, settings: null };
-  var gen = { page: 0, detail: 0, storage: 0, settings: 0 };
+  var ctl = { page: null, detail: null, storage: null, settings: null, overview: null };
+  var gen = { page: 0, detail: 0, storage: 0, settings: 0, overview: 0 };
   var refreshing = false;
 
   function $(id) { return document.getElementById(id); }
@@ -162,40 +164,215 @@
   }
 
   // ---- Views ----
+  var VIEWS = {
+    overview: ["THE BIG PICTURE", "Every file. Accounted for.", "A clear view of custody, delivery and the jobs that need you."],
+    history: ["YOUR RECORDINGS", "Job history", "Detailed history stays here until you explicitly clear it."],
+    attention: ["NEEDS YOU", "Needs attention", "Jobs waiting for a review. Open one to see the cause and what to do."],
+    storage: ["RETENTION", "Storage", "Space the mover has reserved for the jobs it keeps."],
+    settings: ["CONFIGURATION", "Settings", "The configuration this service started with."]
+  };
   function setView(next) {
     view = next;
-    ["history", "storage", "settings"].forEach(function (name) {
+    Object.keys(VIEWS).forEach(function (name) {
       $(name + "-view").hidden = name !== next;
-      var tab = $("tab-" + name);
-      tab.classList.toggle("active", name === next);
-      tab.setAttribute("aria-pressed", String(name === next));
+      var link = document.querySelector('nav a[data-nav="' + name + '"]');
+      if (link) { link.classList.toggle("active", name === next); if (name === next) { link.setAttribute("aria-current", "page"); } else { link.removeAttribute("aria-current"); } }
     });
-    $("view-title").textContent = { history: "Job history", storage: "Storage", settings: "Settings" }[next];
+    $("view-eyebrow").textContent = VIEWS[next][0];
+    $("view-title").textContent = VIEWS[next][1];
+    $("view-sub").textContent = VIEWS[next][2];
+    $("crumb").textContent = { overview: "Overview" }[next] || VIEWS[next][1];
+    renderCompleteness();
+    // Views load only when signed in (the CSRF token arrives with the session).
+    if (!csrf) { return; }
+    if (next === "storage") { loadStorage(true); }
+    if (next === "settings") { loadSettings(true); }
+    if (next === "overview") { loadOverviewStorage(); }
   }
+  function go(next) { if (location.hash !== "#" + next) { location.hash = next; } else { setView(next); } }
 
   // ---- Job history ----
-  function pagePath() {
-    var q = "?limit=50" + (descending ? "&order=desc" : "");
-    if (cursors[page]) { q += "&cursor=" + encodeURIComponent(cursors[page]); }
-    return "/api/v2/admin/jobs" + q;
+  // The dashboard loads every kept job through the bounded list route (256 per
+  // page, at most 40 pages) so totals, filters and search cover all of them.
+  // Newest first, so the most recent jobs are always present; 40 pages (10,240
+  // jobs) per round. If more remain, the page says so and "Load older jobs"
+  // continues from where loading stopped.
+  var pageBudget = 40, olderCursor = null;
+  function fetchAll(deliberate) {
+    var items = [], pages = 0;
+    function next(cursor) {
+      var path = "/api/v2/admin/jobs?limit=256&order=desc" + (cursor ? "&cursor=" + encodeURIComponent(cursor) : "");
+      return request(path, deliberate && pages === 0, "page").then(function (r) {
+        if (!r.current) { return null; }
+        if (r.status !== 200 || !r.body) { throw new Error("status " + r.status); }
+        items = items.concat(r.body.items);
+        pages++;
+        if (r.body.next_cursor !== null && pages < pageBudget) { return next(r.body.next_cursor); }
+        olderCursor = r.body.next_cursor;
+        return items.reverse();
+      });
+    }
+    return next(null);
+  }
+  function renderCompleteness() {
+    var more = olderCursor !== null;
+    $("older").hidden = !more;
+    // Page-wide: Overview, Job history and Needs attention all use these jobs.
+    $("incomplete").hidden = !more || view === "storage" || view === "settings";
+    $("incomplete").textContent = more
+      ? "Showing the newest " + allItems.length + " jobs only. Older jobs are not loaded, so these totals, alerts and search results do not include them. Use Load older jobs in Job history to include them."
+      : "";
+  }
+  function stateOf(item) {
+    if (item.state === "Committed") { return "delivered"; }
+    if (item.condition === "Cancelled") { return "cancelled"; }
+    return "active";
+  }
+  function matches(item) {
+    if (filter === "attention" && item.condition !== "ReviewRequired") { return false; }
+    if (filter !== "all" && filter !== "attention" && stateOf(item) !== filter) { return false; }
+    if (!query) { return true; }
+    var hay = [item.job_id, item.recording_id || "", item.submission_id || "", item.source_folder || "", item.destination_folder || ""]
+      .join(" ").toLowerCase();
+    return hay.indexOf(query) >= 0;
+  }
+  function visibleItems() {
+    var list = allItems.filter(matches);
+    return descending ? list.slice().reverse() : list;
   }
   function loadPage(deliberate, live) {
-    if (!live) {
-      $("history-status").textContent = "Loading…";
-      $("prev").disabled = true; $("next").disabled = true;
-    }
-    return request(pagePath(), deliberate, "page").then(function (r) {
-      if (!r.current) { return false; }
-      if (r.status !== 200 || !r.body) {
-        $("history-status").textContent = "Job history is unavailable (" + r.status + "). Try Refresh.";
-        $("prev").disabled = page === 0;
-        return false;
-      }
-      return renderPage(r.body, live).then(function () { return true; });
+    if (!live) { $("history-status").textContent = "Loading…"; }
+    return fetchAll(deliberate).then(function (items) {
+      if (items === null) { return false; }
+      allItems = items;
+      if (view === "overview") { loadOverviewStorage(); }
+      renderCompleteness();
+      renderCounts();
+      renderOverview();
+      renderAttention();
+      return renderHistory(live).then(function () { return true; });
     }).catch(function (e) {
-      if (!quiet(e)) { $("history-status").textContent = "The service could not be reached."; }
+      if (!quiet(e)) { $("history-status").textContent = "The service could not be reached. Try Refresh."; }
       return false;
     });
+  }
+  function renderHistory(live) {
+    var list = visibleItems();
+    var pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+    if (page >= pages) { page = pages - 1; }
+    return renderPage({ items: list.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE), total: list.length, pages: pages }, live);
+  }
+
+  function renderCounts() {
+    var attention = allItems.filter(function (i) { return i.condition === "ReviewRequired"; }).length;
+    $("count-history").textContent = String(allItems.length);
+    $("count-attention").textContent = String(attention);
+    $("count-attention").hidden = attention === 0;
+  }
+  function jobCell(item) {
+    var cell = el("td");
+    var open = el("button", "Job #" + item.job_id, "link", "Open this job in Job history");
+    open.type = "button";
+    open.addEventListener("click", function () { openInHistory(item.job_id); });
+    cell.appendChild(open);
+    var id = identityLabel(item);
+    cell.appendChild(el("span", id[0] + " " + id[1], "sub mono"));
+    return cell;
+  }
+  function syncFilters() {
+    document.querySelectorAll(".filter").forEach(function (b) {
+      var on = b.dataset.filter === filter;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-pressed", String(on));
+    });
+  }
+  function openInHistory(jobId) {
+    filter = "all"; query = ""; $("search").value = "";
+    syncFilters();
+    var index = visibleItems().findIndex(function (i) { return i.job_id === jobId; });
+    page = index < 0 ? 0 : Math.floor(index / PAGE_SIZE);
+    openJob = jobId;
+    go("history");
+    renderHistory(false);
+  }
+  function renderOverview() {
+    var active = 0, waiting = 0, delivering = 0, review = 0, cancelling = 0, delivered = 0, cancelled = 0;
+    allItems.forEach(function (i) {
+      var st = stateOf(i);
+      if (st === "delivered") { delivered++; return; }
+      if (st === "cancelled") { cancelled++; return; }
+      active++;
+      if (i.condition === "AwaitingClaims") { waiting++; }
+      else if (i.condition === "ReviewRequired") { review++; }
+      else if (i.condition === "CancellationPending") { cancelling++; }
+      else { delivering++; }
+    });
+    var attention = review;
+    $("stat-active").textContent = String(active);
+    $("stat-active-sub").textContent = delivering + " delivering · " + waiting + " waiting for files" +
+      (review ? " · " + review + " need review" : "") + (cancelling ? " · " + cancelling + " cancelling" : "");
+    $("stat-delivered").textContent = String(delivered);
+    $("stat-attention").textContent = String(attention);
+    $("stat-attention-card").classList.toggle("attention", attention > 0);
+    $("stat-retained").textContent = String(allItems.length);
+    $("flow-waiting").textContent = String(waiting);
+    $("flow-delivering").textContent = String(delivering);
+    $("flow-delivered").textContent = String(delivered);
+    var notes = [];
+    if (review) { notes.push(review + " stopped for review"); }
+    if (cancelling) { notes.push(cancelling + " cancelling"); }
+    if (cancelled) { notes.push(cancelled + " cancelled"); }
+    $("flow-foot").textContent = "Taking over the files confirms custody. A verified manifest confirms delivery." +
+      (notes.length ? " · " + notes.join(" · ") : "");
+    $("attention-banner").hidden = attention === 0;
+    $("attention-banner-title").textContent = attention === 1 ? "One job needs a closer look." : attention + " jobs need a closer look.";
+    var rows = $("recent-rows");
+    clear(rows);
+    allItems.slice(-5).reverse().forEach(function (item) {
+      var tr = el("tr");
+      tr.appendChild(jobCell(item));
+      var p = el("td"); p.appendChild(progress(item, item.transfer_mode)); tr.appendChild(p);
+      tr.appendChild(el("td", item.files_delivered + " of " + item.files_total));
+      tr.appendChild(el("td", short(item.measured_bytes)));
+      tr.appendChild(el("td", folder(item.source_folder, "source"), "mono", FOLDER_HINT));
+      rows.appendChild(tr);
+    });
+    if (!allItems.length) {
+      var empty = el("tr"); var td = el("td", "No jobs are kept yet.", "muted"); td.colSpan = 5; empty.appendChild(td); rows.appendChild(empty);
+    }
+  }
+  function renderAttention() {
+    var list = allItems.filter(function (i) { return i.condition === "ReviewRequired"; });
+    $("attention-status").textContent = list.length ? list.length + " job" + (list.length === 1 ? "" : "s") + " waiting for a review."
+      : olderCursor !== null ? "Nothing needs your attention among the loaded jobs. Older jobs are not loaded."
+        : "Nothing needs your attention.";
+    var rows = $("attention-rows");
+    clear(rows);
+    list.forEach(function (item) {
+      var tr = el("tr");
+      tr.appendChild(jobCell(item));
+      var c = el("td"); c.appendChild(progress(item, item.transfer_mode)); tr.appendChild(c);
+      tr.appendChild(el("td", item.files_delivered + " of " + item.files_total));
+      tr.appendChild(el("td", folder(item.source_folder, "source"), "mono", FOLDER_HINT));
+      tr.appendChild(el("td", folder(item.destination_folder, "destination"), "mono", FOLDER_HINT));
+      rows.appendChild(tr);
+    });
+  }
+  function loadOverviewStorage() {
+    return request("/api/v2/retention", false, "overview").then(function (r) {
+      if (!r.current || r.status !== 200 || !r.body) { return; }
+      var d = r.body.details, target = $("overview-storage");
+      clear(target);
+      var limits = d.configured_limits;
+      [["Source", d.source_reserved_bytes], ["Destination", d.destination_reserved_bytes]].forEach(function (pair) {
+        var row = el("div", null, "capacity-row");
+        row.appendChild(el("span", pair[0] + " reservations"));
+        row.appendChild(el("span", short(pair[1]) + (limits ? " / " + short(limits.max_reserved_bytes) + " limit" : " · no limit configured")));
+        target.appendChild(row);
+        if (limits) { meter(target, BigInt(pair[1]), BigInt(limits.max_reserved_bytes)); }
+      });
+      target.appendChild(el("p", "Reservations include retained copies and destination attempts. This ledger does not measure physical free space.", "capacity-note"));
+    }).catch(function () {});
   }
   function renderPage(body, live) {
     var rows = $("history-rows");
@@ -205,9 +382,9 @@
     clear(rows);
     rowsById = {};
     var items = body.items;
-    $("history-status").textContent = items.length === 0
-      ? (page === 0 ? "No jobs are kept." : "No jobs on this page.")
-      : "Page " + (page + 1) + " · " + items.length + " job" + (items.length === 1 ? "" : "s");
+    $("history-status").textContent = body.total === 0
+      ? (allItems.length === 0 ? "No jobs are kept." : "No jobs match these filters. Try a different search.")
+      : body.total + " job" + (body.total === 1 ? "" : "s") + (body.pages > 1 ? " · page " + (page + 1) + " of " + body.pages : "");
     items.forEach(function (item) {
       rowsById[item.job_id] = item;
       var tr = el("tr", null, "job-row");
@@ -232,8 +409,7 @@
       rows.appendChild(tr);
     });
     $("prev").disabled = page === 0;
-    $("next").disabled = body.next_cursor === null;
-    if (body.next_cursor !== null) { cursors[page + 1] = body.next_cursor; cursors.length = page + 2; }
+    $("next").disabled = page + 1 >= body.pages;
     if (openJob && rowsById[openJob]) {
       var row = rows.querySelector('tr[data-job="' + CSS.escape(openJob) + '"]');
       if (row && kept) {
@@ -1047,8 +1223,9 @@
     if (retryInUse()) { liveDeferred = true; return; }
     if (liveBusy) { livePending = true; return; }
     liveBusy = true;
-    var work = view === "history" ? loadPage(false, true)
-      : view === "storage" ? loadStorage(false, true) : Promise.resolve();
+    var work = view === "storage" ? loadStorage(false, true)
+      : view === "settings" ? loadSettings(false) : loadPage(false, true);
+    if (view === "overview") { loadOverviewStorage(); }
     var done = function () {
       liveBusy = false;
       if (livePending) { livePending = false; refreshVisible(); }
@@ -1103,8 +1280,9 @@
     if (signedIn) { if (!events) { startLive(); } } else { stopLive(); }
     if (!signedIn) {
       Object.keys(ctl).forEach(function (k) { if (ctl[k]) { ctl[k].abort(); } gen[k]++; });
-      csrf = null; cursors = [null]; page = 0; openJob = null; descending = false;
-      setView("history");
+      csrf = null; allItems = []; page = 0; openJob = null; descending = false;
+      pageBudget = 40; olderCursor = null; filter = "all"; query = "";
+      setView("overview");
       $("password").value = "";
       $("username").focus();
     }
@@ -1116,7 +1294,7 @@
         return;
       }
       csrf = r.headers.get("Mover-CSRF-Token");
-      return noteSession(r).then(function () { show(true); return loadPage(false); });
+      return noteSession(r).then(function () { show(true); route(); return loadPage(false); });
     }).catch(function () { show(false); $("signin-error").textContent = "The service could not be reached."; });
   }
   var messages = {
@@ -1144,7 +1322,7 @@
           return;
         }
         csrf = s.headers.get("Mover-CSRF-Token");
-        return noteSession(s).then(function () { show(true); return loadPage(false); });
+        return noteSession(s).then(function () { show(true); route(); return loadPage(false); });
       });
     }).catch(function () {
       $("signin-error").textContent = "The service could not be reached.";
@@ -1168,19 +1346,40 @@
     $("refresh").disabled = true;
     var done = function () { refreshing = false; $("refresh").disabled = false; };
     var work = view === "storage" ? loadStorage(true) : view === "settings" ? loadSettings(true) : loadPage(true);
+    if (view === "overview") { loadOverviewStorage(); }
     work.then(done, done);
   });
   $("sort").addEventListener("click", function () {
     descending = !descending;
     $("sort").textContent = descending ? "Job ▼" : "Job ▲";
     $("sort").title = descending ? "Newest first; click for oldest first" : "Oldest first; click for newest first";
-    cursors = [null]; page = 0; openJob = null;
-    loadPage(true);
+    page = 0; openJob = null;
+    renderHistory(false);
   });
-  $("prev").addEventListener("click", function () { if (page > 0) { page--; loadPage(true); } });
-  $("next").addEventListener("click", function () { if (cursors[page + 1]) { page++; loadPage(true); } });
-  $("tab-history").addEventListener("click", function () { setView("history"); });
-  $("tab-storage").addEventListener("click", function () { setView("storage"); loadStorage(true); });
-  $("tab-settings").addEventListener("click", function () { setView("settings"); loadSettings(true); });
+  $("prev").addEventListener("click", function () { if (page > 0) { page--; openJob = null; renderHistory(false); } });
+  $("next").addEventListener("click", function () { page++; openJob = null; renderHistory(false); });
+  document.querySelectorAll(".filter").forEach(function (b) {
+    b.addEventListener("click", function () {
+      filter = b.dataset.filter; page = 0; openJob = null;
+      syncFilters();
+      renderHistory(false);
+    });
+  });
+  $("older").addEventListener("click", function () {
+    pageBudget += 40;
+    $("older").disabled = true;
+    var done = function () { $("older").disabled = false; };
+    loadPage(true).then(done, done);
+  });
+  $("search").addEventListener("input", function () {
+    query = $("search").value.trim().toLowerCase(); page = 0; openJob = null;
+    renderHistory(false);
+  });
+  function route() {
+    var name = location.hash.replace("#", "");
+    setView(VIEWS[name] ? name : "overview");
+  }
+  window.addEventListener("hashchange", route);
+  route();
   loadSession();
 })();

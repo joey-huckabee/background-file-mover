@@ -8,6 +8,20 @@
 <style>/*STYLE*/</style>
 </head>
 <body>
+<svg class="symbols" aria-hidden="true"><defs>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+<symbol id="i-stack" viewBox="0 0 24 24"><path d="m3 7 9-4 9 4-9 4-9-4Zm0 5 9 4 9-4M3 17l9 4 9-4"/></symbol>
+<symbol id="i-box" viewBox="0 0 24 24"><path d="m3 7 9-4 9 4v10l-9 4-9-4V7Zm0 0 9 4 9-4M12 11v10M7.5 5l9 4"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 8a8 8 0 1 0 0 8M20 3v5h-5"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m10.3 4-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3l-8-14a2 2 0 0 0-3.4 0ZM12 9v4m0 4h.01"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M4.9 4.9 7 7m10 10 2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+<symbol id="i-out" viewBox="0 0 24 24"><path d="M10 4H4v16h6m-1-8h12m-4-4 4 4-4 4"/></symbol>
+</defs></svg>
 <main id="signin" class="signin" hidden>
 <section class="art" aria-hidden="true">
 <div class="brand"><span class="mark">fm</span><span>FILE MOVER<small>OPERATIONS CONSOLE</small></span></div>
@@ -26,25 +40,63 @@
 </section>
 </main>
 <div id="shell" class="shell" hidden>
-<header class="top">
-<div class="brand"><span class="mark">fm</span><span>FILE MOVER<small>OPERATIONS CONSOLE</small></span></div>
-<div class="top-right"><span id="live" class="live wait" role="status"></span><button id="signout" class="secondary" type="button" title="Signs out every open dashboard session. Transfers keep running.">Sign out</button></div>
-</header>
-<main class="content">
-<div class="heading">
-<h1 id="view-title">Job history</h1>
-<button id="refresh" class="secondary" type="button">Refresh</button>
-</div>
-<nav class="tabs" aria-label="Views"><button id="tab-history" class="tab active" type="button" aria-pressed="true">Job history</button><button id="tab-storage" class="tab" type="button" aria-pressed="false">Storage</button><button id="tab-settings" class="tab" type="button" aria-pressed="false">Settings</button></nav>
+<aside class="sidebar">
+<a class="brand" href="#overview" aria-label="File Mover overview"><span class="brand-mark">f<span>m</span><b>&#8599;</b></span><span>FILE MOVER<small>OPERATIONS CONSOLE</small></span></a>
+<div class="instance"><span class="live-dot"></span><div id="instance-name">File Mover<small id="instance-detail">Connected</small></div></div>
+<div class="nav-label">WORKSPACE</div>
+<nav aria-label="Main navigation">
+<a href="#overview" data-nav="overview"><svg><use href="#i-grid"/></svg>Overview</a>
+<a href="#history" data-nav="history"><svg><use href="#i-stack"/></svg>Job history<span id="count-history" class="nav-count"></span></a>
+<a href="#attention" data-nav="attention"><svg><use href="#i-alert"/></svg>Needs attention<span id="count-attention" class="nav-count amber" hidden></span></a>
+<a href="#storage" data-nav="storage"><svg><use href="#i-box"/></svg>Storage</a>
+<a href="#settings" data-nav="settings"><svg><use href="#i-gear"/></svg>Settings</a>
+</nav>
+<div class="sidebar-note"><svg><use href="#i-shield"/></svg><strong>Your files. Your network.</strong><p>Self-contained by design.<br>No external assets or services.</p></div>
+<div class="sidebar-bottom"><div class="avatar">A</div><div><strong>Administrator</strong><small>Host-managed account</small></div><button id="signout" type="button" aria-label="Sign out" title="Signs out every open dashboard session. Transfers keep running."><svg><use href="#i-out"/></svg></button></div>
+</aside>
+<div class="main-shell">
+<header class="topbar"><div class="breadcrumb">Workspace <span>/</span> <strong id="crumb">Overview</strong></div><div class="top-right"><span id="live" class="live wait" role="status"></span><span class="top-divider"></span><span class="secure"><svg><use href="#i-shield"/></svg>Private admin interface</span></div></header>
+<main id="main" class="content">
+<div class="page-heading"><div><div id="view-eyebrow" class="eyebrow">THE BIG PICTURE</div><h1 id="view-title">Overview</h1><p id="view-sub" class="subhead"></p></div>
+<div class="actions"><button id="refresh" class="button" type="button"><svg><use href="#i-refresh"/></svg>Refresh</button></div></div>
 <div id="shell-error" class="error" role="alert"></div>
-<div id="history-view">
+<div id="incomplete" class="info-note" role="status" hidden></div>
+<div id="overview-view">
+<section class="stats" aria-label="Job totals">
+<div class="stat"><div class="stat-top">Active jobs<svg><use href="#i-stack"/></svg></div><div id="stat-active" class="stat-value">&#8212;</div><div id="stat-active-sub" class="stat-bottom"></div></div>
+<div class="stat"><div class="stat-top">Delivered jobs<svg><use href="#i-check"/></svg></div><div id="stat-delivered" class="stat-value">&#8212;</div><div class="stat-bottom"><svg><use href="#i-check"/></svg>Verified at the destination</div></div>
+<div id="stat-attention-card" class="stat"><div class="stat-top">Needs attention<svg><use href="#i-alert"/></svg></div><div id="stat-attention" class="stat-value">&#8212;</div><div class="stat-bottom"><svg><use href="#i-alert"/></svg>Review, then retry or cancel</div></div>
+<div class="stat"><div class="stat-top">Retained jobs<svg><use href="#i-box"/></svg></div><div id="stat-retained" class="stat-value">&#8212;</div><div class="stat-bottom"><svg><use href="#i-check"/></svg>History stays until you clear it</div></div>
+</section>
+<div class="middle">
+<section class="card"><div class="card-head"><div><h2>From source to destination</h2><p class="card-caption">Current jobs by stage</p></div><span class="pill">Job counts</span></div>
+<div class="pipeline">
+<div class="phase"><svg><use href="#i-clock"/></svg><div id="flow-waiting" class="phase-num">&#8212;</div><div class="phase-name">Waiting for files</div><div class="phase-note">Source files not all received</div></div><svg class="connector"><use href="#i-arrow"/></svg>
+<div class="phase active"><svg><use href="#i-stack"/></svg><div id="flow-delivering" class="phase-num">&#8212;</div><div class="phase-name">Delivering</div><div class="phase-note">Files taken over, copying</div></div><svg class="connector"><use href="#i-arrow"/></svg>
+<div class="phase"><svg><use href="#i-shield"/></svg><div id="flow-delivered" class="phase-num">&#8212;</div><div class="phase-name">Delivered</div><div class="phase-note">Output verified</div></div>
+</div>
+<div id="flow-foot" class="card-foot"></div></section>
+<section class="card"><div class="card-head"><div><h2>Storage reserved</h2><p class="card-caption">Accounted reservations, not disk usage</p></div><a class="button text" href="#storage" aria-label="View storage"><svg><use href="#i-arrow"/></svg></a></div>
+<div id="overview-storage" class="capacity"></div></section>
+</div>
+<div id="attention-banner" class="attention-strip" hidden><span class="attention-icon"><svg><use href="#i-alert"/></svg></span><div><strong id="attention-banner-title"></strong><p>Delivery is waiting for a review. Files and existing output stay where they are.</p></div><a class="button" href="#attention">Review jobs <svg><use href="#i-arrow"/></svg></a></div>
+<section class="card"><div class="table-head"><div><h2>Recent jobs</h2><p class="card-caption">The latest jobs the mover is keeping</p></div><a class="button text" href="#history">View all jobs <svg><use href="#i-arrow"/></svg></a></div>
+<div class="table-scroll"><table><thead><tr><th>Job</th><th>Progress</th><th>Files</th><th>Size</th><th>Source folder</th></tr></thead><tbody id="recent-rows"></tbody></table></div></section>
+</div>
+<div id="history-view" hidden>
 <section class="card" aria-labelledby="history-heading">
 <h2 id="history-heading" class="sr-only">Jobs</h2>
-<p id="history-status" class="muted" role="status"></p>
-<div class="scroll">
+<div class="toolbar"><div class="tabs" role="group" aria-label="Filter jobs">
+<button type="button" class="tab filter active" data-filter="all" aria-pressed="true">All jobs</button>
+<button type="button" class="tab filter" data-filter="active" aria-pressed="false">Active</button>
+<button type="button" class="tab filter" data-filter="attention" aria-pressed="false">Needs attention</button>
+<button type="button" class="tab filter" data-filter="delivered" aria-pressed="false">Delivered</button>
+<button type="button" class="tab filter" data-filter="cancelled" aria-pressed="false">Cancelled</button></div>
+<label class="search"><svg><use href="#i-search"/></svg><span class="sr-only">Search</span><input id="search" type="search" placeholder="Find a job, recording ID or folder" autocomplete="off" spellcheck="false"></label></div>
+<div class="table-scroll">
 <table class="history">
 <thead><tr>
-<th><button id="sort" class="sort" type="button" title="Oldest first; click for newest first">Job ▲</button></th>
+<th><button id="sort" class="sort" type="button" title="Oldest first; click for newest first">Job &#9650;</button></th>
 <th title="Received: the mover accepted the request. Acquired: the mover took over the source files. Copied/Moved: all files are at the destination. A badge appears only when something is waiting or needs attention.">Progress</th>
 <th title="How many of the job's files are at the destination">Files delivered</th>
 <th title="Measured total size of the job's files; unmeasured files are never counted as zero">Size</th>
@@ -54,11 +106,15 @@
 <tbody id="history-rows"></tbody>
 </table>
 </div>
-<div class="pager"><button id="prev" class="secondary" type="button" disabled>Previous</button><button id="next" class="secondary" type="button" disabled>Next</button></div>
+<div class="table-footer"><span id="history-status" role="status"></span><div class="page-links"><button id="older" class="button small" type="button" hidden>Load older jobs</button><button id="prev" type="button" disabled aria-label="Previous page">&#8592;</button><button id="next" type="button" disabled aria-label="Next page">&#8594;</button></div></div>
 </section>
 </div>
+<div id="attention-view" hidden>
+<section class="card"><div class="table-head"><div><h2>Jobs waiting for a review</h2><p id="attention-status" class="card-caption" role="status"></p></div></div>
+<div class="table-scroll"><table><thead><tr><th>Job</th><th>Condition</th><th>Files</th><th>Source folder</th><th>Destination folder</th></tr></thead><tbody id="attention-rows"></tbody></table></div></section>
+</div>
 <div id="storage-view" hidden>
-<section class="card" aria-labelledby="storage-heading">
+<section class="card section-space" aria-labelledby="storage-heading">
 <h2 id="storage-heading" class="sr-only">Reserved storage</h2>
 <p id="storage-status" class="muted" role="status"></p>
 <div id="storage-body"></div>
@@ -69,6 +125,7 @@
 <div id="settings-body"></div>
 </div>
 </main>
+</div>
 </div>
 <script>/*SCRIPT*/</script>
 </body>
