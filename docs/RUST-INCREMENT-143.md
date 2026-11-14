@@ -83,6 +83,13 @@ migrated and no production deletion is enabled.
   covers the window between unlink and the recorded result, and a failure
   recorded after an uncertain unlink. A fresh confirmation then completes the
   deletion durably (already absent is acknowledged only after a directory sync).
+- **Deletion starting mid-replay:** if replay validation of a copy fails, the
+  service rechecks whether a confirmed deletion has meanwhile released it, and
+  continues if so. The qualification-build regression
+  `replay_validation_tolerates_a_deletion_that_starts_mid_check` pauses a
+  replay right after its first check (new `replay_validate` pause point), lets
+  a deletion remove the copy, then resumes. The replay returns 202; without the
+  recheck it returned 409.
 - **Durable absence:** both already-absent paths sync the directory where the
   name is absent (the source namespace or the private area) before reporting
   success, so accounting is released only after durable absence.

@@ -5777,3 +5777,52 @@ fn confirmed_deletion_removes_only_retained_copies_and_keeps_replay() {
     assert_eq!(std::fs::read(&copy).unwrap(), b"not the claimed object");
     f.stop();
 }
+
+#[test]
+fn replay_validation_tolerates_a_deletion_that_starts_mid_check() {
+    if !cfg!(feature = "nfs-qualification") {
+        return;
+    }
+    let mut f = Fixture::new(300);
+    f.stop();
+    provision_destination(&f);
+    f.start();
+    f.write("data", b"abc");
+    let delivered = f.input("delete-mid-replay", json!(["data"]));
+    assert_eq!(f.post(&delivered).0, 202);
+    wait_manifest(&f, "1");
+    f.stop();
+    let rendezvous = f.root.join("replay-pause");
+    std::fs::create_dir(&rendezvous).unwrap();
+    std::fs::set_permissions(&rendezvous, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let mut command = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap());
+    command
+        .env("FILE_MOVER_QUALIFICATION_PAUSE", "replay_validate")
+        .env("FILE_MOVER_QUALIFICATION_RENDEZVOUS", &rendezvous);
+    f.start_command(command);
+    // The replay checks "released" (not yet), then pauses before validating.
+    let bytes = post_bytes(&delivered);
+    let address = f.address;
+    let replay = std::thread::spawn(move || exchange(address, &bytes));
+    let until = Instant::now() + Duration::from_secs(10);
+    while !rendezvous.join("ready").exists() {
+        assert!(Instant::now() < until, "replay did not reach validation");
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    // Meanwhile a confirmed deletion removes the retained copy.
+    {
+        let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        let (_, digest) = s.deletion_preview(1).unwrap().unwrap();
+        s.start_deletion(1, "dashboard-account", &"a".repeat(64), &digest, 100)
+            .unwrap();
+    }
+    let until = Instant::now() + Duration::from_secs(10);
+    while f.root.join("source/.file-mover/1-0").exists() {
+        assert!(Instant::now() < until, "deletion did not run");
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    std::fs::write(rendezvous.join("go"), b"").unwrap();
+    let (code, _) = replay.join().unwrap();
+    assert_eq!(code, 202, "replay keeps its original meaning");
+    f.stop();
+}

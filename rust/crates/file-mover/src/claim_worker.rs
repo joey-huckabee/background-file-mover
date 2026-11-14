@@ -453,14 +453,21 @@ pub(crate) fn validate_existing(
                 if !guard.matches_path(&intent.root_path) {
                     return Err(ClaimError::Blocked("source scope changed"));
                 }
-                let reply = request(
+                mover_fs::qualification_pause("replay_validate")?;
+                let reply = match request(
                     &Assignment::Validate {
                         version: 1,
                         claim: ClaimWire::new(&intent),
                     },
                     guard,
                     stop,
-                )?;
+                ) {
+                    Ok(reply) => reply,
+                    // A confirmed deletion may have targeted (and removed) the
+                    // copy after the check above: custody was given up, not lost.
+                    Err(_) if store.retained_copy_released(id, index)? => continue,
+                    Err(e) => return Err(e),
+                };
                 if reply != intent {
                     return Err(ClaimError::Blocked("handoff validation receipt mismatch"));
                 }
