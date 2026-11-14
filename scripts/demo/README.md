@@ -46,17 +46,18 @@ again for fresh ones.
 Clicking Retry before `unblock` shows a retry being accepted and the job
 stopping for review again, with the review count increased.
 
-## Showing Cancel, Clear and Delete retained data
+## Showing Cancel, Clear and Delete held copies
 
 The demo turns on `admin_ingress.allow_data_deletion`; it is off by default on
 any other installation.
 
 1. **Cancel:** open a blocked job (`add-job --blocked`), click **Cancel job…**,
    confirm. It shows Cancelling, then Cancelled.
-2. **Delete retained data:** on a delivered or cancelled job, click **Delete
-   retained data…**. The confirmation lists the exact files and sizes. For a
+2. **Delete held copies:** on a delivered or cancelled job, click **Delete held
+   copies…**. These are the original files the mover took over from the sender's
+   folder and holds on the source disk (job detail: "Held copies (source disk)"). The confirmation lists the exact files and sizes. For a
    cancelled job it warns that these are the only copies. Confirm: Activity
-   shows "Deleting retained copies…", then the result. Delivered files at the
+   shows "Deleting held copies…", then the result. Delivered files at the
    destination are never touched.
 3. **Clear from history:** on a delivered or cancelled job, click **Clear from
    history…** and confirm. The row disappears; files stay where they are.

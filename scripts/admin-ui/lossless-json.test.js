@@ -127,7 +127,7 @@ console.log('byte formatting ok');
     assert.match(q, /No files are touched, but they leave mover management/);
     assert.match(q, /untracked/);
   }
-  assert.match(ACTIONS['clear-history'].question('7', { state: 'Committed' }), /delivered files stay at the destination/);
+  assert.match(ACTIONS['clear-history'].question('7', { state: 'Committed' }), /delivered copies stay at the destination, and any held copies on the source disk stay where they are, untracked/);
   console.log('clear confirmation wording ok');
 }
 
@@ -135,19 +135,23 @@ console.log('byte formatting ok');
 {
   const aSrc = src.slice(src.indexOf('  function cancelOutcome('), src.indexOf('  function readReply('));
   const bytesSrc2 = src.slice(src.indexOf('  function bytes(value)'), src.indexOf('  function time('));
-  const { ACTIONS, deleteOutcome } = new Function(bytesSrc2 + aSrc + '; return { ACTIONS: ACTIONS, deleteOutcome: deleteOutcome };')();
+  const folderSrc = src.slice(src.indexOf('  function folder('), src.indexOf('  function finalStep('));
+  const rowsById = { '7': { source_folder: 'current', destination_folder: '8d058de9' } };
+  const { ACTIONS, deleteOutcome } = new Function('rowsById', bytesSrc2 + folderSrc + aSrc + '; return { ACTIONS: ACTIONS, deleteOutcome: deleteOutcome };')(rowsById);
   const del = ACTIONS['delete-data'];
   const preview = parseJSON('{"deletion_targets":[{"job_id":"7","file_id":"0","kind":"RetainedSource","relative_path":"cam/video.mkv","attempt":null,"size_bytes":2048}]}');
   const st = { targets: preview.deletion_targets };
   const delivered = del.question('7', { state: 'Committed' }, st);
   assert.match(delivered, /1 file\(s\), 2.00 KiB/);
   assert.match(delivered, /cam\/video\.mkv/);
-  assert.match(delivered, /delivered files at the destination are not touched/);
+  assert.match(delivered, /original files the mover is holding on the source disk/);
+  assert.match(delivered, /took these over from the sender's folder current\/ when the job was accepted/);
+  assert.match(delivered, /delivered copies in 8d058de9\/ at the destination are not touched/);
   const cancelled = del.question('7', { state: 'Claimed' }, st);
   assert.match(cancelled, /never delivered\. These are the only copies of the recording and will be permanently destroyed/);
   assert.strictEqual(del.blocked({ targets: [] }), true);
   assert.match(del.question('7', { state: 'Committed' }, { targets: [] }), /Nothing to delete/);
-  assert.match(deleteOutcome(parseJSON('{"deleted_count":0,"failed_count":0,"completion_pending":true}')), /Deleting/);
+  assert.match(deleteOutcome(parseJSON('{"deleted_count":0,"failed_count":0,"completion_pending":true}')), /Deleting held copies/);
   assert.match(deleteOutcome(parseJSON('{"deleted_count":2,"failed_count":1,"completion_pending":false}')), /2 deleted, 1 could not be deleted/);
   console.log('delete confirmation wording ok');
 }
