@@ -44,8 +44,10 @@ Bulk selection (checkboxes with bulk cancel and clear) is a separate later step.
 
 - **No silent truncation:** jobs load newest first, so recent jobs, attention
   alerts and search always cover the newest work. When more jobs exist beyond
-  the 40-page bound, Job history says plainly that older jobs are not loaded and
-  totals exclude them, and **Load older jobs** continues loading.
+  the 40-page bound, a page-wide notice on Overview, Job history and Needs
+  attention says that only the newest jobs are loaded and that totals, alerts and
+  search exclude older ones. Needs attention never claims "nothing needs your
+  attention" outright in that case. **Load older jobs** continues loading.
 - **Bookmarks:** after the session is restored the selected view initializes,
   so `#settings` and `#storage` load directly; live updates also refresh
   Settings.

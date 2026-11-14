@@ -60,6 +60,7 @@
 <div class="page-heading"><div><div id="view-eyebrow" class="eyebrow">THE BIG PICTURE</div><h1 id="view-title">Overview</h1><p id="view-sub" class="subhead"></p></div>
 <div class="actions"><button id="refresh" class="button" type="button"><svg><use href="#i-refresh"/></svg>Refresh</button></div></div>
 <div id="shell-error" class="error" role="alert"></div>
+<div id="incomplete" class="info-note" role="status" hidden></div>
 <div id="overview-view">
 <section class="stats" aria-label="Job totals">
 <div class="stat"><div class="stat-top">Active jobs<svg><use href="#i-stack"/></svg></div><div id="stat-active" class="stat-value">&#8212;</div><div id="stat-active-sub" class="stat-bottom"></div></div>
@@ -92,7 +93,6 @@
 <button type="button" class="tab filter" data-filter="delivered" aria-pressed="false">Delivered</button>
 <button type="button" class="tab filter" data-filter="cancelled" aria-pressed="false">Cancelled</button></div>
 <label class="search"><svg><use href="#i-search"/></svg><span class="sr-only">Search</span><input id="search" type="search" placeholder="Find a job, recording ID or folder" autocomplete="off" spellcheck="false"></label></div>
-<div id="incomplete" class="info-note" role="status" hidden></div>
 <div class="table-scroll">
 <table class="history">
 <thead><tr>

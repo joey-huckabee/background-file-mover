@@ -182,6 +182,7 @@
     $("view-title").textContent = VIEWS[next][1];
     $("view-sub").textContent = VIEWS[next][2];
     $("crumb").textContent = { overview: "Overview" }[next] || VIEWS[next][1];
+    renderCompleteness();
     // Views load only when signed in (the CSRF token arrives with the session).
     if (!csrf) { return; }
     if (next === "storage") { loadStorage(true); }
@@ -216,9 +217,10 @@
   function renderCompleteness() {
     var more = olderCursor !== null;
     $("older").hidden = !more;
-    $("incomplete").hidden = !more;
+    // Page-wide: Overview, Job history and Needs attention all use these jobs.
+    $("incomplete").hidden = !more || view === "storage" || view === "settings";
     $("incomplete").textContent = more
-      ? "Showing the newest " + allItems.length + " jobs. Older jobs are not loaded yet, so totals, filters and search do not include them."
+      ? "Showing the newest " + allItems.length + " jobs only. Older jobs are not loaded, so these totals, alerts and search results do not include them. Use Load older jobs in Job history to include them."
       : "";
   }
   function stateOf(item) {
@@ -342,7 +344,8 @@
   function renderAttention() {
     var list = allItems.filter(function (i) { return i.condition === "ReviewRequired"; });
     $("attention-status").textContent = list.length ? list.length + " job" + (list.length === 1 ? "" : "s") + " waiting for a review."
-      : "Nothing needs your attention.";
+      : olderCursor !== null ? "Nothing needs your attention among the loaded jobs. Older jobs are not loaded."
+        : "Nothing needs your attention.";
     var rows = $("attention-rows");
     clear(rows);
     list.forEach(function (item) {
