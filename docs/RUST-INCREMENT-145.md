@@ -40,6 +40,21 @@ No new API: every view uses existing routes.
 
 Bulk selection (checkboxes with bulk cancel and clear) is a separate later step.
 
+## Review fixes
+
+- **No silent truncation:** jobs load newest first, so recent jobs, attention
+  alerts and search always cover the newest work. When more jobs exist beyond
+  the 40-page bound, Job history says plainly that older jobs are not loaded and
+  totals exclude them, and **Load older jobs** continues loading.
+- **Bookmarks:** after the session is restored the selected view initializes,
+  so `#settings` and `#storage` load directly; live updates also refresh
+  Settings.
+- **Accurate stages:** a pending cancellation is still active work (shown as
+  "cancelling"), not cancelled, and jobs stopped for review are no longer counted
+  as delivering. The stage footer lists review, cancelling and cancelled counts.
+- **Accessibility:** filter buttons expose `aria-pressed`, kept in sync on every
+  change, including when opening a job from another view.
+
 ## Tests
 
 - Admin UI node tests unchanged and passing.
