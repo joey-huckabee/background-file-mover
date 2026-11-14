@@ -142,6 +142,12 @@
   // accepted. Settings shows today's roots, which may differ for older jobs.
   var FOLDER_HINT = "Relative to the root recorded with this job. If the configured root has changed since, " +
     "this job's files are still under the earlier root, not the one shown in Settings.";
+  // Long folder names are cut with an ellipsis in tables; the full name is in
+  // the hover text and the job detail.
+  function folderCell(value, side) {
+    var text = folder(value, side);
+    return el("td", text, "mono folder-cell", text + " (" + FOLDER_HINT + ")");
+  }
   function folder(value, side) { return value === "" ? "(" + side + " root)" : value + "/"; }
   function finalStep(mode) { return mode === "Move" ? "Moved" : "Copied"; }
   function progress(item, mode) {
@@ -334,7 +340,7 @@
       var p = el("td"); p.appendChild(progress(item, item.transfer_mode)); tr.appendChild(p);
       tr.appendChild(el("td", item.files_delivered + " of " + item.files_total));
       tr.appendChild(el("td", short(item.measured_bytes)));
-      tr.appendChild(el("td", folder(item.source_folder, "source"), "mono", FOLDER_HINT));
+      tr.appendChild(folderCell(item.source_folder, "source"));
       rows.appendChild(tr);
     });
     if (!allItems.length) {
@@ -353,8 +359,8 @@
       tr.appendChild(jobCell(item));
       var c = el("td"); c.appendChild(progress(item, item.transfer_mode)); tr.appendChild(c);
       tr.appendChild(el("td", item.files_delivered + " of " + item.files_total));
-      tr.appendChild(el("td", folder(item.source_folder, "source"), "mono", FOLDER_HINT));
-      tr.appendChild(el("td", folder(item.destination_folder, "destination"), "mono", FOLDER_HINT));
+      tr.appendChild(folderCell(item.source_folder, "source"));
+      tr.appendChild(folderCell(item.destination_folder, "destination"));
       rows.appendChild(tr);
     });
   }
@@ -404,8 +410,8 @@
         ? short(item.measured_bytes) + " + " + item.unmeasured_files + " unmeasured"
         : short(item.measured_bytes);
       tr.appendChild(el("td", size, null, BigInt(item.measured_bytes).toString() + " bytes measured"));
-      tr.appendChild(el("td", folder(item.source_folder, "source"), "mono", FOLDER_HINT));
-      tr.appendChild(el("td", folder(item.destination_folder, "destination"), "mono", FOLDER_HINT));
+      tr.appendChild(folderCell(item.source_folder, "source"));
+      tr.appendChild(folderCell(item.destination_folder, "destination"));
       rows.appendChild(tr);
     });
     $("prev").disabled = page === 0;
