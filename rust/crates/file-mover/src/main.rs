@@ -153,10 +153,10 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         ]);
         // Preview validates lexical/local placement, without creating output.
         mover_fs::BackupOutput::check_location(&output, &excluded)?;
-        if !confirm || version == 15 {
+        if !confirm || version == 16 {
             println!(
                 "{}",
-                serde_json::json!({"schema_version":version,"target_schema":15,"conversion_required":version<15,"converted":false,"preview":!confirm,"backup_directory":output,"pairing_state":pairing,"payload_filesystem_inspected":false})
+                serde_json::json!({"schema_version":version,"target_schema":16,"conversion_required":version<16,"converted":false,"preview":!confirm,"backup_directory":output,"pairing_state":pairing,"payload_filesystem_inspected":false})
             );
             return Ok(());
         }
@@ -230,13 +230,29 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             state
         };
         // 14 -> 15 adds the empty admin cancellation table.
+        let state = if state.summary().schema_version == 14 {
+            state
+                .upgrade_cancellations(&config.state_database, |stage| {
+                    checkpoint(match stage {
+                        "before_create" => "cancellations_before_create",
+                        "after_create" => "cancellations_after_create",
+                        "before_commit" => "cancellations_before_commit",
+                        _ => "cancellations_after_commit",
+                    })
+                })
+                .map_err(failed)?;
+            mover_store::StateInspection::open(&config.state_database)?
+        } else {
+            state
+        };
+        // 15 -> 16 adds the empty retained-data deletion tables.
         let summary = state
-            .upgrade_cancellations(&config.state_database, |stage| {
+            .upgrade_deletions(&config.state_database, |stage| {
                 checkpoint(match stage {
-                    "before_create" => "cancellations_before_create",
-                    "after_create" => "cancellations_after_create",
-                    "before_commit" => "cancellations_before_commit",
-                    _ => "cancellations_after_commit",
+                    "before_create" => "deletions_before_create",
+                    "after_create" => "deletions_after_create",
+                    "before_commit" => "deletions_before_commit",
+                    _ => "deletions_after_commit",
                 })
             })
             .map_err(failed)?;

@@ -199,7 +199,7 @@ mover should remove retained data, that separate deletion feature must be
 implemented/qualified and used before clear; no payload deletion is provided
 by this command. Old private source/destination files still consume real space.
 
-The original database must exist in the supported current schema 15. This command never initializes
+The original database must exist in the supported current schema 16. This command never initializes
 or migrates state and never acquires source/destination roots, so unavailable
 payload mounts do not block its database-only work. Shared instance identity,
 source enrollment and the monotonically increasing job sequence stay intact.

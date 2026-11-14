@@ -18,6 +18,8 @@ use std::{
 };
 mod admin_retry;
 mod cancellations;
+mod deletions;
+pub use deletions::{DeleteTarget, DeletionStart, DeletionView};
 mod problems;
 pub use cancellations::{CancelOutcome, CancelState, Cancellation};
 pub use problems::{JobProblem, ProblemStage, valid_diagnostic};
@@ -37,7 +39,7 @@ pub use retention::RetentionSnapshot;
 pub use source_ownership::SourceOwnership;
 
 const APPLICATION_ID: i64 = 0x42464d52;
-const SCHEMA_VERSION: i64 = 15;
+const SCHEMA_VERSION: i64 = 16;
 
 #[derive(Debug)]
 pub enum StoreError {
@@ -77,7 +79,7 @@ impl fmt::Display for StoreError {
             Self::Io(error) => write!(f, "I/O: {error}"),
             Self::UnsupportedSchema => write!(
                 f,
-                "UnsupportedSchema: schema 15 mover state required; automatic upgrades are disabled. Preserve original state and use compatible software; do not reinitialize or restore a stale database."
+                "UnsupportedSchema: schema 16 mover state required; automatic upgrades are disabled. Preserve original state and use compatible software; do not reinitialize or restore a stale database."
             ),
             Self::Cancelled => write!(
                 f,
@@ -85,7 +87,7 @@ impl fmt::Display for StoreError {
             ),
             Self::MigrationRequired => write!(
                 f,
-                "MigrationRequired: older state is preserved; explicit offline migration to schema 15 is required (file-mover --migrate-state); normal startup never applies it. Do not reinitialize or replace original state."
+                "MigrationRequired: older state is preserved; explicit offline migration to schema 16 is required (file-mover --migrate-state); normal startup never applies it. Do not reinitialize or replace original state."
             ),
             Self::UnsupportedIdentity => write!(
                 f,
@@ -217,6 +219,8 @@ pub struct JobStatus {
     pub problem: Option<JobProblem>,
     /// Admin cancellation, if requested.
     pub cancellation: Option<Cancellation>,
+    /// Latest retained-data deletion pass, if any.
+    pub deletion: Option<DeletionView>,
 }
 
 fn status_in(tx: &rusqlite::Transaction<'_>, job_id: i64) -> Result<Option<JobStatus>> {
@@ -260,6 +264,7 @@ fn status_in(tx: &rusqlite::Transaction<'_>, job_id: i64) -> Result<Option<JobSt
     let latest_missing_reset = missing_resets::latest(tx, job_id)?;
     let problem = problems::latest(tx, job_id)?;
     let cancellation = cancellations::get(tx, job_id)?;
+    let deletion = deletions::view(tx, job_id)?;
     Ok(Some(JobStatus {
         job,
         transfers,
@@ -272,6 +277,7 @@ fn status_in(tx: &rusqlite::Transaction<'_>, job_id: i64) -> Result<Option<JobSt
         latest_missing_reset,
         problem,
         cancellation,
+        deletion,
     }))
 }
 
@@ -739,10 +745,18 @@ impl Drop for Store {
     }
 }
 
-/// Current schema (15): schema 14 plus admin cancellations.
+/// Current schema (16): schema 15 plus retained-data deletion passes.
 fn create_tables(connection: &Connection) -> Result<()> {
+    create_tables_v15(connection)?;
+    create_deletion_tables(connection)
+}
+/// Schema 15: schema 14 plus admin cancellations.
+fn create_tables_v15(connection: &Connection) -> Result<()> {
     create_tables_v14(connection)?;
     create_cancellation_tables(connection)
+}
+fn create_deletion_tables(connection: &Connection) -> Result<()> {
+    Ok(connection.execute_batch(include_str!("deletions.sql"))?)
 }
 /// Schema 14: schema 13 plus the per-job problem record.
 fn create_tables_v14(connection: &Connection) -> Result<()> {
@@ -820,7 +834,8 @@ fn validate_schema_for(connection: &Connection, version: i64) -> Result<()> {
         12 => create_tables_v12(&reference)?,
         13 => create_tables_v13(&reference)?,
         14 => create_tables_v14(&reference)?,
-        15 => create_tables(&reference)?,
+        15 => create_tables_v15(&reference)?,
+        16 => create_tables(&reference)?,
         _ => return Err(StoreError::UnsupportedSchema),
     }
     if schema_definitions(connection)? != schema_definitions(&reference)? {
@@ -953,7 +968,7 @@ impl Database {
         let version: i64 = connection.pragma_query_value(None, "user_version", |r| r.get(0))?;
         let application: i64 =
             connection.pragma_query_value(None, "application_id", |r| r.get(0))?;
-        if (11..=14).contains(&version) && application == APPLICATION_ID {
+        if (11..=15).contains(&version) && application == APPLICATION_ID {
             return Err(StoreError::MigrationRequired);
         }
         if history_clear && (version != SCHEMA_VERSION || application != APPLICATION_ID) {

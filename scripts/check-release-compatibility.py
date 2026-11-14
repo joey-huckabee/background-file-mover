@@ -200,7 +200,7 @@ def exercise(profile, gates, folder, runtime, result):
         with closing(sqlite3.connect((folder / "schema11-state/jobs.sqlite").as_uri() + "?mode=ro", uri=True)) as old_db, \
                 closing(sqlite3.connect((folder / "migrated-state/jobs.sqlite").as_uri() + "?mode=ro", uri=True)) as new_db:
             assert old_db.execute("PRAGMA user_version").fetchone() == (11,)
-            assert new_db.execute("PRAGMA user_version").fetchone() == (15,)
+            assert new_db.execute("PRAGMA user_version").fetchone() == (16,)
             tables = [r[0] for r in old_db.execute("SELECT name FROM sqlite_schema WHERE type='table'")]
             for table in tables:
                 quoted = '"' + table.replace('"', '""') + '"'

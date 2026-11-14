@@ -4668,7 +4668,7 @@ fn offline_history_epoch_helper() {
 #[test]
 fn incompatible_database_refuses_before_bootstrap_for_every_effect_entry_point() {
     let exe = std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap();
-    for case in (1..=14).chain([16, 99, 100, 101]) {
+    for case in (1..=15).chain([17, 99, 100, 101]) {
         let f = Fixture::uninitialized(300);
         let database = f.root.join("state/jobs.sqlite");
         drop(mover_store::Store::open(&database).unwrap());
@@ -4723,7 +4723,7 @@ fn incompatible_database_refuses_before_bootstrap_for_every_effect_entry_point()
             assert!(
                 log.contains(if case == 101 {
                     "file is not a database"
-                } else if (11..=14).contains(&case) {
+                } else if (11..=15).contains(&case) {
                     "MigrationRequired"
                 } else {
                     "UnsupportedSchema"
@@ -4797,7 +4797,7 @@ fn offline_inspection_and_backup_preserve_original_recovery_without_payload_root
     let result = check.wait_with_output().unwrap();
     assert!(result.status.success(), "{result:?}");
     let report: Value = serde_json::from_slice(&result.stdout).unwrap();
-    assert_eq!(report["schema_version"], 15);
+    assert_eq!(report["schema_version"], 16);
     assert_eq!(report["retained_jobs"], 1);
     assert_eq!(report["pairing_state"], "RecordedActive");
     let epoch: Value =
@@ -4972,7 +4972,7 @@ fn migration_cli_refuses_live_owner_bad_arguments_and_missing_state_then_validat
         assert!(result.status.success(), "{result:?}");
         let value: Value = serde_json::from_slice(&result.stdout).unwrap();
         assert_eq!(value["converted"], false);
-        assert_eq!(value["schema_version"], 15);
+        assert_eq!(value["schema_version"], 16);
         assert!(!backup.exists());
     }
     for args in [
@@ -5653,5 +5653,89 @@ fn cancelled_jobs_stop_claims_and_delivery_and_keep_their_files() {
         (code, body["error"].as_str()),
         (409, Some("recording_cancelled"))
     );
+    f.stop();
+}
+
+fn wait_deletion(f: &Fixture, id: &str) -> Value {
+    let deadline = Instant::now() + Duration::from_secs(10);
+    loop {
+        let (_, body) = status(f, id);
+        if body["details"]["deletion"]["completion_pending"] == false {
+            return body["details"]["deletion"].clone();
+        }
+        assert!(Instant::now() < deadline, "{id}: {body}");
+        std::thread::sleep(Duration::from_millis(20));
+    }
+}
+#[test]
+fn confirmed_deletion_removes_only_retained_copies_and_keeps_replay() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    provision_destination(&f);
+    f.start();
+    f.write("data", b"abc");
+    let delivered = f.input("delete-delivered", json!(["data"]));
+    assert_eq!(f.post(&delivered).0, 202);
+    wait_manifest(&f, "1");
+    // The producer reuses the original name of job 1's file.
+    f.write("data", b"producer reuse");
+    f.stop();
+    {
+        let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        let (targets, digest) = s.deletion_preview(1).unwrap().unwrap();
+        assert_eq!(targets.len(), 1);
+        assert!(matches!(
+            s.start_deletion(1, "dashboard-account", &"a".repeat(64), &digest, 100)
+                .unwrap(),
+            mover_store::DeletionStart::Pass(_)
+        ));
+    }
+    f.start();
+    let result = wait_deletion(&f, "1");
+    assert_eq!(
+        result,
+        json!({"completion_pending":false,"deleted_count":1,"failed_count":0})
+    );
+    // Only the private retained copy is gone.
+    assert!(!f.root.join("source/.file-mover/1-0").exists());
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/data")).unwrap(),
+        b"producer reuse"
+    );
+    assert_eq!(std::fs::read(f.destination("1", "data")).unwrap(), b"abc");
+    assert!(f.destination("1", "COMMITTED.json").exists());
+    let after = retention(&f, Some("1")).1;
+    assert_eq!(after["details"]["source_reserved_bytes"], "0");
+    // Exact replay of the delivered request keeps its original meaning.
+    assert_eq!(f.post(&delivered).0, 202);
+
+    // Job 2 waits for a second file (taken over, never delivered), is cancelled,
+    // and its retained copy is swapped: refused, kept, reported.
+    f.write("other", b"xyz");
+    let cancelled = f.input("delete-cancelled", json!(["other", "never-there"]));
+    assert_eq!(f.post(&cancelled).1["error"], "source_file_missing");
+    f.stop();
+    let copy = f.root.join("source/.file-mover/2-0/data");
+    std::fs::remove_file(&copy).unwrap();
+    std::fs::write(&copy, b"not the claimed object").unwrap();
+    std::fs::set_permissions(&copy, std::fs::Permissions::from_mode(0o600)).unwrap();
+    {
+        let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        assert_eq!(
+            s.admin_cancel(2, "dashboard-account", 200).unwrap(),
+            mover_store::CancelOutcome::Accepted
+        );
+        s.settle_cancellations(201, || false).unwrap();
+        let (_, digest) = s.deletion_preview(2).unwrap().unwrap();
+        s.start_deletion(2, "dashboard-account", &"b".repeat(64), &digest, 202)
+            .unwrap();
+    }
+    f.start();
+    let result = wait_deletion(&f, "2");
+    assert_eq!(
+        result,
+        json!({"completion_pending":false,"deleted_count":0,"failed_count":1})
+    );
+    assert_eq!(std::fs::read(&copy).unwrap(), b"not the claimed object");
     f.stop();
 }

@@ -1,5 +1,5 @@
 use mover_core::{DeliveryPolicy, FileSpec, Handoff, Submission};
-use mover_fs::{apply, claim, prepare};
+use mover_fs::{Discarded, apply, claim, discard_retained_source, prepare};
 use mover_store::{AcceptanceContext, Store};
 use std::{
     os::unix::fs::{PermissionsExt, symlink},
@@ -409,4 +409,59 @@ fn child_claim() {
         s.finish_claim(&intent).unwrap();
     }
     std::process::exit(0); // Bypass all Drops; WAL/effect recovery in parent.
+}
+
+#[test]
+fn discard_removes_only_the_exact_retained_copy() {
+    let f = Fixture::new();
+    let store = f.store();
+    f.write("sub/data", b"payload");
+    f.write("other", b"keep");
+    let job = store
+        .accept(
+            &f.input("discard", &[("sub/data", None), ("other", None)]),
+            &f.context(),
+        )
+        .unwrap();
+    claim(&store, job.job_id, 0).unwrap();
+    claim(&store, job.job_id, 1).unwrap();
+    // The producer reuses the original path; that file is never touched.
+    f.write("sub/data", b"new recording");
+    let (first, _) = store.claim_intent(job.job_id, 0).unwrap().unwrap();
+    assert_eq!(discard_retained_source(&first).unwrap(), Discarded::Removed);
+    assert!(
+        !f.0.join(".file-mover/1-0").exists(),
+        "emptied private area removed"
+    );
+    assert_eq!(
+        std::fs::read(f.0.join("recording/sub/data")).unwrap(),
+        b"new recording"
+    );
+    assert_eq!(
+        std::fs::read(f.0.join(".file-mover/1-1/data")).unwrap(),
+        b"keep"
+    );
+    // Repeating finds nothing to remove.
+    assert_eq!(
+        discard_retained_source(&first).unwrap(),
+        Discarded::AlreadyAbsent
+    );
+    // A different object under the retained name is refused and kept.
+    let (second, _) = store.claim_intent(job.job_id, 1).unwrap().unwrap();
+    let copy = f.0.join(".file-mover/1-1/data");
+    std::fs::remove_file(&copy).unwrap();
+    std::fs::write(&copy, b"keep").unwrap();
+    std::fs::set_permissions(&copy, std::fs::Permissions::from_mode(0o600)).unwrap();
+    assert!(discard_retained_source(&second).is_err());
+    assert_eq!(std::fs::read(&copy).unwrap(), b"keep");
+    // A symlink in place of the private area is never followed.
+    std::fs::remove_file(&copy).unwrap();
+    std::fs::remove_dir(f.0.join(".file-mover/1-1")).unwrap();
+    symlink(f.0.join("recording"), f.0.join(".file-mover/1-1")).unwrap();
+    assert!(discard_retained_source(&second).is_err());
+    assert_eq!(
+        std::fs::read(f.0.join("recording/sub/data")).unwrap(),
+        b"new recording"
+    );
+    std::fs::remove_file(f.0.join(".file-mover/1-1")).unwrap();
 }

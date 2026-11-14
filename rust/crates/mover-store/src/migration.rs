@@ -131,6 +131,14 @@ impl StateInspection {
     ) -> Result<InspectionSummary> {
         self.additive_upgrade(path, 14, create_cancellation_tables, checkpoint)
     }
+    /// 15 -> 16: add the empty retained-data deletion tables.
+    pub fn upgrade_deletions(
+        self,
+        path: impl AsRef<Path>,
+        checkpoint: impl FnMut(&'static str) -> std::io::Result<()>,
+    ) -> Result<InspectionSummary> {
+        self.additive_upgrade(path, 15, create_deletion_tables, checkpoint)
+    }
     /// One guarded additive step `from` -> `from + 1` that only creates new,
     /// empty tables, validating schema, identities, sequence and contents on
     /// both sides in one immediate transaction.

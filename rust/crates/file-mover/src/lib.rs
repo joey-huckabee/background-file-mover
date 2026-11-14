@@ -405,6 +405,51 @@ impl Worker {
                         delivery_stop.store(true, Ordering::Relaxed);
                         break;
                     }
+                    // Confirmed retained-data deletions, a few targets per tick.
+                    for _ in 0..16 {
+                        if delivery_stop.load(Ordering::Relaxed) {
+                            break;
+                        }
+                        let (job, index) = match delivery_store.next_deletion_target() {
+                            Ok(Some((job, index, _))) => (job, index),
+                            Ok(None) => break,
+                            Err(error) => {
+                                eprintln!("Deletion discovery failed: {error}");
+                                delivery_stop.store(true, Ordering::Relaxed);
+                                break;
+                            }
+                        };
+                        delivering.store(job, Ordering::SeqCst);
+                        let _working = Working(&delivering);
+                        let outcome = claim_worker::discard(
+                            &delivery_store,
+                            &delivery_guard,
+                            &delivery_stop,
+                            job,
+                            index,
+                        );
+                        if delivery_stop.load(Ordering::Relaxed) {
+                            break; // Stopping: leave the target pending.
+                        }
+                        let diagnostic = outcome.as_ref().err().map(|d| {
+                            let d: String = d.chars().filter(|c| c.is_ascii_graphic() || *c == ' ').take(240).collect();
+                            if d.is_empty() { "blocked_or_uncertain".to_owned() } else { d }
+                        });
+                        if let Some(d) = &diagnostic {
+                            eprintln!("Deletion of job {job} file {index} failed: {d}");
+                        }
+                        if let Err(error) = delivery_store.finish_deletion_target(
+                            job,
+                            index,
+                            outcome.is_ok(),
+                            diagnostic.as_deref(),
+                            now(),
+                        ) {
+                            eprintln!("Deletion result persistence failed: {error}");
+                            delivery_stop.store(true, Ordering::Relaxed);
+                            break;
+                        }
+                    }
                     match delivery_store.delivery_candidates(now(), 1) {
                         Ok(ids) => {
                             for id in ids {
@@ -697,6 +742,14 @@ fn problem_view(problem: &mover_store::JobProblem) -> serde_json::Value {
         "recorded_at": problem.recorded_at,
     })
 }
+/// Contract DeletionStatus for the job's latest pass.
+fn deletion_view(d: &mover_store::DeletionView) -> serde_json::Value {
+    serde_json::json!({
+        "completion_pending": d.completion_pending,
+        "deleted_count": d.deleted_count,
+        "failed_count": d.failed_count,
+    })
+}
 /// Contract CancellationStatus; NotRequested when there is no request.
 fn cancellation_view(c: Option<&mover_store::Cancellation>) -> serde_json::Value {
     match c {
@@ -774,6 +827,12 @@ fn job_view(snapshot: &mover_store::JobStatus) -> JobView {
         "latest_missing_reset":snapshot.latest_missing_reset.as_ref().map(|a|serde_json::json!({"command_id":a.request.command_id,"review_epoch":a.request.review_epoch,"file_id":a.request.file_index.to_string(),"retry_window_seconds":a.request.retry_window_seconds,"actor":a.request.actor,"reason":a.request.reason,"recorded_at":a.recorded_at,"prior_deadline":a.prior_deadline,"prior_blocked":a.prior_blocked,"new_deadline":a.new_deadline})),
         "latest_resume":snapshot.latest_resume.as_ref().map(|a|serde_json::json!({"command_id":a.command_id,"review_epoch":a.review_epoch,"actor":a.actor,"reason":a.reason,"recorded_at":a.recorded_at,"prior_retry_after":a.prior_retry_after,"prior_code":a.prior_code})),
         "files":files,"missing":missing,"delivery_retry":snapshot.delivery.as_ref().map(|(failures,retry_after,code)|serde_json::json!({"failures":failures,"retry_after":retry_after,"code":code}))});
+    if let Some(d) = &snapshot.deletion {
+        details
+            .as_object_mut()
+            .expect("status object")
+            .insert("deletion".into(), deletion_view(d));
+    }
     if let Some(c) = &snapshot.cancellation {
         details
             .as_object_mut()
@@ -885,7 +944,7 @@ fn page_response(store: &Store, request: PageRequest) -> Response {
                     status.review_epoch,
                 )},
                 "cancellation": cancellation_view(status.cancellation.as_ref()),
-                "deletion": null,
+                "deletion": status.deletion.as_ref().map(deletion_view),
             });
             // Dashboard row extension (approved 2026-11-12): file progress,
             // measured size, relative folders and the effective transfer mode.
