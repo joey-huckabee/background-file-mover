@@ -340,6 +340,10 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 2147483647
+        },
+        "data_deletion_enabled": {
+          "type": "boolean",
+          "description": "Whether admin_ingress.allow_data_deletion permits the delete-data action on this host (increment 144). Optional for compatibility; the service always sends it."
         }
       },
       "required": [

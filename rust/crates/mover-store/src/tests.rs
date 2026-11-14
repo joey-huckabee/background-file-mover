@@ -3894,7 +3894,7 @@ fn deletion_passes_target_only_retained_copies_of_stopped_jobs() {
         deleted_count: 0,
         failed_count: 0,
     };
-    assert_eq!(started, DeletionStart::Pass(pending));
+    assert_eq!(started, DeletionStart::Started(pending));
     // Active pass: any request observes it; no second pass; clear waits.
     assert_eq!(
         s.start_deletion(done.job_id, "op", &proof('b'), &digest, 11)

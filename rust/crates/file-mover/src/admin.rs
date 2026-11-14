@@ -1406,7 +1406,8 @@ async fn delete_data(
     };
     match d["outcome"].as_str() {
         Some("stale") => Reply::error(409, "stale_confirmation"),
-        Some("pass") => {
+        // Only a newly started pass is newly admitted work: renew then.
+        Some("started") => {
             let _ = admin.sessions.authorize(
                 token,
                 Some(csrf),
@@ -1415,6 +1416,8 @@ async fn delete_data(
             );
             Reply::json(202, d["status"].clone())
         }
+        // Replay or observation of an existing pass: report it, no renewal.
+        Some("pass") => Reply::json(202, d["status"].clone()),
         _ => Reply::json(202, none),
     }
 }

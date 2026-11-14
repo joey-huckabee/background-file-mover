@@ -52,6 +52,16 @@ Builds on the engine of [increment 143](RUST-INCREMENT-143.md).
   - The confirmed-action component (cancel, clear, delete) gained per-action
     previews.
 
+## Review fixes
+
+- **Renewal:** `DeletionStart` now distinguishes `Started` (this request
+  started a new pass) from `Pass` (an active pass observed, or this proof's
+  pass replayed). Only `Started` renews inactivity. Store tests assert `Pass`
+  for both the active-pass observation and the exact replay.
+- **Session schema:** the contract `SessionStatus` now defines the optional
+  boolean `data_deletion_enabled`, with a valid fixture and an invalid
+  non-boolean one; the contract checker passes.
+
 ## Tests
 
 - Unit: the proof binding is authenticated (a changed or removed fingerprint is

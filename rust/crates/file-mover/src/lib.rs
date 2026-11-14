@@ -1107,6 +1107,9 @@ fn delete_start_response(
     confirmed: &str,
 ) -> Response {
     match store.start_deletion(id, principal, proof_digest, confirmed, now()) {
+        Ok(mover_store::DeletionStart::Started(v)) => {
+            observed(serde_json::json!({"outcome":"started","status":deletion_view(&v)}))
+        }
         Ok(mover_store::DeletionStart::Pass(v)) => {
             observed(serde_json::json!({"outcome":"pass","status":deletion_view(&v)}))
         }

@@ -37,7 +37,10 @@ pub struct DeletionView {
 /// Outcome of a confirmed delete request for one job.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum DeletionStart {
-    /// A new pass started (or was observed/replayed): its current status.
+    /// This request started a new pass (newly admitted work).
+    Started(DeletionView),
+    /// An active pass, or the pass this exact confirmation started, observed
+    /// or replayed: nothing new was admitted.
     Pass(DeletionView),
     /// Valid request with nothing eligible: no pass, nothing removed.
     NoWork,
@@ -250,7 +253,7 @@ impl Store {
             }
             let v = view(&tx, job_id)?.ok_or(StoreError::CorruptState)?;
             tx.commit()?;
-            Ok(DeletionStart::Pass(v))
+            Ok(DeletionStart::Started(v))
         })
     }
 
