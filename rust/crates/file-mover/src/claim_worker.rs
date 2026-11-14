@@ -446,8 +446,9 @@ pub(crate) fn validate_existing(
     let job = store.get(id)?.ok_or(ClaimError::Blocked("missing job"))?;
     for index in 0..job.recording.submission().files().len() {
         match store.claim_intent(id, index)? {
-            // A retained copy deleted by an admin action left no custody to check.
-            Some((_, true)) if store.retained_copy_deleted(id, index)? => {}
+            // A confirmed deletion gave up this copy's custody evidence (it may be
+            // mid-removal, gone, or uncertain after a failure): nothing to check.
+            Some((_, true)) if store.retained_copy_released(id, index)? => {}
             Some((intent, true)) => {
                 if !guard.matches_path(&intent.root_path) {
                     return Err(ClaimError::Blocked("source scope changed"));

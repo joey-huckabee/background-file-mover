@@ -5709,29 +5709,67 @@ fn confirmed_deletion_removes_only_retained_copies_and_keeps_replay() {
     // Exact replay of the delivered request keeps its original meaning.
     assert_eq!(f.post(&delivered).0, 202);
 
+    // Job 3: unlink happened but the result was recorded as a failure (sync or
+    // receipt failed afterwards). Replay still keeps its 202 meaning, and a
+    // fresh confirmation durably completes the deletion.
+    f.write("third", b"333");
+    let third = f.input("delete-uncertain", json!(["third"]));
+    assert_eq!(f.post(&third).0, 202);
+    wait_manifest(&f, "2");
+    f.stop();
+    {
+        let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        let (_, digest) = s.deletion_preview(2).unwrap().unwrap();
+        s.start_deletion(2, "dashboard-account", &"c".repeat(64), &digest, 300)
+            .unwrap();
+        std::fs::remove_file(f.root.join("source/.file-mover/2-0/data")).unwrap();
+        s.finish_deletion_target(2, 0, false, Some("discard.sync_area errno=5"), 301)
+            .unwrap();
+    }
+    f.start();
+    assert_eq!(
+        f.post(&third).0,
+        202,
+        "released custody is not required for replay"
+    );
+    f.stop();
+    {
+        let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        let (remaining, digest) = s.deletion_preview(2).unwrap().unwrap();
+        assert_eq!(remaining.len(), 1);
+        s.start_deletion(2, "dashboard-account", &"d".repeat(64), &digest, 310)
+            .unwrap();
+    }
+    f.start();
+    assert_eq!(
+        wait_deletion(&f, "2"),
+        json!({"completion_pending":false,"deleted_count":1,"failed_count":0})
+    );
+    assert!(!f.root.join("source/.file-mover/2-0").exists());
+
     // Job 2 waits for a second file (taken over, never delivered), is cancelled,
     // and its retained copy is swapped: refused, kept, reported.
     f.write("other", b"xyz");
     let cancelled = f.input("delete-cancelled", json!(["other", "never-there"]));
     assert_eq!(f.post(&cancelled).1["error"], "source_file_missing");
     f.stop();
-    let copy = f.root.join("source/.file-mover/2-0/data");
+    let copy = f.root.join("source/.file-mover/3-0/data");
     std::fs::remove_file(&copy).unwrap();
     std::fs::write(&copy, b"not the claimed object").unwrap();
     std::fs::set_permissions(&copy, std::fs::Permissions::from_mode(0o600)).unwrap();
     {
         let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
         assert_eq!(
-            s.admin_cancel(2, "dashboard-account", 200).unwrap(),
+            s.admin_cancel(3, "dashboard-account", 200).unwrap(),
             mover_store::CancelOutcome::Accepted
         );
         s.settle_cancellations(201, || false).unwrap();
-        let (_, digest) = s.deletion_preview(2).unwrap().unwrap();
-        s.start_deletion(2, "dashboard-account", &"b".repeat(64), &digest, 202)
+        let (_, digest) = s.deletion_preview(3).unwrap().unwrap();
+        s.start_deletion(3, "dashboard-account", &"b".repeat(64), &digest, 202)
             .unwrap();
     }
     f.start();
-    let result = wait_deletion(&f, "2");
+    let result = wait_deletion(&f, "3");
     assert_eq!(
         result,
         json!({"completion_pending":false,"deleted_count":0,"failed_count":1})

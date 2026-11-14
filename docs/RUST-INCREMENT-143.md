@@ -72,6 +72,26 @@ migrated and no production deletion is enabled.
 - **Migration:** `--migrate-state` adds 15 -> 16 (shared guarded additive step)
   and chains 11 -> ... -> 16; startup reports MigrationRequired for 11-15.
 
+## Review fixes
+
+- **Old confirmations:** the selection fingerprint now also binds the job's
+  current pass version. A confirmation issued before a later pass is always
+  Stale, even if the same objects remain (A, then fresh B, then replay A
+  starts nothing).
+- **Replay during or after deletion:** a delivered job's replay validation skips
+  a file as soon as a confirmed deletion has targeted it, in any state. That
+  covers the window between unlink and the recorded result, and a failure
+  recorded after an uncertain unlink. A fresh confirmation then completes the
+  deletion durably (already absent is acknowledged only after a directory sync).
+- **Durable absence:** both already-absent paths sync the directory where the
+  name is absent (the source namespace or the private area) before reporting
+  success, so accounting is released only after durable absence.
+- **Known limit, accepted by design:** the post-unlink link-count check detects a
+  substituted object only after the fact. It cannot prevent a concurrent
+  same-UID name swap inside the mover's private namespace. Safety relies on the
+  existing trusted-private-namespace assumption, as for every other custody
+  effect.
+
 ## Tests
 
 - mover-fs (`discard_removes_only_the_exact_retained_copy`):

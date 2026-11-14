@@ -100,18 +100,29 @@ fn targets(tx: &Connection, id: i64) -> Result<Vec<(DeleteTarget, String)>> {
         .collect()
 }
 
-/// Fingerprint of a job's exact deletable selection, bound into the proof.
-fn fingerprint(id: i64, selection: &[(DeleteTarget, String)]) -> String {
+/// Fingerprint of a job's exact deletable selection at its current pass
+/// version. Binding the version means a confirmation issued before a later pass
+/// can never start another pass, even if the same objects remain.
+fn fingerprint(tx: &Connection, id: i64, selection: &[(DeleteTarget, String)]) -> Result<String> {
+    let version: i64 = tx
+        .query_row(
+            "SELECT pass FROM deletion_passes WHERE job_id=?1",
+            [id],
+            |r| r.get(0),
+        )
+        .optional()?
+        .unwrap_or(0);
     let mut h = Sha256::new();
     h.update(b"BFM-DELETE-TARGETS\0v1\0");
     h.update(id.to_be_bytes());
+    h.update(version.to_be_bytes());
     for (t, identity) in selection {
         h.update(b"RetainedSource\0");
         h.update((t.file_index as u64).to_be_bytes());
         h.update((identity.len() as u32).to_be_bytes());
         h.update(identity.as_bytes());
     }
-    format!("{:x}", h.finalize())
+    Ok(format!("{:x}", h.finalize()))
 }
 
 pub(super) fn view(tx: &Connection, id: i64) -> Result<Option<DeletionView>> {
@@ -150,7 +161,7 @@ impl Store {
                 return Ok(None);
             }
             let selection = targets(&tx, job_id)?;
-            let digest = fingerprint(job_id, &selection);
+            let digest = fingerprint(&tx, job_id, &selection)?;
             Ok(Some((
                 selection.into_iter().map(|(t, _)| t).collect(),
                 digest,
@@ -211,7 +222,7 @@ impl Store {
                 return Ok(DeletionStart::Skipped);
             }
             let selection = targets(&tx, job_id)?;
-            if fingerprint(job_id, &selection) != confirmed {
+            if fingerprint(&tx, job_id, &selection)? != confirmed {
                 return Ok(DeletionStart::Stale);
             }
             if selection.is_empty() {
@@ -307,13 +318,15 @@ impl Store {
         })
     }
 
-    /// Whether this file's retained copy was deliberately deleted (its custody
-    /// evidence is intentionally gone; replay validation must not require it).
-    pub fn retained_copy_deleted(&self, job_id: i64, file_index: usize) -> Result<bool> {
+    /// Whether a confirmed deletion has targeted this file's retained copy in
+    /// any state (pending, deleted or failed). From that point its custody
+    /// evidence is deliberately given up: the copy may be mid-removal or gone
+    /// after an uncertain failure, so replay validation must not require it.
+    pub fn retained_copy_released(&self, job_id: i64, file_index: usize) -> Result<bool> {
         self.call(move |db| {
             Ok(db.connection.query_row(
                 "SELECT EXISTS(SELECT 1 FROM deletion_targets WHERE job_id=?1 AND file_index=?2 \
-                 AND kind='RetainedSource' AND state='Deleted')",
+                 AND kind='RetainedSource')",
                 params![job_id, file_index as i64],
                 |r| r.get(0),
             )?)

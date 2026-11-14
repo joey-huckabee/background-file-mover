@@ -608,12 +608,19 @@ pub fn discard_retained_source(intent: &ClaimIntent) -> Result<Discarded> {
         DIRECTORY,
         Mode::empty(),
     ) {
-        Err(Errno::NOENT) => return Ok(Discarded::AlreadyAbsent),
+        Err(Errno::NOENT) => {
+            // Make the area's absence durable before acknowledging it.
+            fs::fsync(&namespace)
+                .map_err(|e| ClaimError::Operation("discard.sync_namespace", e))?;
+            return Ok(Discarded::AlreadyAbsent);
+        }
         other => other.map_err(|e| ClaimError::Operation("discard.open_area", e))?,
     };
     same_directory(&owned_directory(&area, true)?, &intent.area)?;
     let fd = match fs::openat(&area, "data", FILE, Mode::empty()) {
         Err(Errno::NOENT) => {
+            // The copy's absence must be durable even if the area stays.
+            fs::fsync(&area).map_err(|e| ClaimError::Operation("discard.sync_area", e))?;
             remove_empty_area(&namespace, intent)?;
             return Ok(Discarded::AlreadyAbsent);
         }

@@ -3921,7 +3921,7 @@ fn deletion_passes_target_only_retained_copies_of_stopped_jobs() {
         s.status(done.job_id).unwrap().unwrap().deletion,
         Some(finished)
     );
-    assert!(s.retained_copy_deleted(done.job_id, 0).unwrap());
+    assert!(s.retained_copy_released(done.job_id, 0).unwrap());
     // Deleted copies no longer count as retained source bytes.
     assert_eq!(
         s.retention(Some(done.job_id))
@@ -4066,4 +4066,54 @@ fn schema_fifteen_requires_the_guarded_deletion_upgrade_and_snapshots_cover_it()
     assert_eq!(summary.schema_version, 16);
     let s = Store::open(f.db()).unwrap();
     assert_eq!(s.status(j.job_id).unwrap().unwrap().deletion, None);
+}
+
+#[test]
+fn an_older_confirmation_never_starts_a_later_pass() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = ready_job(&s);
+    s.admin_cancel(j.job_id, "op", 100).unwrap();
+    s.settle_cancellations(110, || false).unwrap();
+    assert!(!s.retained_copy_released(j.job_id, 0).unwrap());
+    // Confirmation A starts pass 1; custody is released as soon as targeted.
+    let a = digest_of(&s, j.job_id);
+    s.start_deletion(j.job_id, "op", &"a".repeat(64), &a, 120)
+        .unwrap();
+    assert!(s.retained_copy_released(j.job_id, 0).unwrap());
+    s.finish_deletion_target(j.job_id, 0, false, Some("discard.unlink errno=13"), 121)
+        .unwrap();
+    s.finish_deletion_target(j.job_id, 1, false, Some("discard.unlink errno=13"), 121)
+        .unwrap();
+    // Fresh confirmation B retries the same objects (pass 2) and fails again.
+    let b = digest_of(&s, j.job_id);
+    assert_ne!(a, b, "the selection fingerprint binds the pass version");
+    s.start_deletion(j.job_id, "op", &"b".repeat(64), &b, 130)
+        .unwrap();
+    s.finish_deletion_target(j.job_id, 0, false, None, 131)
+        .unwrap();
+    s.finish_deletion_target(j.job_id, 1, false, None, 131)
+        .unwrap();
+    // Replaying A is stale: it never starts pass 3.
+    assert_eq!(
+        s.start_deletion(j.job_id, "op", &"a".repeat(64), &a, 140)
+            .unwrap(),
+        DeletionStart::Stale
+    );
+    assert!(s.next_deletion_target().unwrap().is_none());
+    assert_eq!(
+        s.status(j.job_id).unwrap().unwrap().deletion.unwrap().pass,
+        2
+    );
+    // Replaying B returns pass 2's result.
+    assert!(matches!(
+        s.start_deletion(j.job_id, "op", &"b".repeat(64), &b, 141)
+            .unwrap(),
+        DeletionStart::Pass(DeletionView {
+            pass: 2,
+            completion_pending: false,
+            failed_count: 2,
+            ..
+        })
+    ));
 }
