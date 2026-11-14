@@ -81,6 +81,11 @@ enum Assignment {
         version: u32,
         claim: ClaimWire,
     },
+    /// Delete the retained private copy of a completed claim (admin action).
+    Discard {
+        version: u32,
+        claim: ClaimWire,
+    },
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -348,7 +353,8 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
         } => (*version, root_path),
         Assignment::Allocate { version, claim }
         | Assignment::Apply { version, claim }
-        | Assignment::Validate { version, claim } => (*version, &claim.root_path),
+        | Assignment::Validate { version, claim }
+        | Assignment::Discard { version, claim } => (*version, &claim.root_path),
     };
     if version != 1 {
         return Err("invalid claim protocol version".into());
@@ -359,6 +365,7 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
         Assignment::Allocate { .. } => "allocate",
         Assignment::Apply { .. } => "apply",
         Assignment::Validate { .. } => "validate",
+        Assignment::Discard { .. } => "discard",
     };
     let mut boundary = "custody_before";
     let result: Result<ClaimIntent, ClaimError> = (|| {
@@ -385,6 +392,11 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
             }),
             Assignment::Validate { claim, .. } => claim.decode().and_then(|c| {
                 mover_fs::validate_claimed_object(&c)?;
+                Ok(c)
+            }),
+            // Removed now or already absent: either way no retained copy remains.
+            Assignment::Discard { claim, .. } => claim.decode().and_then(|c| {
+                mover_fs::discard_retained_source(&c)?;
                 Ok(c)
             }),
         };
@@ -434,18 +446,28 @@ pub(crate) fn validate_existing(
     let job = store.get(id)?.ok_or(ClaimError::Blocked("missing job"))?;
     for index in 0..job.recording.submission().files().len() {
         match store.claim_intent(id, index)? {
+            // A confirmed deletion gave up this copy's custody evidence (it may be
+            // mid-removal, gone, or uncertain after a failure): nothing to check.
+            Some((_, true)) if store.retained_copy_released(id, index)? => {}
             Some((intent, true)) => {
                 if !guard.matches_path(&intent.root_path) {
                     return Err(ClaimError::Blocked("source scope changed"));
                 }
-                let reply = request(
+                mover_fs::qualification_pause("replay_validate")?;
+                let reply = match request(
                     &Assignment::Validate {
                         version: 1,
                         claim: ClaimWire::new(&intent),
                     },
                     guard,
                     stop,
-                )?;
+                ) {
+                    Ok(reply) => reply,
+                    // A confirmed deletion may have targeted (and removed) the
+                    // copy after the check above: custody was given up, not lost.
+                    Err(_) if store.retained_copy_released(id, index)? => continue,
+                    Err(e) => return Err(e),
+                };
                 if reply != intent {
                     return Err(ClaimError::Blocked("handoff validation receipt mismatch"));
                 }
@@ -456,6 +478,40 @@ pub(crate) fn validate_existing(
     }
     Ok(())
 }
+/// Delete one retained source copy through the supervised worker. Ok when no
+/// retained copy remains; Err carries the worker's bounded diagnostic.
+pub(crate) fn discard(
+    store: &Store,
+    guard: &LocalClaimLock,
+    stop: &AtomicBool,
+    job_id: i64,
+    index: usize,
+) -> Result<(), String> {
+    let describe = |e: &ClaimError| super::diagnostic::describe(e);
+    let (intent, done) = match store.claim_intent(job_id, index) {
+        Ok(Some(c)) => c,
+        Ok(None) => return Err("blocked: missing claim".into()),
+        Err(_) => return Err("store_error".into()),
+    };
+    if !done || !guard.matches_path(&intent.root_path) {
+        return Err("blocked: retained copy not in this source scope".into());
+    }
+    let mut diagnostic = None;
+    match request_diagnosed(
+        &Assignment::Discard {
+            version: 1,
+            claim: ClaimWire::new(&intent),
+        },
+        guard,
+        stop,
+        &mut diagnostic,
+    ) {
+        Ok(reply) if reply == intent => Ok(()),
+        Ok(_) => Err("blocked: claim receipt changed".into()),
+        Err(e) => Err(diagnostic.unwrap_or_else(|| describe(&e))),
+    }
+}
+
 pub(crate) fn validate_handoff(
     store: &Store,
     guard: &LocalClaimLock,

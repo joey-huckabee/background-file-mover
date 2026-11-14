@@ -33,7 +33,7 @@ impl StateInspection {
         c.pragma_update(None, "trusted_schema", "OFF")?;
         let application: i64 = c.pragma_query_value(None, "application_id", |r| r.get(0))?;
         let version: i64 = c.pragma_query_value(None, "user_version", |r| r.get(0))?;
-        if application != APPLICATION_ID || !(11..=15).contains(&version) {
+        if application != APPLICATION_ID || !(11..=16).contains(&version) {
             return Err(StoreError::UnsupportedSchema);
         }
         validate_schema_for(&c, version)?;
@@ -197,7 +197,15 @@ pub(super) fn compare_rows(
         ],
     )?;
     compare_added_tables(source, snapshot, &[("job_problems", "job_id")])?;
-    compare_added_tables(source, snapshot, &[("cancellations", "job_id")])
+    compare_added_tables(source, snapshot, &[("cancellations", "job_id")])?;
+    compare_added_tables(
+        source,
+        snapshot,
+        &[
+            ("deletion_passes", "job_id"),
+            ("deletion_targets", "job_id,file_index,kind"),
+        ],
+    )
 }
 
 // When both sides have the tables, every typed row must match (backup

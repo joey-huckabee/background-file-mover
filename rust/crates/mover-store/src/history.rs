@@ -17,10 +17,12 @@ fn eligible(tx: &Connection, id: i64) -> Result<Option<bool>> {
     let Some(job) = load(tx, id)? else {
         return Ok(None);
     };
+    // An active deletion pass is an unsettled file effect: wait for it.
     Ok(Some(
-        job.recording.is_committed()
+        (job.recording.is_committed()
             || cancellations::get(tx, id)?
-                .is_some_and(|c| c.state == cancellations::CancelState::Cancelled),
+                .is_some_and(|c| c.state == cancellations::CancelState::Cancelled))
+            && !deletions::active(tx, id)?,
     ))
 }
 
@@ -29,6 +31,8 @@ fn eligible(tx: &Connection, id: i64) -> Result<Option<bool>> {
 /// No filesystem access: files stay in place and leave mover management.
 fn forget(tx: &Connection, id: i64) -> Result<u64> {
     for sql in [
+        "DELETE FROM deletion_targets WHERE job_id=?1",
+        "DELETE FROM deletion_passes WHERE job_id=?1",
         "DELETE FROM cancellations WHERE job_id=?1",
         "DELETE FROM job_problems WHERE job_id=?1",
         "DELETE FROM retry_outcomes WHERE job_id=?1",

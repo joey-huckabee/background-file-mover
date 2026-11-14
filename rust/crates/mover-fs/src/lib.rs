@@ -581,6 +581,79 @@ pub fn source_space_unavailable_fault() -> ClaimError {
     ClaimError::Io(Errno::IO)
 }
 
+/// Result of discarding a retained source copy.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Discarded {
+    /// The exact retained copy was unlinked by this call.
+    Removed,
+    /// No retained copy exists any more (nothing was removed by this call).
+    AlreadyAbsent,
+}
+
+/// Delete the mover's private retained copy of one claimed source file
+/// (admin "delete retained data"). Only that exact object can be removed: the
+/// source root and private area must match their recorded identities, the file
+/// must match the claimed object identity, and after the unlink the still-open
+/// handle must have zero links, proving the removed name was that object. The
+/// producer's original path, other jobs' areas and destination output are never
+/// opened. The emptied private area directory is removed; anything unexpected
+/// left in it stays.
+pub fn discard_retained_source(intent: &ClaimIntent) -> Result<Discarded> {
+    let root = root(&intent.root_path)?;
+    same_directory(&owned_directory(&root, false)?, &intent.root)?;
+    let namespace = namespace(&root)?;
+    let area = match fs::openat(
+        &namespace,
+        intent.private_name.as_str(),
+        DIRECTORY,
+        Mode::empty(),
+    ) {
+        Err(Errno::NOENT) => {
+            // Make the area's absence durable before acknowledging it.
+            fs::fsync(&namespace)
+                .map_err(|e| ClaimError::Operation("discard.sync_namespace", e))?;
+            return Ok(Discarded::AlreadyAbsent);
+        }
+        other => other.map_err(|e| ClaimError::Operation("discard.open_area", e))?,
+    };
+    same_directory(&owned_directory(&area, true)?, &intent.area)?;
+    let fd = match fs::openat(&area, "data", FILE, Mode::empty()) {
+        Err(Errno::NOENT) => {
+            // The copy's absence must be durable even if the area stays.
+            fs::fsync(&area).map_err(|e| ClaimError::Operation("discard.sync_area", e))?;
+            remove_empty_area(&namespace, intent)?;
+            return Ok(Discarded::AlreadyAbsent);
+        }
+        other => other.map_err(|e| ClaimError::Operation("discard.open_copy", e))?,
+    };
+    if source(&fd)? != intent.source {
+        return Err(ClaimError::Blocked("retained copy changed; not deleted"));
+    }
+    fs::unlinkat(&area, "data", AtFlags::empty())
+        .map_err(|e| ClaimError::Operation("discard.unlink", e))?;
+    let links = fs::fstat(&fd)
+        .map_err(|e| ClaimError::Operation("discard.verify", e))?
+        .st_nlink;
+    if links != 0 {
+        return Err(ClaimError::Blocked(
+            "removed name was not the retained copy",
+        ));
+    }
+    fs::fsync(&area).map_err(|e| ClaimError::Operation("discard.sync_area", e))?;
+    remove_empty_area(&namespace, intent)?;
+    Ok(Discarded::Removed)
+}
+fn remove_empty_area(namespace: &OwnedFd, intent: &ClaimIntent) -> Result<()> {
+    match fs::unlinkat(namespace, intent.private_name.as_str(), AtFlags::REMOVEDIR) {
+        Ok(()) => {
+            fs::fsync(namespace).map_err(|e| ClaimError::Operation("discard.sync_namespace", e))
+        }
+        // Something unexpected is still inside: keep it.
+        Err(Errno::NOTEMPTY | Errno::EXIST | Errno::NOENT) => Ok(()),
+        Err(e) => Err(ClaimError::Operation("discard.remove_area", e)),
+    }
+}
+
 /// Private custody only: never opens a producer's possibly reused original path.
 pub fn validate_claimed_object(intent: &ClaimIntent) -> Result<()> {
     transfer::claimed_intent(intent)

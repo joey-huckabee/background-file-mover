@@ -1015,7 +1015,8 @@
       "x-semantic-rules": [
         "Counts are actual confirmed deleted/failed selected owned names, not freed bytes. Unknown pending outcomes are not successful deletions.",
         "Repeated observations of the same latest pass must not double-count targets."
-      ]
+      ],
+      "x-status": "implemented increment143 (latest pass per job; state schema 16)"
     },
     "JobDetails": {
       "type": "object",
@@ -1391,7 +1392,8 @@
       "x-semantic-rules": [
         "Only safely owned retained source/unfinished destination may be selected. Protect originals, committed output/manifests, foreign and uncertain allocations.",
         "Coordinates describe existing job/file/attempt/location; never a new public identifier. Full private host paths and inode authority remain internal."
-      ]
+      ],
+      "x-status": "RetainedSource implemented in increments143/144 (state schema 16); unfinished destination kinds reserved, not implemented"
     },
     "ConfirmationPreview": {
       "type": "object",

@@ -17,7 +17,10 @@ pub(crate) fn reserved_bytes(c: &Connection, destination: bool, id: Option<i64>)
     let sql = if destination {
         "SELECT c.source_identity FROM transfers t JOIN claims c ON c.job_id=t.job_id AND c.file_index=t.file_index WHERE (?1 IS NULL OR t.job_id=?1)"
     } else {
-        "SELECT source_identity FROM claims WHERE (?1 IS NULL OR job_id=?1)"
+        // Deliberately deleted retained copies no longer occupy source space.
+        "SELECT c.source_identity FROM claims c WHERE (?1 IS NULL OR c.job_id=?1) AND NOT EXISTS(\
+         SELECT 1 FROM deletion_targets d WHERE d.job_id=c.job_id AND d.file_index=c.file_index \
+         AND d.kind='RetainedSource' AND d.state='Deleted')"
     };
     let mut s = c.prepare(sql)?;
     let mut total = 0_u128;

@@ -2126,7 +2126,7 @@ fn compatibility_checks_all_unsupported_versions_without_initializing() {
     );
     std::fs::remove_file(recovery).unwrap();
     drop(Store::open(f.db()).unwrap());
-    for version in (1..=14).chain([16, 99]) {
+    for version in (1..=15).chain([17, 99]) {
         let c = Connection::open(f.db()).unwrap();
         c.pragma_update(None, "user_version", version).unwrap();
         drop(c);
@@ -2270,6 +2270,10 @@ fn schema_twelve_rebuilt_fixture_preserves_legacy_rows_indices_and_next_id() {
         .unwrap()
         .upgrade_cancellations(f.db(), |_| Ok(()))
         .unwrap();
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_deletions(f.db(), |_| Ok(()))
+        .unwrap();
     Store::check_compatibility(f.db(), false).unwrap();
     let store = Store::open(f.db()).unwrap();
     let job = store.get(7).unwrap().unwrap();
@@ -2337,6 +2341,10 @@ fn schema_twelve_empty_rebuild_preserves_unallocated_and_cleared_sequences() {
         StateInspection::open(f.db())
             .unwrap()
             .upgrade_cancellations(f.db(), |_| Ok(()))
+            .unwrap();
+        StateInspection::open(f.db())
+            .unwrap()
+            .upgrade_deletions(f.db(), |_| Ok(()))
             .unwrap();
         let store = Store::open(f.db()).unwrap();
         assert_eq!(
@@ -2571,7 +2579,7 @@ fn inspection_refuses_missing_empty_foreign_changed_and_unsupported_state() {
             match case {
                 "foreign"=>c.pragma_update(None,"application_id",123).unwrap(),
                 "old"=>c.pragma_update(None,"user_version",10).unwrap(),
-                "future"=>c.pragma_update(None,"user_version",16).unwrap(),
+                "future"=>c.pragma_update(None,"user_version",17).unwrap(),
                 "trigger"=>c.execute_batch("CREATE TRIGGER sqliteXblock AFTER INSERT ON jobs BEGIN SELECT RAISE(ABORT,'blocked'); END;").unwrap(),
                 "sequence"=>{c.execute("UPDATE sqlite_sequence SET seq=1 WHERE name='jobs'",[]).unwrap();},
                 "uuid"=>{rebuild_schema_twelve_fixture(&mut c); insert_uuid_fixture(&c,"g",rusqlite::types::Value::Blob(vec![1;16]),rusqlite::types::Value::Integer(1),rusqlite::types::Value::Blob(vec![2;32])).unwrap();},
@@ -2602,7 +2610,11 @@ fn migration_history_fixture(path: &Path) {
     target.pragma_update(None, "foreign_keys", "OFF").unwrap();
     let tx = target.transaction().unwrap();
     for (table, values) in &mut rows {
-        if table.starts_with("retry_") || table == "job_problems" || table == "cancellations" {
+        if table.starts_with("retry_")
+            || table == "job_problems"
+            || table == "cancellations"
+            || table.starts_with("deletion_")
+        {
             assert!(
                 values.is_empty(),
                 "schema 13/14 rows cannot be copied into schema 11"
@@ -2657,6 +2669,10 @@ fn explicit_migration_preserves_all_tables_manifest_phases_replay_and_high_water
     StateInspection::open(f.db())
         .unwrap()
         .upgrade_cancellations(f.db(), |_| Ok(()))
+        .unwrap();
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_deletions(f.db(), |_| Ok(()))
         .unwrap();
     assert_eq!(summary.schema_version, 13);
     let target = Connection::open(f.db()).unwrap();
@@ -2746,6 +2762,10 @@ fn explicit_migration_preserves_empty_sequence_absence_and_cleared_high_water() 
         StateInspection::open(f.db())
             .unwrap()
             .upgrade_cancellations(f.db(), |_| Ok(()))
+            .unwrap();
+        StateInspection::open(f.db())
+            .unwrap()
+            .upgrade_deletions(f.db(), |_| Ok(()))
             .unwrap();
         assert_eq!(
             Store::open(f.db())
@@ -3190,7 +3210,7 @@ fn schema_twelve_requires_the_guarded_receipt_upgrade() {
     // Reconstruct a schema-12 database: same rows, no receipt tables.
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
-        "DROP TABLE cancellations; DROP TABLE job_problems; DROP TABLE retry_outcomes; DROP TABLE retry_contexts; PRAGMA user_version=12;",
+        "DROP TABLE deletion_targets; DROP TABLE deletion_passes; DROP TABLE cancellations; DROP TABLE job_problems; DROP TABLE retry_outcomes; DROP TABLE retry_contexts; PRAGMA user_version=12;",
     )
     .unwrap();
     drop(c);
@@ -3231,6 +3251,10 @@ fn schema_twelve_requires_the_guarded_receipt_upgrade() {
         .unwrap()
         .upgrade_cancellations(f.db(), |_| Ok(()))
         .unwrap();
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_deletions(f.db(), |_| Ok(()))
+        .unwrap();
     assert_eq!(summary.schema_version, 14);
     let s = Store::open(f.db()).unwrap();
     assert_eq!(s.status(j.job_id).unwrap().unwrap().delivery.unwrap().0, 3);
@@ -3238,7 +3262,7 @@ fn schema_twelve_requires_the_guarded_receipt_upgrade() {
     drop(s);
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
-        "DROP TABLE cancellations; DROP TABLE job_problems; DROP TABLE retry_outcomes; DROP TABLE retry_contexts; PRAGMA user_version=12;",
+        "DROP TABLE deletion_targets; DROP TABLE deletion_passes; DROP TABLE cancellations; DROP TABLE job_problems; DROP TABLE retry_outcomes; DROP TABLE retry_contexts; PRAGMA user_version=12;",
     )
     .unwrap();
     drop(c);
@@ -3442,7 +3466,7 @@ fn schema_thirteen_requires_the_guarded_problem_upgrade_and_snapshots_cover_it()
     drop(state);
     // Reconstruct schema 13: same rows, no problem table.
     let c = Connection::open(f.db()).unwrap();
-    c.execute_batch("DROP TABLE cancellations; DROP TABLE job_problems; PRAGMA user_version=13;")
+    c.execute_batch("DROP TABLE deletion_targets; DROP TABLE deletion_passes; DROP TABLE cancellations; DROP TABLE job_problems; PRAGMA user_version=13;")
         .unwrap();
     drop(c);
     assert!(matches!(
@@ -3491,6 +3515,10 @@ fn schema_thirteen_requires_the_guarded_problem_upgrade_and_snapshots_cover_it()
     StateInspection::open(f.db())
         .unwrap()
         .upgrade_cancellations(f.db(), |_| Ok(()))
+        .unwrap();
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_deletions(f.db(), |_| Ok(()))
         .unwrap();
     let s = Store::open(f.db()).unwrap();
     let status = s.status(j.job_id).unwrap().unwrap();
@@ -3683,7 +3711,7 @@ fn schema_fourteen_requires_the_guarded_cancellation_upgrade_and_snapshots_cover
     drop(state);
     // Reconstruct schema 14 without any cancellation.
     let c = Connection::open(f.db()).unwrap();
-    c.execute_batch("DELETE FROM cancellations; DROP TABLE cancellations; PRAGMA user_version=14;")
+    c.execute_batch("DROP TABLE deletion_targets; DROP TABLE deletion_passes; DELETE FROM cancellations; DROP TABLE cancellations; PRAGMA user_version=14;")
         .unwrap();
     drop(c);
     assert!(matches!(
@@ -3719,6 +3747,10 @@ fn schema_fourteen_requires_the_guarded_cancellation_upgrade_and_snapshots_cover
             "after_commit"
         ]
     );
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_deletions(f.db(), |_| Ok(()))
+        .unwrap();
     let s = Store::open(f.db()).unwrap();
     assert_eq!(cancel_state(&s, j.job_id), None);
     assert_eq!(s.delivery_candidates(1_000, 64).unwrap(), vec![j.job_id]);
@@ -3820,4 +3852,268 @@ fn offline_clear_now_includes_completed_cancellations() {
     drop(s);
     let s = Store::open_for_history_clear(f.db()).unwrap();
     assert_eq!(s.clear_completed_history(&[j.job_id]).unwrap(), 1);
+}
+
+fn digest_of(s: &Store, id: i64) -> String {
+    s.deletion_preview(id).unwrap().unwrap().1
+}
+
+#[test]
+fn deletion_passes_target_only_retained_copies_of_stopped_jobs() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt")
+        .unwrap();
+    let done = history_job(&s, "delete-done", 4);
+    let running = history_job(&s, "delete-running", 2);
+    let proof = |c: char| c.to_string().repeat(64);
+    // Unfinished work and missing jobs have no preview and skip.
+    assert!(s.deletion_preview(running.job_id).unwrap().is_none());
+    assert!(s.deletion_preview(999_999).unwrap().is_none());
+    assert_eq!(
+        s.start_deletion(999_999, "op", &proof('a'), &"0".repeat(64), 10)
+            .unwrap(),
+        DeletionStart::Skipped
+    );
+    let (targets, digest) = s.deletion_preview(done.job_id).unwrap().unwrap();
+    assert_eq!(targets.len(), 1);
+    assert_eq!(targets[0].file_index, 0);
+    assert_eq!(targets[0].relative_path, "delete-done");
+    // A confirmation for a different selection is stale; nothing starts.
+    assert_eq!(
+        s.start_deletion(done.job_id, "op", &proof('a'), &"0".repeat(64), 10)
+            .unwrap(),
+        DeletionStart::Stale
+    );
+    let started = s
+        .start_deletion(done.job_id, "op", &proof('a'), &digest, 10)
+        .unwrap();
+    let pending = DeletionView {
+        pass: 1,
+        completion_pending: true,
+        deleted_count: 0,
+        failed_count: 0,
+    };
+    assert_eq!(started, DeletionStart::Pass(pending));
+    // Active pass: any request observes it; no second pass; clear waits.
+    assert_eq!(
+        s.start_deletion(done.job_id, "op", &proof('b'), &digest, 11)
+            .unwrap(),
+        DeletionStart::Pass(pending)
+    );
+    assert!(s.deletion_preview(done.job_id).unwrap().is_none());
+    assert_eq!(
+        s.admin_clear(done.job_id, |_| false).unwrap(),
+        ClearOutcome::Skipped
+    );
+    let (job, index, intent) = s.next_deletion_target().unwrap().unwrap();
+    assert_eq!((job, index, intent.job_id), (done.job_id, 0, done.job_id));
+    s.finish_deletion_target(done.job_id, 0, true, None, 20)
+        .unwrap();
+    assert!(s.next_deletion_target().unwrap().is_none());
+    let finished = DeletionView {
+        pass: 1,
+        completion_pending: false,
+        deleted_count: 1,
+        failed_count: 0,
+    };
+    assert_eq!(
+        s.status(done.job_id).unwrap().unwrap().deletion,
+        Some(finished)
+    );
+    assert!(s.retained_copy_released(done.job_id, 0).unwrap());
+    // Deleted copies no longer count as retained source bytes.
+    assert_eq!(
+        s.retention(Some(done.job_id))
+            .unwrap()
+            .unwrap()
+            .source_reserved_bytes,
+        0
+    );
+    // The same confirmation replays the finished pass; it never starts another.
+    assert_eq!(
+        s.start_deletion(done.job_id, "op", &proof('a'), &digest, 30)
+            .unwrap(),
+        DeletionStart::Pass(finished)
+    );
+    // A fresh confirmation with nothing left is valid no-work.
+    let empty = digest_of(&s, done.job_id);
+    assert_eq!(
+        s.start_deletion(done.job_id, "op", &proof('c'), &empty, 31)
+            .unwrap(),
+        DeletionStart::NoWork
+    );
+    // Results count only confirmed outcomes; finishing twice is refused.
+    assert!(
+        s.finish_deletion_target(done.job_id, 0, true, None, 40)
+            .is_err()
+    );
+    assert!(
+        s.finish_deletion_target(done.job_id, 0, false, Some("bad\ntext"), 40)
+            .is_err()
+    );
+    // Clear now forgets the job and its deletion records.
+    assert_eq!(
+        s.admin_clear(done.job_id, |_| false).unwrap(),
+        ClearOutcome::Cleared
+    );
+    assert!(s.status(running.job_id).unwrap().is_some());
+}
+
+#[test]
+fn failed_targets_are_retried_only_by_a_fresh_confirmation() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = ready_job(&s);
+    s.admin_cancel(j.job_id, "op", 100).unwrap();
+    // Pending cancellation: not stopped yet.
+    assert!(s.deletion_preview(j.job_id).unwrap().is_none());
+    s.settle_cancellations(110, || false).unwrap();
+    let (targets, digest) = s.deletion_preview(j.job_id).unwrap().unwrap();
+    assert_eq!(targets.len(), 2);
+    s.start_deletion(j.job_id, "op", &"a".repeat(64), &digest, 120)
+        .unwrap();
+    s.finish_deletion_target(j.job_id, 0, true, None, 121)
+        .unwrap();
+    s.finish_deletion_target(j.job_id, 1, false, Some("discard.unlink errno=13"), 122)
+        .unwrap();
+    let first = s.status(j.job_id).unwrap().unwrap().deletion.unwrap();
+    assert_eq!(
+        (
+            first.pass,
+            first.deleted_count,
+            first.failed_count,
+            first.completion_pending
+        ),
+        (1, 1, 1, false)
+    );
+    // No automatic retry: nothing is pending.
+    assert!(s.next_deletion_target().unwrap().is_none());
+    // A fresh confirmation covers only the remaining (failed) copy.
+    let (remaining, digest) = s.deletion_preview(j.job_id).unwrap().unwrap();
+    assert_eq!(
+        remaining.iter().map(|t| t.file_index).collect::<Vec<_>>(),
+        vec![1]
+    );
+    s.start_deletion(j.job_id, "op", &"b".repeat(64), &digest, 130)
+        .unwrap();
+    let second = s.status(j.job_id).unwrap().unwrap().deletion.unwrap();
+    assert_eq!(
+        (
+            second.pass,
+            second.deleted_count,
+            second.failed_count,
+            second.completion_pending
+        ),
+        (2, 0, 0, true)
+    );
+    s.finish_deletion_target(j.job_id, 1, true, None, 131)
+        .unwrap();
+    let second = s.status(j.job_id).unwrap().unwrap().deletion.unwrap();
+    assert_eq!(
+        (second.deleted_count, second.completion_pending),
+        (1, false)
+    );
+}
+
+#[test]
+fn schema_fifteen_requires_the_guarded_deletion_upgrade_and_snapshots_cover_it() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = ready_job(&s);
+    s.admin_cancel(j.job_id, "op", 100).unwrap();
+    s.settle_cancellations(110, || false).unwrap();
+    let digest = digest_of(&s, j.job_id);
+    s.start_deletion(j.job_id, "op", &"a".repeat(64), &digest, 120)
+        .unwrap();
+    drop(s);
+    let state = StateInspection::open(f.db()).unwrap();
+    let backup = f.0.join("deletions.sqlite");
+    state.snapshot_into(backup.to_str().unwrap()).unwrap();
+    state.verify_snapshot(&backup).unwrap();
+    let c = Connection::open(&backup).unwrap();
+    c.execute(
+        "UPDATE deletion_targets SET state='Deleted' WHERE file_index=0",
+        [],
+    )
+    .unwrap();
+    drop(c);
+    assert!(state.verify_snapshot(&backup).is_err());
+    drop(state);
+    let c = Connection::open(f.db()).unwrap();
+    c.execute_batch(
+        "DROP TABLE deletion_targets; DROP TABLE deletion_passes; PRAGMA user_version=15;",
+    )
+    .unwrap();
+    drop(c);
+    assert!(matches!(
+        Store::open(f.db()),
+        Err(StoreError::MigrationRequired)
+    ));
+    let state = StateInspection::open(f.db()).unwrap();
+    assert!(
+        state
+            .upgrade_deletions(f.db(), |stage| if stage == "before_commit" {
+                Err(std::io::Error::other("injected"))
+            } else {
+                Ok(())
+            })
+            .is_err()
+    );
+    let state = StateInspection::open(f.db()).unwrap();
+    assert_eq!(state.summary().schema_version, 15);
+    let summary = state.upgrade_deletions(f.db(), |_| Ok(())).unwrap();
+    assert_eq!(summary.schema_version, 16);
+    let s = Store::open(f.db()).unwrap();
+    assert_eq!(s.status(j.job_id).unwrap().unwrap().deletion, None);
+}
+
+#[test]
+fn an_older_confirmation_never_starts_a_later_pass() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let j = ready_job(&s);
+    s.admin_cancel(j.job_id, "op", 100).unwrap();
+    s.settle_cancellations(110, || false).unwrap();
+    assert!(!s.retained_copy_released(j.job_id, 0).unwrap());
+    // Confirmation A starts pass 1; custody is released as soon as targeted.
+    let a = digest_of(&s, j.job_id);
+    s.start_deletion(j.job_id, "op", &"a".repeat(64), &a, 120)
+        .unwrap();
+    assert!(s.retained_copy_released(j.job_id, 0).unwrap());
+    s.finish_deletion_target(j.job_id, 0, false, Some("discard.unlink errno=13"), 121)
+        .unwrap();
+    s.finish_deletion_target(j.job_id, 1, false, Some("discard.unlink errno=13"), 121)
+        .unwrap();
+    // Fresh confirmation B retries the same objects (pass 2) and fails again.
+    let b = digest_of(&s, j.job_id);
+    assert_ne!(a, b, "the selection fingerprint binds the pass version");
+    s.start_deletion(j.job_id, "op", &"b".repeat(64), &b, 130)
+        .unwrap();
+    s.finish_deletion_target(j.job_id, 0, false, None, 131)
+        .unwrap();
+    s.finish_deletion_target(j.job_id, 1, false, None, 131)
+        .unwrap();
+    // Replaying A is stale: it never starts pass 3.
+    assert_eq!(
+        s.start_deletion(j.job_id, "op", &"a".repeat(64), &a, 140)
+            .unwrap(),
+        DeletionStart::Stale
+    );
+    assert!(s.next_deletion_target().unwrap().is_none());
+    assert_eq!(
+        s.status(j.job_id).unwrap().unwrap().deletion.unwrap().pass,
+        2
+    );
+    // Replaying B returns pass 2's result.
+    assert!(matches!(
+        s.start_deletion(j.job_id, "op", &"b".repeat(64), &b, 141)
+            .unwrap(),
+        DeletionStart::Pass(DeletionView {
+            pass: 2,
+            completion_pending: false,
+            failed_count: 2,
+            ..
+        })
+    ));
 }
