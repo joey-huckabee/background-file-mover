@@ -193,23 +193,37 @@
   // ---- Job history ----
   // The dashboard loads every kept job through the bounded list route (256 per
   // page, at most 40 pages) so totals, filters and search cover all of them.
+  // Newest first, so the most recent jobs are always present; 40 pages (10,240
+  // jobs) per round. If more remain, the page says so and "Load older jobs"
+  // continues from where loading stopped.
+  var pageBudget = 40, olderCursor = null;
   function fetchAll(deliberate) {
     var items = [], pages = 0;
     function next(cursor) {
-      var path = "/api/v2/admin/jobs?limit=256" + (cursor ? "&cursor=" + encodeURIComponent(cursor) : "");
+      var path = "/api/v2/admin/jobs?limit=256&order=desc" + (cursor ? "&cursor=" + encodeURIComponent(cursor) : "");
       return request(path, deliberate && pages === 0, "page").then(function (r) {
         if (!r.current) { return null; }
         if (r.status !== 200 || !r.body) { throw new Error("status " + r.status); }
         items = items.concat(r.body.items);
         pages++;
-        return r.body.next_cursor !== null && pages < 40 ? next(r.body.next_cursor) : items;
+        if (r.body.next_cursor !== null && pages < pageBudget) { return next(r.body.next_cursor); }
+        olderCursor = r.body.next_cursor;
+        return items.reverse();
       });
     }
     return next(null);
   }
+  function renderCompleteness() {
+    var more = olderCursor !== null;
+    $("older").hidden = !more;
+    $("incomplete").hidden = !more;
+    $("incomplete").textContent = more
+      ? "Showing the newest " + allItems.length + " jobs. Older jobs are not loaded yet, so totals, filters and search do not include them."
+      : "";
+  }
   function stateOf(item) {
     if (item.state === "Committed") { return "delivered"; }
-    if (item.condition === "Cancelled" || item.condition === "CancellationPending") { return "cancelled"; }
+    if (item.condition === "Cancelled") { return "cancelled"; }
     return "active";
   }
   function matches(item) {
@@ -230,6 +244,7 @@
       if (items === null) { return false; }
       allItems = items;
       if (view === "overview") { loadOverviewStorage(); }
+      renderCompleteness();
       renderCounts();
       renderOverview();
       renderAttention();
@@ -262,9 +277,16 @@
     cell.appendChild(el("span", id[0] + " " + id[1], "sub mono"));
     return cell;
   }
+  function syncFilters() {
+    document.querySelectorAll(".filter").forEach(function (b) {
+      var on = b.dataset.filter === filter;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-pressed", String(on));
+    });
+  }
   function openInHistory(jobId) {
     filter = "all"; query = ""; $("search").value = "";
-    document.querySelectorAll(".filter").forEach(function (b) { b.classList.toggle("active", b.dataset.filter === "all"); });
+    syncFilters();
     var index = visibleItems().findIndex(function (i) { return i.job_id === jobId; });
     page = index < 0 ? 0 : Math.floor(index / PAGE_SIZE);
     openJob = jobId;
@@ -272,17 +294,21 @@
     renderHistory(false);
   }
   function renderOverview() {
-    var active = 0, waiting = 0, delivering = 0, delivered = 0, cancelled = 0, attention = 0;
+    var active = 0, waiting = 0, delivering = 0, review = 0, cancelling = 0, delivered = 0, cancelled = 0;
     allItems.forEach(function (i) {
       var st = stateOf(i);
-      if (st === "delivered") { delivered++; } else if (st === "cancelled") { cancelled++; } else {
-        active++;
-        if (i.condition === "AwaitingClaims") { waiting++; } else { delivering++; }
-      }
-      if (i.condition === "ReviewRequired") { attention++; }
+      if (st === "delivered") { delivered++; return; }
+      if (st === "cancelled") { cancelled++; return; }
+      active++;
+      if (i.condition === "AwaitingClaims") { waiting++; }
+      else if (i.condition === "ReviewRequired") { review++; }
+      else if (i.condition === "CancellationPending") { cancelling++; }
+      else { delivering++; }
     });
+    var attention = review;
     $("stat-active").textContent = String(active);
-    $("stat-active-sub").textContent = delivering + " delivering · " + waiting + " waiting for files";
+    $("stat-active-sub").textContent = delivering + " delivering · " + waiting + " waiting for files" +
+      (review ? " · " + review + " need review" : "") + (cancelling ? " · " + cancelling + " cancelling" : "");
     $("stat-delivered").textContent = String(delivered);
     $("stat-attention").textContent = String(attention);
     $("stat-attention-card").classList.toggle("attention", attention > 0);
@@ -290,8 +316,12 @@
     $("flow-waiting").textContent = String(waiting);
     $("flow-delivering").textContent = String(delivering);
     $("flow-delivered").textContent = String(delivered);
+    var notes = [];
+    if (review) { notes.push(review + " stopped for review"); }
+    if (cancelling) { notes.push(cancelling + " cancelling"); }
+    if (cancelled) { notes.push(cancelled + " cancelled"); }
     $("flow-foot").textContent = "Taking over the files confirms custody. A verified manifest confirms delivery." +
-      (cancelled ? " · " + cancelled + " cancelled" : "");
+      (notes.length ? " · " + notes.join(" · ") : "");
     $("attention-banner").hidden = attention === 0;
     $("attention-banner-title").textContent = attention === 1 ? "One job needs a closer look." : attention + " jobs need a closer look.";
     var rows = $("recent-rows");
@@ -1191,7 +1221,7 @@
     if (liveBusy) { livePending = true; return; }
     liveBusy = true;
     var work = view === "storage" ? loadStorage(false, true)
-      : view === "settings" ? Promise.resolve() : loadPage(false, true);
+      : view === "settings" ? loadSettings(false) : loadPage(false, true);
     if (view === "overview") { loadOverviewStorage(); }
     var done = function () {
       liveBusy = false;
@@ -1248,6 +1278,7 @@
     if (!signedIn) {
       Object.keys(ctl).forEach(function (k) { if (ctl[k]) { ctl[k].abort(); } gen[k]++; });
       csrf = null; allItems = []; page = 0; openJob = null; descending = false;
+      pageBudget = 40; olderCursor = null; filter = "all"; query = "";
       setView("overview");
       $("password").value = "";
       $("username").focus();
@@ -1260,7 +1291,7 @@
         return;
       }
       csrf = r.headers.get("Mover-CSRF-Token");
-      return noteSession(r).then(function () { show(true); return loadPage(false); });
+      return noteSession(r).then(function () { show(true); route(); return loadPage(false); });
     }).catch(function () { show(false); $("signin-error").textContent = "The service could not be reached."; });
   }
   var messages = {
@@ -1288,7 +1319,7 @@
           return;
         }
         csrf = s.headers.get("Mover-CSRF-Token");
-        return noteSession(s).then(function () { show(true); return loadPage(false); });
+        return noteSession(s).then(function () { show(true); route(); return loadPage(false); });
       });
     }).catch(function () {
       $("signin-error").textContent = "The service could not be reached.";
@@ -1327,9 +1358,15 @@
   document.querySelectorAll(".filter").forEach(function (b) {
     b.addEventListener("click", function () {
       filter = b.dataset.filter; page = 0; openJob = null;
-      document.querySelectorAll(".filter").forEach(function (x) { x.classList.toggle("active", x === b); });
+      syncFilters();
       renderHistory(false);
     });
+  });
+  $("older").addEventListener("click", function () {
+    pageBudget += 40;
+    $("older").disabled = true;
+    var done = function () { $("older").disabled = false; };
+    loadPage(true).then(done, done);
   });
   $("search").addEventListener("input", function () {
     query = $("search").value.trim().toLowerCase(); page = 0; openJob = null;

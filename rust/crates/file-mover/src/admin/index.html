@@ -86,12 +86,13 @@
 <section class="card" aria-labelledby="history-heading">
 <h2 id="history-heading" class="sr-only">Jobs</h2>
 <div class="toolbar"><div class="tabs" role="group" aria-label="Filter jobs">
-<button type="button" class="tab filter active" data-filter="all">All jobs</button>
-<button type="button" class="tab filter" data-filter="active">Active</button>
-<button type="button" class="tab filter" data-filter="attention">Needs attention</button>
-<button type="button" class="tab filter" data-filter="delivered">Delivered</button>
-<button type="button" class="tab filter" data-filter="cancelled">Cancelled</button></div>
+<button type="button" class="tab filter active" data-filter="all" aria-pressed="true">All jobs</button>
+<button type="button" class="tab filter" data-filter="active" aria-pressed="false">Active</button>
+<button type="button" class="tab filter" data-filter="attention" aria-pressed="false">Needs attention</button>
+<button type="button" class="tab filter" data-filter="delivered" aria-pressed="false">Delivered</button>
+<button type="button" class="tab filter" data-filter="cancelled" aria-pressed="false">Cancelled</button></div>
 <label class="search"><svg><use href="#i-search"/></svg><span class="sr-only">Search</span><input id="search" type="search" placeholder="Find a job, recording ID or folder" autocomplete="off" spellcheck="false"></label></div>
+<div id="incomplete" class="info-note" role="status" hidden></div>
 <div class="table-scroll">
 <table class="history">
 <thead><tr>
@@ -105,7 +106,7 @@
 <tbody id="history-rows"></tbody>
 </table>
 </div>
-<div class="table-footer"><span id="history-status" role="status"></span><div class="page-links"><button id="prev" type="button" disabled aria-label="Previous page">&#8592;</button><button id="next" type="button" disabled aria-label="Next page">&#8594;</button></div></div>
+<div class="table-footer"><span id="history-status" role="status"></span><div class="page-links"><button id="older" class="button small" type="button" hidden>Load older jobs</button><button id="prev" type="button" disabled aria-label="Previous page">&#8592;</button><button id="next" type="button" disabled aria-label="Next page">&#8594;</button></div></div>
 </section>
 </div>
 <div id="attention-view" hidden>
