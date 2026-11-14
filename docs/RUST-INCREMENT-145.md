@@ -75,3 +75,22 @@ only). An earlier run failed the document test because the inline SVG carried an
 `xmlns` URL (removed). Independent review raised five findings across two rounds
 (truncation, bookmarked views, stage accuracy, filter accessibility, page-wide
 incomplete notice), all fixed; final re-review had no findings.
+
+## Follow-up: held-copies wording (user request 2026-11-14)
+
+"Retained data" confused the user (job #1 showed a source folder, a
+"session-001" entry and a recording-ID destination folder). The dashboard now
+uses one term, **held copies on the source disk**:
+- Job detail: a "Space reserved for this job" panel with "Reserved on the source
+  disk" and "Reserved at the destination" (always in bytes; these are
+  reservations, including unfinished claims and delivery attempts, not measured
+  files), plus one plain sentence: the mover takes over the sender's originals
+  and holds them on the source disk, then delivers copies to the destination
+  folder.
+- **Delete held copies…** lists each file by name, says they were taken over from
+  the sender's folder, and names the destination folder that is not touched.
+- Cancel, Clear, Storage, Overview and Settings use the same term.
+- Folder columns are cut with an ellipsis (full name on hover), so the job
+  detail fits the window.
+No API or behavior change. Admin UI node tests updated; admin unit and 12 admin
+TLS tests pass; checked visually on the demo.

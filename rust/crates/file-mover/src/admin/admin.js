@@ -142,6 +142,12 @@
   // accepted. Settings shows today's roots, which may differ for older jobs.
   var FOLDER_HINT = "Relative to the root recorded with this job. If the configured root has changed since, " +
     "this job's files are still under the earlier root, not the one shown in Settings.";
+  // Long folder names are cut with an ellipsis in tables; the full name is in
+  // the hover text and the job detail.
+  function folderCell(value, side) {
+    var text = folder(value, side);
+    return el("td", text, "mono folder-cell", text + " (" + FOLDER_HINT + ")");
+  }
   function folder(value, side) { return value === "" ? "(" + side + " root)" : value + "/"; }
   function finalStep(mode) { return mode === "Move" ? "Moved" : "Copied"; }
   function progress(item, mode) {
@@ -334,7 +340,7 @@
       var p = el("td"); p.appendChild(progress(item, item.transfer_mode)); tr.appendChild(p);
       tr.appendChild(el("td", item.files_delivered + " of " + item.files_total));
       tr.appendChild(el("td", short(item.measured_bytes)));
-      tr.appendChild(el("td", folder(item.source_folder, "source"), "mono", FOLDER_HINT));
+      tr.appendChild(folderCell(item.source_folder, "source"));
       rows.appendChild(tr);
     });
     if (!allItems.length) {
@@ -353,8 +359,8 @@
       tr.appendChild(jobCell(item));
       var c = el("td"); c.appendChild(progress(item, item.transfer_mode)); tr.appendChild(c);
       tr.appendChild(el("td", item.files_delivered + " of " + item.files_total));
-      tr.appendChild(el("td", folder(item.source_folder, "source"), "mono", FOLDER_HINT));
-      tr.appendChild(el("td", folder(item.destination_folder, "destination"), "mono", FOLDER_HINT));
+      tr.appendChild(folderCell(item.source_folder, "source"));
+      tr.appendChild(folderCell(item.destination_folder, "destination"));
       rows.appendChild(tr);
     });
   }
@@ -371,7 +377,7 @@
         target.appendChild(row);
         if (limits) { meter(target, BigInt(pair[1]), BigInt(limits.max_reserved_bytes)); }
       });
-      target.appendChild(el("p", "Reservations include retained copies and destination attempts. This ledger does not measure physical free space.", "capacity-note"));
+      target.appendChild(el("p", "Source: held copies of original files. Destination: delivered copies and attempts. This ledger does not measure physical free space.", "capacity-note"));
     }).catch(function () {});
   }
   function renderPage(body, live) {
@@ -404,8 +410,8 @@
         ? short(item.measured_bytes) + " + " + item.unmeasured_files + " unmeasured"
         : short(item.measured_bytes);
       tr.appendChild(el("td", size, null, BigInt(item.measured_bytes).toString() + " bytes measured"));
-      tr.appendChild(el("td", folder(item.source_folder, "source"), "mono", FOLDER_HINT));
-      tr.appendChild(el("td", folder(item.destination_folder, "destination"), "mono", FOLDER_HINT));
+      tr.appendChild(folderCell(item.source_folder, "source"));
+      tr.appendChild(folderCell(item.destination_folder, "destination"));
       rows.appendChild(tr);
     });
     $("prev").disabled = page === 0;
@@ -678,7 +684,7 @@
     }
     if (quietJob) { activity.appendChild(el("p", "No problems recorded.", "muted")); }
 
-    var reserved = section(grid, "Storage reserved");
+    var reserved = section(grid, "Space reserved for this job");
     var placeholder = el("div");
     placeholder.appendChild(el("p", "Loading…", "muted"));
     reserved.appendChild(placeholder);
@@ -869,9 +875,9 @@
     return "Nothing to cancel: the job is already delivered, cancelled or no longer tracked.";
   }
   function deleteOutcome(body) {
-    if (body.completion_pending === true) { return "Deleting retained copies…"; }
-    if (String(body.deleted_count) === "0" && String(body.failed_count) === "0") { return "Nothing was deleted: no retained copies remain."; }
-    return "Retained copies: " + body.deleted_count + " deleted" +
+    if (body.completion_pending === true) { return "Deleting held copies…"; }
+    if (String(body.deleted_count) === "0" && String(body.failed_count) === "0") { return "Nothing was deleted: no held copies remain."; }
+    return "Held copies: " + body.deleted_count + " deleted" +
       (String(body.failed_count) !== "0" ? ", " + body.failed_count + " could not be deleted (see the service log)" : "") + ".";
   }
   function clearOutcome(body) {
@@ -884,24 +890,28 @@
       hover: "Stop all work on this job. You will be asked to confirm.",
       question: function (jobId) {
         return "Cancel job #" + jobId + "? The mover stops working on it and will not deliver it. " +
-          "Files it already took over, and any partly delivered files, stay where they are (see Storage). " +
+          "Original files it already took over stay held on the source disk, and any partly delivered files stay at the destination. " +
           "This cannot be undone.";
       },
       done: function (b) { return b && b.accepted_count !== undefined; }, outcome: cancelOutcome
     },
     "delete-data": {
-      route: "/api/v2/admin/jobs/delete-data", ask: "Delete retained data…", confirm: "Delete files", keep: "Keep files",
-      hover: "Permanently delete the copies the mover keeps for this job. You will be asked to confirm.",
+      route: "/api/v2/admin/jobs/delete-data", ask: "Delete held copies…", confirm: "Delete held copies", keep: "Keep them",
+      hover: "Permanently delete the original files the mover holds on the source disk for this job. Delivered copies are not touched. You will be asked to confirm.",
       question: function (jobId, job, st) {
         var targets = (st && st.targets) || [];
-        if (!targets.length) { return "Nothing to delete: the mover holds no retained copies for job #" + jobId + "."; }
+        if (!targets.length) { return "Nothing to delete: the mover holds no copies of job #" + jobId + "'s files on the source disk."; }
         var total = 0n;
         targets.forEach(function (t) { total += BigInt(t.size_bytes); });
         var names = targets.slice(0, 5).map(function (t) { return t.relative_path; }).join(", ") +
           (targets.length > 5 ? " and " + (targets.length - 5) + " more" : "");
-        return "Permanently delete the mover's retained copies for job #" + jobId + "? " + targets.length +
-          " file(s), " + bytes(total) + ": " + names + ". " + (job.state === "Committed"
-            ? "The delivered files at the destination are not touched."
+        var row = rowsById[jobId] || {};
+        var from = row.source_folder !== undefined ? " from the sender's folder " + folder(row.source_folder, "source") : "";
+        var to = row.destination_folder !== undefined ? " in " + folder(row.destination_folder, "destination") : "";
+        return "Permanently delete the original files the mover is holding on the source disk for job #" + jobId + "? " +
+          targets.length + " file(s), " + bytes(total) + ": " + names + ". The mover took these over" + from +
+          " when the job was accepted. " + (job.state === "Committed"
+            ? "The delivered copies" + to + " at the destination are not touched."
             : "WARNING: this job was never delivered. These are the only copies of the recording and will be permanently destroyed.") +
           " This cannot be undone.";
       },
@@ -916,8 +926,8 @@
           "activity, storage accounting and its recording ID. If the sender submits the same recording again, " +
           "it is treated as a new recording. No files are touched, but they leave mover management: " +
           (job.state === "Committed"
-            ? "delivered files stay at the destination, and the source files the mover took over stay where they are, untracked."
-            : "files the mover took over stay where they are, untracked and no longer counted on the Storage page.") +
+            ? "delivered copies stay at the destination, and any held copies on the source disk stay where they are, untracked."
+            : "the held copies on the source disk stay where they are, untracked and no longer counted on the Storage page.") +
           " This cannot be undone.";
       },
       done: function (b) { return b && b.cleared_count !== undefined; }, outcome: clearOutcome
@@ -1028,13 +1038,20 @@
 
   function renderJobStorage(target, d) {
     var facts = el("dl", null, "facts");
-    fact(facts, "At source", short(d.source_reserved_bytes), BigInt(d.source_reserved_bytes).toString() + " bytes; source_reserved_bytes");
-    fact(facts, "At destination", short(d.destination_reserved_bytes), BigInt(d.destination_reserved_bytes).toString() + " bytes; destination_reserved_bytes");
+    fact(facts, "Reserved on the source disk", bytes(d.source_reserved_bytes),
+      "Space reserved for the original files the mover takes over and holds on the source disk, including files " +
+      "still being taken over. A reservation, not a measurement of what is on disk. source_reserved_bytes");
+    fact(facts, "Reserved at the destination", bytes(d.destination_reserved_bytes),
+      "Space reserved at the destination, including delivery attempts that have not finished or failed. " +
+      "A reservation, not the size of delivered files. destination_reserved_bytes");
     fact(facts, "Files with unknown size", d.unmeasured_files.toString(), "unmeasured_files");
     var a = d.destination_attempts_by_phase;
     fact(facts, "Destination attempts", "Started " + a.Intent + " · Copied " + a.Copied + " · Verified " + a.Verified +
       " · Publishing " + a.PublishIntent + " · Delivered " + a.Published, "destination_attempts_by_phase");
     target.appendChild(facts);
+    target.appendChild(el("p", "When a job is accepted the mover takes over the sender's original files and holds them " +
+      "on the source disk. It then delivers copies to the destination folder. Deleting the held copies never touches the " +
+      "delivered copies. The figures above are space reservations, not measured disk use.", "muted small"));
   }
 
   // ---- Storage ----
@@ -1069,7 +1086,7 @@
     var limits = d.configured_limits;
     var grid = el("div", null, "stats");
     var src = stat(grid, "Reserved at source", short(d.source_reserved_bytes), BigInt(d.source_reserved_bytes).toString() + " bytes",
-      "Space the mover has reserved for files it holds at the source");
+      "Held copies: the original files the mover took over and keeps on the source disk");
     var dst = stat(grid, "Reserved at destination", short(d.destination_reserved_bytes), BigInt(d.destination_reserved_bytes).toString() + " bytes",
       "Space reserved at the destination, including every kept delivery attempt");
     var jobs = stat(grid, "Jobs kept", d.retained_jobs.toString(), d.committed_jobs.toString() + " delivered",
@@ -1192,7 +1209,7 @@
     fact(dl, "Listening on", db.bind, "admin_ingress.bind");
     fact(dl, "Address", location.protocol + "//" + db.authority + "/", "admin_ingress.authority");
     fact(dl, "Sign out after inactivity", Math.round(Number(db.inactivity_timeout_seconds) / 60) + " minutes", "inactivity_timeout_seconds");
-    fact(dl, "Delete retained data", db.allow_data_deletion ? "Allowed" : "Off (default)", "admin_ingress.allow_data_deletion");
+    fact(dl, "Delete held copies", db.allow_data_deletion ? "Allowed" : "Off (default)", "admin_ingress.allow_data_deletion");
     fact(dl, "Account directory", db.account_directory, "admin_ingress.account_directory");
     dl = card(grid, "Certificates and keys");
     if (s.producer && s.producer.certificates.length) {
