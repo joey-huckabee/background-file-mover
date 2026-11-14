@@ -105,3 +105,14 @@ tr.detail-row>td{background:#f7f9f2;padding:14px 16px;white-space:normal}
 .problem.resolved{border-left-color:#c3cbbb;background:var(--paper)}.problem.resolved strong{color:var(--muted)}
 .badge.grey{background:#efefec;color:#5d6660}
 .cancel{margin-top:10px}.cancel .notice{margin:0 0 8px}.secondary.danger{color:var(--red);border-color:#e9c8c1}
+/* Integration: the service page has no design-study banner, and the mockup's
+   card padding/spacing win over the older dashboard card and error rules. */
+.shell{min-height:100vh}
+.sidebar{height:100vh}
+#shell-error:empty{display:none}
+main .card{padding:0;margin-top:0;margin-bottom:22px}
+main .card>.table-scroll,main .card>.scroll{padding:0}
+#storage-body,#settings-body{padding:4px 22px 20px}
+#settings-body{padding:0}
+.card .pipeline{padding-bottom:6px}
+.attention-strip{margin-bottom:22px}

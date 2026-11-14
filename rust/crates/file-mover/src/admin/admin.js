@@ -181,7 +181,7 @@
     $("view-eyebrow").textContent = VIEWS[next][0];
     $("view-title").textContent = VIEWS[next][1];
     $("view-sub").textContent = VIEWS[next][2];
-    $("crumb").textContent = VIEWS[next][1];
+    $("crumb").textContent = { overview: "Overview" }[next] || VIEWS[next][1];
     // Views load only when signed in (the CSRF token arrives with the session).
     if (!csrf) { return; }
     if (next === "storage") { loadStorage(true); }
