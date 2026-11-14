@@ -116,3 +116,4 @@ main .card>.table-scroll,main .card>.scroll{padding:0}
 #settings-body{padding:0}
 .card .pipeline{padding-bottom:6px}
 .attention-strip{margin-bottom:22px}
+nav a.active .nav-count.amber{background:#f8efd9;color:#7d5a1d}
