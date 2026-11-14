@@ -266,6 +266,16 @@ enum Observation {
     Cancel(i64, String, RetryGate),
     /// One admin history-clear occurrence, gated likewise.
     Clear(i64, RetryGate),
+    /// Retained-data deletion preview for one job (targets + fingerprint).
+    DeletePreview(i64),
+    /// Start, observe or replay one job's deletion pass, gated likewise.
+    DeleteStart {
+        job_id: i64,
+        principal: String,
+        proof_digest: String,
+        confirmed: String,
+        gate: RetryGate,
+    },
 }
 /// Runs the given work while the requesting admin session is valid; false if not.
 pub(crate) type RetryGate = Box<dyn FnOnce(&mut dyn FnMut()) -> bool + Send>;
@@ -353,6 +363,23 @@ impl Worker {
                             missing_reset_response(&observation_store, id, input)
                         }
                         Observation::RetryScope => retry_scope_response(&observation_store),
+                        Observation::DeletePreview(id) => delete_preview_response(&observation_store, id),
+                        Observation::DeleteStart { job_id, principal, proof_digest, confirmed, gate } => {
+                            let mut decided = None;
+                            if gate(&mut || {
+                                decided = Some(delete_start_response(
+                                    &observation_store,
+                                    job_id,
+                                    &principal,
+                                    &proof_digest,
+                                    &confirmed,
+                                ))
+                            }) {
+                                decided.unwrap_or_else(|| error(503, "storage_unavailable", true, None))
+                            } else {
+                                error(401, "authentication_required", false, None)
+                            }
+                        }
                         Observation::Clear(id, gate) => {
                             let (claim, delivery) = (clear_claim_active.clone(), clear_delivery_job.clone());
                             let busy = move |job: i64| {
@@ -1057,6 +1084,42 @@ fn clear_response(store: &Store, id: i64, busy: impl Fn(i64) -> bool + Send + 's
         Err(_) => error(503, "storage_unavailable", true, None),
     }
 }
+fn delete_preview_response(store: &Store, id: i64) -> Response {
+    match store.deletion_preview(id) {
+        Ok(Some((targets, fingerprint))) => observed(serde_json::json!({
+            "fingerprint": fingerprint,
+            "targets": targets.iter().map(|t| serde_json::json!({
+                "file_id": t.file_index.to_string(),
+                "relative_path": t.relative_path,
+                "size_bytes": t.size_bytes,
+            })).collect::<Vec<_>>(),
+        })),
+        // Missing, unfinished or already deleting: nothing to confirm now.
+        Ok(None) => observed(serde_json::json!({"fingerprint": null, "targets": []})),
+        Err(_) => error(503, "storage_unavailable", true, None),
+    }
+}
+fn delete_start_response(
+    store: &Store,
+    id: i64,
+    principal: &str,
+    proof_digest: &str,
+    confirmed: &str,
+) -> Response {
+    match store.start_deletion(id, principal, proof_digest, confirmed, now()) {
+        Ok(mover_store::DeletionStart::Started(v)) => {
+            observed(serde_json::json!({"outcome":"started","status":deletion_view(&v)}))
+        }
+        Ok(mover_store::DeletionStart::Pass(v)) => {
+            observed(serde_json::json!({"outcome":"pass","status":deletion_view(&v)}))
+        }
+        Ok(mover_store::DeletionStart::Stale) => observed(serde_json::json!({"outcome":"stale"})),
+        Ok(mover_store::DeletionStart::NoWork | mover_store::DeletionStart::Skipped) => {
+            observed(serde_json::json!({"outcome":"none"}))
+        }
+        Err(_) => error(503, "storage_unavailable", true, None),
+    }
+}
 fn cancel_response(store: &Store, id: i64, principal: &str) -> Response {
     match store.admin_cancel(id, principal, now()) {
         Ok(outcome) => observed(serde_json::json!({"outcome":match outcome {
@@ -1345,7 +1408,9 @@ async fn connection(
                                     | Observation::RetryScope
                                     | Observation::Retry(..)
                                     | Observation::Cancel(..)
-                                    | Observation::Clear(..) => None,
+                                    | Observation::Clear(..)
+                                    | Observation::DeletePreview(_)
+                                    | Observation::DeleteStart { .. } => None,
                                 };
                                 let key_conflict = command_id.is_some_and(|id| {
                                     r.head

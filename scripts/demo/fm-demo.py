@@ -305,7 +305,9 @@ def _setup_account():
             stdin=json.dumps({"username": "admin", "password": PASSWORD, "confirm_password": PASSWORD}).encode())
     config["admin_ingress"] = {"bind": f"127.0.0.1:{ADMIN_PORT}", "authority": f"localhost:{ADMIN_PORT}",
         "server_certificates": [str(ROOT / "admin-tls/server.der")], "server_key": str(ROOT / "admin-tls/server.key.der"),
-        "server_ca_certificates": [str(ROOT / "admin-tls/ca.der")], "account_directory": str(ROOT / "accounts")}
+        "server_ca_certificates": [str(ROOT / "admin-tls/ca.der")], "account_directory": str(ROOT / "accounts"),
+        # Disposable demo data only: deleting retained copies is off by default elsewhere.
+        "allow_data_deletion": True}
     CONFIG.write_text(json.dumps(config))
 
 

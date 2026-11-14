@@ -568,6 +568,26 @@
       }
     },
     {
+      "id": "session-deletion-flag",
+      "schema": "SessionStatus",
+      "valid": true,
+      "value": {
+        "authenticated": true,
+        "inactivity_timeout_seconds": 1800,
+        "data_deletion_enabled": false
+      }
+    },
+    {
+      "id": "session-deletion-flag-boolean-only",
+      "schema": "SessionStatus",
+      "valid": false,
+      "value": {
+        "authenticated": true,
+        "inactivity_timeout_seconds": 1800,
+        "data_deletion_enabled": "false"
+      }
+    },
+    {
       "id": "attempt-counts",
       "schema": "AttemptCounts",
       "valid": true,

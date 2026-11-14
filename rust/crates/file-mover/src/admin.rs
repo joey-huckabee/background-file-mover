@@ -31,6 +31,10 @@ pub struct AdminIngress {
     pub account_directory: String,
     #[serde(default = "idle_default")]
     pub inactivity_timeout_seconds: u32,
+    /// Allow the dashboard's "delete retained data" action. Off by default:
+    /// deleting files needs a deliberate operator decision for this host.
+    #[serde(default)]
+    pub allow_data_deletion: bool,
 }
 fn idle_default() -> u32 {
     1800
@@ -149,6 +153,8 @@ pub(crate) struct Admin {
     csp: String,
     /// Per-process key for confirmation proofs (never persisted).
     confirm_key: crate::confirmation::Key,
+    /// `admin_ingress.allow_data_deletion`.
+    allow_deletion: bool,
 }
 
 pub(crate) struct Prepared {
@@ -198,6 +204,7 @@ impl Prepared {
                 csp,
                 confirm_key: crate::confirmation::Key::generate()
                     .ok_or("admin confirmation key: system random source unavailable")?,
+                allow_deletion: config.allow_data_deletion,
             }),
             listener,
         })
@@ -457,7 +464,12 @@ async fn handle(
                 Some(i) => (&target[..i], Some(&target[i + 1..])),
                 None => (target, None),
             };
-            if path == b"/api/v2/admin/jobs/clear-history" && query.is_none() {
+            if path == b"/api/v2/admin/jobs/delete-data" && query.is_none() {
+                if r.head.method != "POST" {
+                    return Reply::method("POST");
+                }
+                delete_data(admin, r, observer).await
+            } else if path == b"/api/v2/admin/jobs/clear-history" && query.is_none() {
                 if r.head.method != "POST" {
                     return Reply::method("POST");
                 }
@@ -1055,7 +1067,7 @@ async fn instance_scope(
 /// Confirmation mode of the list route: `confirm_action` and `job_ids`, each
 /// exactly once and nothing else; 1-256 exact positive IDs, order and
 /// duplicates kept. `cancel` and `clear-history` are implemented.
-fn confirmation_query(query: &[u8]) -> Result<(String, Vec<i64>), Reply> {
+fn confirmation_query(query: &[u8], deletion: bool) -> Result<(String, Vec<i64>), Reply> {
     let text = std::str::from_utf8(query).map_err(|_| Reply::error(400, "invalid_http"))?;
     let (mut action, mut ids) = (None, None);
     for pair in text.split('&') {
@@ -1083,6 +1095,10 @@ fn confirmation_query(query: &[u8]) -> Result<(String, Vec<i64>), Reply> {
     }
     match (action, ids) {
         (Some(action @ ("cancel" | "clear-history")), Some(ids)) => Ok((action.into(), ids)),
+        // Delete is per job (its proof carries that job's exact file binding).
+        (Some("delete-data"), Some(ids)) if deletion && ids.len() == 1 => {
+            Ok(("delete-data".into(), ids))
+        }
         _ => Err(Reply::error(400, "invalid_selection")),
     }
 }
@@ -1097,7 +1113,7 @@ async fn confirmation(
         Ok(a) => a,
         Err(reply) => return reply,
     };
-    let (action, ids) = match confirmation_query(query) {
+    let (action, ids) = match confirmation_query(query, admin.allow_deletion) {
         Ok(q) => q,
         Err(reply) => return reply,
     };
@@ -1112,15 +1128,45 @@ async fn confirmation(
         action: &action,
         job_ids: &ids,
     };
-    let (token, expires_at) =
-        crate::confirmation::issue(&admin.confirm_key, &scope, high_water, crate::now());
-    // Cancel and clear touch no files, so the preview is complete without
-    // deletion targets.
+    // Delete-data previews the job's exact deletable copies and binds their
+    // fingerprint; cancel and clear touch no files.
+    let (targets, binding) = if action == "delete-data" {
+        let response =
+            crate::operator_reply(observer, crate::Observation::DeletePreview(ids[0])).await;
+        let Some(d) = response.details.as_ref().filter(|_| response.status == 200) else {
+            return from_operator(response);
+        };
+        let job = ids[0].to_string();
+        let targets: Vec<serde_json::Value> = d["targets"]
+            .as_array()
+            .map(Vec::as_slice)
+            .unwrap_or_default()
+            .iter()
+            .map(|t| {
+                serde_json::json!({"job_id": job, "file_id": t["file_id"], "kind": "RetainedSource",
+                    "relative_path": t["relative_path"], "attempt": null, "size_bytes": t["size_bytes"]})
+            })
+            .collect();
+        let binding = d["fingerprint"]
+            .as_str()
+            .unwrap_or(crate::confirmation::NO_BINDING)
+            .to_owned();
+        (targets, binding)
+    } else {
+        (Vec::new(), crate::confirmation::NO_BINDING.to_owned())
+    };
+    let (token, expires_at) = crate::confirmation::issue(
+        &admin.confirm_key,
+        &scope,
+        high_water,
+        &binding,
+        crate::now(),
+    );
     Reply::json(
         200,
         serde_json::json!({"items":[],"next_cursor":null,"confirmation":{
             "action":action,"job_ids":ids,"token":token,"expires_at":expires_at,
-            "deletion_targets":[],"complete":true}}),
+            "deletion_targets":targets,"complete":true}}),
     )
 }
 
@@ -1155,7 +1201,7 @@ async fn cancel(
         action: "cancel",
         job_ids: &ids,
     };
-    let Some(high_water) = proof
+    let Some((high_water, _)) = proof
         .and_then(|p| crate::confirmation::verify(&admin.confirm_key, p, &scope, crate::now()))
     else {
         return Reply::error(400, "invalid_confirmation");
@@ -1237,7 +1283,7 @@ async fn clear_history(
         action: "clear-history",
         job_ids: &ids,
     };
-    let Some(high_water) = proof
+    let Some((high_water, _)) = proof
         .and_then(|p| crate::confirmation::verify(&admin.confirm_key, p, &scope, crate::now()))
     else {
         return Reply::error(400, "invalid_confirmation");
@@ -1285,6 +1331,95 @@ async fn clear_history(
         }
     }
     Reply::json(200, serde_json::json!({"cleared_count": cleared}))
+}
+
+/// Delete retained data (contract group 22/51; DeleteAccepted). Off unless
+/// `admin_ingress.allow_data_deletion`. One job per request, with a proof whose
+/// binding is that job's exact deletable selection. The pass this proof started
+/// (or an active one) is observed first; otherwise a changed selection is 409
+/// `stale_confirmation`; otherwise a new pass starts and runs in the background.
+async fn delete_data(
+    admin: &Arc<Admin>,
+    r: &http::Request,
+    observer: &std::sync::mpsc::SyncSender<crate::OperatorWork>,
+) -> Reply {
+    if !admin.allow_deletion {
+        return Reply::error(404, "not_found");
+    }
+    let (token, csrf, authorized) = match authorize_action(admin, r) {
+        Ok(a) => a,
+        Err(reply) => return reply,
+    };
+    let ids = match crate::retry_context::selection(&r.body) {
+        Ok(ids) if ids.len() == 1 => ids,
+        _ => return Reply::error(400, "invalid_selection"),
+    };
+    let instance = match instance_scope(observer).await {
+        Ok((instance, _)) => instance,
+        Err(reply) => return reply,
+    };
+    let proof = header(r, "mover-confirmation").and_then(|v| std::str::from_utf8(v).ok());
+    let scope = crate::confirmation::Scope {
+        instance: &instance,
+        principal: &authorized.principal,
+        generation: authorized.generation,
+        action: "delete-data",
+        job_ids: &ids,
+    };
+    let Some((proof, (high_water, binding))) = proof.and_then(|p| {
+        crate::confirmation::verify(&admin.confirm_key, p, &scope, crate::now()).map(|v| (p, v))
+    }) else {
+        return Reply::error(400, "invalid_confirmation");
+    };
+    let none = serde_json::json!({"deleted_count":0,"failed_count":0,"completion_pending":false});
+    let job_id = ids[0];
+    if job_id > high_water {
+        return Reply::json(202, none);
+    }
+    // Nothing was deletable when confirmed: a later selection is a change.
+    let confirmed = if binding == crate::confirmation::NO_BINDING {
+        "0".repeat(64)
+    } else {
+        binding
+    };
+    let gate_admin = Arc::clone(admin);
+    let gate_token = Zeroizing::new(token.to_owned());
+    let gate: crate::RetryGate = Box::new(move |work| {
+        gate_admin
+            .sessions
+            .while_authorized(&gate_token, work)
+            .is_ok()
+    });
+    let work = crate::Observation::DeleteStart {
+        job_id,
+        principal: authorized.principal.clone(),
+        proof_digest: mover_fs::sha256_hex(proof.as_bytes()),
+        confirmed,
+        gate,
+    };
+    let response = crate::operator_reply(observer, work).await;
+    if response.status == 401 {
+        return Reply::unauthenticated();
+    }
+    let Some(d) = response.details.as_ref().filter(|_| response.status == 200) else {
+        return from_operator(response);
+    };
+    match d["outcome"].as_str() {
+        Some("stale") => Reply::error(409, "stale_confirmation"),
+        // Only a newly started pass is newly admitted work: renew then.
+        Some("started") => {
+            let _ = admin.sessions.authorize(
+                token,
+                Some(csrf),
+                Activity::Deliberate,
+                std::time::Instant::now(),
+            );
+            Reply::json(202, d["status"].clone())
+        }
+        // Replay or observation of an existing pass: report it, no renewal.
+        Some("pass") => Reply::json(202, d["status"].clone()),
+        _ => Reply::json(202, none),
+    }
 }
 
 async fn login(admin: &Admin, r: &http::Request) -> Reply {
@@ -1345,7 +1480,7 @@ fn session(admin: &Admin, r: &http::Request) -> Reply {
     match authorize_read(admin, r) {
         Ok(authorized) => Reply::json(
             200,
-            serde_json::json!({"authenticated":true,"inactivity_timeout_seconds":admin.idle_seconds}),
+            serde_json::json!({"authenticated":true,"inactivity_timeout_seconds":admin.idle_seconds,"data_deletion_enabled":admin.allow_deletion}),
         )
         .header("Mover-CSRF-Token", &authorized.csrf),
         Err(reply) => reply,
@@ -1496,6 +1631,7 @@ fn settings(
             "bind": admin.bind.to_string(),
             "authority": admin.authority,
             "inactivity_timeout_seconds": admin.inactivity_timeout_seconds,
+            "allow_data_deletion": admin.allow_data_deletion,
             "account_directory": admin.account_directory,
             "certificates": dashboard_certs,
         },

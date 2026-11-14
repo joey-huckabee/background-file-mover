@@ -1,6 +1,12 @@
 "use strict";
 (function () {
   var csrf = null;
+  var deletionEnabled = false;  // admin_ingress.allow_data_deletion, from the session
+  function noteSession(response) {
+    return response.text().then(function (text) {
+      try { deletionEnabled = parseJSON(text).data_deletion_enabled === true; } catch (e) { deletionEnabled = false; }
+    });
+  }
   var view = "history";
   var cursors = [null];   // cursor stack: index = page number - 1
   var page = 0;
@@ -477,6 +483,17 @@
     } else if (cst && cst.message) {
       activity.appendChild(el("p", cst.message, "muted"));
     }
+    if (d.deletion) {
+      quietJob = false;
+      activity.appendChild(el("p", deleteOutcome(d.deletion), d.deletion.completion_pending ? "notice" : "muted",
+        "deletion: latest pass"));
+    }
+    var stopped = job.state === "Committed" || cancellation.state === "Cancelled";
+    if (actionPending("delete-data", job.job_id) ||
+        (deletionEnabled && stopped && !(d.deletion && d.deletion.completion_pending))) {
+      quietJob = false;
+      activity.appendChild(actionForm("delete-data", job.job_id, job));
+    }
     // Delivered jobs and completed cancellations can be removed from history.
     if (actionPending("clear-history", job.job_id) ||
         job.state === "Committed" || cancellation.state === "Cancelled") {
@@ -675,6 +692,12 @@
     if (String(counts.failed_count) !== "0") { return "A cancellation is already in progress for this job."; }
     return "Nothing to cancel: the job is already delivered, cancelled or no longer tracked.";
   }
+  function deleteOutcome(body) {
+    if (body.completion_pending === true) { return "Deleting retained copies…"; }
+    if (String(body.deleted_count) === "0" && String(body.failed_count) === "0") { return "Nothing was deleted: no retained copies remain."; }
+    return "Retained copies: " + body.deleted_count + " deleted" +
+      (String(body.failed_count) !== "0" ? ", " + body.failed_count + " could not be deleted (see the service log)" : "") + ".";
+  }
   function clearOutcome(body) {
     return String(body.cleared_count) !== "0" ? "Removed from history."
       : "Nothing was removed: the job is still in progress, already removed, or busy. Try again shortly.";
@@ -689,6 +712,25 @@
           "This cannot be undone.";
       },
       done: function (b) { return b && b.accepted_count !== undefined; }, outcome: cancelOutcome
+    },
+    "delete-data": {
+      route: "/api/v2/admin/jobs/delete-data", ask: "Delete retained data…", confirm: "Delete files", keep: "Keep files",
+      hover: "Permanently delete the copies the mover keeps for this job. You will be asked to confirm.",
+      question: function (jobId, job, st) {
+        var targets = (st && st.targets) || [];
+        if (!targets.length) { return "Nothing to delete: the mover holds no retained copies for job #" + jobId + "."; }
+        var total = 0n;
+        targets.forEach(function (t) { total += BigInt(t.size_bytes); });
+        var names = targets.slice(0, 5).map(function (t) { return t.relative_path; }).join(", ") +
+          (targets.length > 5 ? " and " + (targets.length - 5) + " more" : "");
+        return "Permanently delete the mover's retained copies for job #" + jobId + "? " + targets.length +
+          " file(s), " + bytes(total) + ": " + names + ". " + (job.state === "Committed"
+            ? "The delivered files at the destination are not touched."
+            : "WARNING: this job was never delivered. These are the only copies of the recording and will be permanently destroyed.") +
+          " This cannot be undone.";
+      },
+      blocked: function (st) { return !st || !st.targets || !st.targets.length; },
+      done: function (b) { return b && b.completion_pending !== undefined; }, outcome: deleteOutcome
     },
     "clear-history": {
       route: "/api/v2/admin/jobs/clear-history", ask: "Clear from history…", confirm: "Clear from history", keep: "Keep in history",
@@ -732,6 +774,7 @@
         st.message = "Could not prepare the confirmation (" + ((r.body && r.body.error) || r.status) + ").";
       } else {
         st.proof = c.token; st.expires_at = Number(c.expires_at); st.message = "";
+        st.targets = c.deletion_targets || [];
       }
       redrawAction(action, jobId, job);
     }).catch(function () {
@@ -765,6 +808,8 @@
         st.message = cfg.outcome(r.body);
       } else if (r.body && r.body.error === "invalid_confirmation") {
         st.message = "The confirmation expired or no longer matches. Start again.";
+      } else if (r.body && r.body.error === "stale_confirmation") {
+        st.message = "The files changed since you confirmed. Nothing was deleted. Start again.";
       } else {
         st.message = "The request was refused (" + ((r.body && r.body.error) || r.status) + ").";
       }
@@ -781,9 +826,9 @@
     var box = el("div", null, "cancel");
     box.id = action + "-" + jobId;
     if (st.proof) {
-      box.appendChild(el("p", cfg.question(jobId, job), "notice"));
+      box.appendChild(el("p", cfg.question(jobId, job, st), "notice"));
       var yes = el("button", st.sending ? "Sending…" : cfg.confirm, "secondary danger", "Confirm");
-      yes.type = "button"; yes.disabled = !!st.sending;
+      yes.type = "button"; yes.disabled = !!st.sending || (!!cfg.blocked && cfg.blocked(st));
       yes.addEventListener("click", function () { sendAction(action, jobId, job); });
       var no = el("button", cfg.keep, "secondary", "Close without changing anything");
       no.type = "button"; no.disabled = !!st.sending;
@@ -971,6 +1016,7 @@
     fact(dl, "Listening on", db.bind, "admin_ingress.bind");
     fact(dl, "Address", location.protocol + "//" + db.authority + "/", "admin_ingress.authority");
     fact(dl, "Sign out after inactivity", Math.round(Number(db.inactivity_timeout_seconds) / 60) + " minutes", "inactivity_timeout_seconds");
+    fact(dl, "Delete retained data", db.allow_data_deletion ? "Allowed" : "Off (default)", "admin_ingress.allow_data_deletion");
     fact(dl, "Account directory", db.account_directory, "admin_ingress.account_directory");
     dl = card(grid, "Certificates and keys");
     if (s.producer && s.producer.certificates.length) {
@@ -1070,8 +1116,7 @@
         return;
       }
       csrf = r.headers.get("Mover-CSRF-Token");
-      show(true);
-      return loadPage(false);
+      return noteSession(r).then(function () { show(true); return loadPage(false); });
     }).catch(function () { show(false); $("signin-error").textContent = "The service could not be reached."; });
   }
   var messages = {
@@ -1099,8 +1144,7 @@
           return;
         }
         csrf = s.headers.get("Mover-CSRF-Token");
-        show(true);
-        return loadPage(false);
+        return noteSession(s).then(function () { show(true); return loadPage(false); });
       });
     }).catch(function () {
       $("signin-error").textContent = "The service could not be reached.";

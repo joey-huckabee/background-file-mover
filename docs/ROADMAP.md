@@ -51,7 +51,9 @@ dashboard remain unfinished. Packaging is not the next dashboard milestone.
   Done: retry ([137](RUST-INCREMENT-137.md)/[138](RUST-INCREMENT-138.md)),
   failure causes ([139](RUST-INCREMENT-139.md)), cancel
   ([140](RUST-INCREMENT-140.md)/[141](RUST-INCREMENT-141.md)), history clear
-  ([142](RUST-INCREMENT-142.md)). Remaining: owned-data deletion.
+  ([142](RUST-INCREMENT-142.md)), retained-data deletion
+  ([143](RUST-INCREMENT-143.md)/[144](RUST-INCREMENT-144.md); off by default). Remaining:
+  unfinished-destination deletion kinds; UI revisit against the original mockup.
 - [x] **Multiple admin browser connections (user request 2026-11-12, soon):**
   done in [increment135](RUST-INCREMENT-135.md): four admin connections, one
   global slot always reserved for the private operator.

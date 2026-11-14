@@ -5687,7 +5687,7 @@ fn confirmed_deletion_removes_only_retained_copies_and_keeps_replay() {
         assert!(matches!(
             s.start_deletion(1, "dashboard-account", &"a".repeat(64), &digest, 100)
                 .unwrap(),
-            mover_store::DeletionStart::Pass(_)
+            mover_store::DeletionStart::Started(_)
         ));
     }
     f.start();

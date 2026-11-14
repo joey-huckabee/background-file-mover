@@ -130,3 +130,24 @@ console.log('byte formatting ok');
   assert.match(ACTIONS['clear-history'].question('7', { state: 'Committed' }), /delivered files stay at the destination/);
   console.log('clear confirmation wording ok');
 }
+
+// Delete confirmation lists the files and warns for undelivered (only) copies.
+{
+  const aSrc = src.slice(src.indexOf('  function cancelOutcome('), src.indexOf('  function readReply('));
+  const bytesSrc2 = src.slice(src.indexOf('  function bytes(value)'), src.indexOf('  function time('));
+  const { ACTIONS, deleteOutcome } = new Function(bytesSrc2 + aSrc + '; return { ACTIONS: ACTIONS, deleteOutcome: deleteOutcome };')();
+  const del = ACTIONS['delete-data'];
+  const preview = parseJSON('{"deletion_targets":[{"job_id":"7","file_id":"0","kind":"RetainedSource","relative_path":"cam/video.mkv","attempt":null,"size_bytes":2048}]}');
+  const st = { targets: preview.deletion_targets };
+  const delivered = del.question('7', { state: 'Committed' }, st);
+  assert.match(delivered, /1 file\(s\), 2.00 KiB/);
+  assert.match(delivered, /cam\/video\.mkv/);
+  assert.match(delivered, /delivered files at the destination are not touched/);
+  const cancelled = del.question('7', { state: 'Claimed' }, st);
+  assert.match(cancelled, /never delivered\. These are the only copies of the recording and will be permanently destroyed/);
+  assert.strictEqual(del.blocked({ targets: [] }), true);
+  assert.match(del.question('7', { state: 'Committed' }, { targets: [] }), /Nothing to delete/);
+  assert.match(deleteOutcome(parseJSON('{"deleted_count":0,"failed_count":0,"completion_pending":true}')), /Deleting/);
+  assert.match(deleteOutcome(parseJSON('{"deleted_count":2,"failed_count":1,"completion_pending":false}')), /2 deleted, 1 could not be deleted/);
+  console.log('delete confirmation wording ok');
+}
