@@ -400,8 +400,11 @@
       var box = el("input");
       box.type = "checkbox";
       box.checked = selected.has(item.job_id);
+      box.disabled = selectionLocked(bulk);
       box.setAttribute("aria-label", "Select job " + item.job_id);
       box.addEventListener("change", function () {
+        // A confirmation is open or in flight: its frozen request must survive.
+        if (selectionLocked(bulk)) { box.checked = selected.has(item.job_id); return; }
         if (box.checked) { selected.add(item.job_id); } else { selected.delete(item.job_id); }
         bulk.proof = null; bulk.message = "";
         renderSelection();
@@ -1053,6 +1056,12 @@
   // ---- Bulk selection: cancel or clear several jobs with one confirmation ----
   var selected = new Set(), pageIds = [];
   var bulk = { action: null, ids: [], proof: null, expires_at: 0, sending: false, message: "" };
+  // While a bulk confirmation is open or being sent, the selection is frozen so
+  // the confirmed request (and its resend after a lost reply) stays intact.
+  function selectionLocked(state) { return !!state.proof || !!state.sending; }
+  // After a confirmed batch only the jobs actually sent are deselected; jobs
+  // beyond the 256 limit and jobs that did not qualify stay selected.
+  function afterBatch(set, sent) { sent.forEach(function (id) { set.delete(id); }); return set; }
   function itemById(id) {
     for (var i = 0; i < allItems.length; i++) { if (allItems[i].job_id === id) { return allItems[i]; } }
     return null;
@@ -1129,7 +1138,7 @@
         bulk.message = "No confirmed reply. Click Confirm again to resend the same request."; renderSelection(); return;
       }
       bulk.proof = null;
-      if (ok) { bulk.message = bulkOutcome(action, r.body); selected.clear(); }
+      if (ok) { bulk.message = bulkOutcome(action, r.body); afterBatch(selected, bulk.ids); }
       else if (r.body && r.body.error === "invalid_confirmation") { bulk.message = "The confirmation expired or no longer matches. Start again."; }
       else { bulk.message = "The request was refused (" + ((r.body && r.body.error) || r.status) + ")."; }
       renderSelection();
@@ -1146,13 +1155,17 @@
     var all = $("select-all");
     var onPage = pageIds.filter(function (id) { return selected.has(id); }).length;
     all.checked = pageIds.length > 0 && onPage === pageIds.length;
+    var locked = selectionLocked(bulk);
+    all.disabled = locked;
+    document.querySelectorAll("#history-rows td.pick input").forEach(function (b) { b.disabled = locked; });
     all.indeterminate = onPage > 0 && onPage < pageIds.length;
     if (!selected.size && !bulk.message) { bar.hidden = true; return; }
     bar.hidden = false;
     if (bulk.proof || (bulk.sending && bulk.action)) {
       bar.appendChild(el("p", bulkQuestion(bulk.action, bulk.ids) +
         (bulk.skipped ? " " + bulk.skipped + " other selected job(s) do not qualify and are left out." : "") +
-        (bulk.over ? " Only the first 256 are included; " + bulk.over + " more stay selected for another round." : ""), "notice"));
+        (bulk.over ? " Only the first 256 are included; the other " + bulk.over + " stay selected for another round." : "") +
+        " The selection is locked until you confirm or go back.", "notice"));
       var yes = el("button", bulk.sending ? "Sending…" : "Confirm", "button danger");
       yes.type = "button"; yes.disabled = bulk.sending || !bulk.proof;
       yes.addEventListener("click", sendBulk);
@@ -1530,6 +1543,7 @@
     loadPage(true).then(done, done);
   });
   $("select-all").addEventListener("change", function () {
+    if (selectionLocked(bulk)) { renderSelection(); return; }
     var on = $("select-all").checked;
     pageIds.forEach(function (id) { if (on) { selected.add(id); } else { selected.delete(id); } });
     bulk.proof = null; bulk.message = "";

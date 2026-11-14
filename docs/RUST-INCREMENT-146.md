@@ -8,7 +8,9 @@ already accept 1-256 jobs with one confirmation proof.
 
 - Job history has a checkbox per row and a select-all for the page, with an
   indeterminate state for partial selection. Selection survives paging,
-  filtering and search, and is cleared after a successful action or sign-out.
+  filtering and search. After a successful batch only the jobs actually sent
+  are deselected; jobs beyond the 256 limit and jobs that did not qualify stay
+  selected. Sign-out clears it.
 - A selection bar shows the count with **Cancel jobs…**, **Clear from history…**
   and **Clear selection**. Each action is enabled only when at least one
   selected job qualifies:
@@ -25,9 +27,15 @@ already accept 1-256 jobs with one confirmation proof.
   and skipped jobs; clear reports the number removed.
 - Delete held copies stays per job: its proof binds one job's exact files.
 
+- While a confirmation is open or being sent, the selection is locked
+  (checkboxes and select-all disabled), so the confirmed request and its resend
+  after a lost reply cannot be changed or lost.
+
 ## Tests
 
-- Admin UI (node): eligibility for every job state, confirmation wording
+- Admin UI (node): the selection lock holds while confirming, while sending and
+  after a lost reply; partial deselection keeps the over-limit and
+  non-qualifying jobs selected; eligibility for every job state, confirmation wording
   (including the "and N more" list), outcome wording from real parsed counts.
 - Admin unit tests and all 12 real-service admin TLS tests pass.
 - Visual check on the demo: three jobs selected, of which two delivered jobs
