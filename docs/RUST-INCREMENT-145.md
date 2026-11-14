@@ -65,3 +65,13 @@ Bulk selection (checkboxes with bulk cancel and clear) is a separate later step.
 - Visual check on the WSL demo with headless Edge (signed in through the real
   login form): Overview, Job history with an expanded job detail, Needs
   attention, Storage and Settings.
+
+## CI result
+
+PR56 CI run
+[43612140574](https://github.com/joey-huckabee/background-file-mover/actions/runs/43612140574)
+at `e8ad760` passes both full modes (no Rust test count change; dashboard assets
+only). An earlier run failed the document test because the inline SVG carried an
+`xmlns` URL (removed). Independent review raised five findings across two rounds
+(truncation, bookmarked views, stage accuracy, filter accessibility, page-wide
+incomplete notice), all fixed; final re-review had no findings.
