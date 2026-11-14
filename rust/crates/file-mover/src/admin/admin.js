@@ -684,7 +684,7 @@
     }
     if (quietJob) { activity.appendChild(el("p", "No problems recorded.", "muted")); }
 
-    var reserved = section(grid, "Where this job's files are");
+    var reserved = section(grid, "Space reserved for this job");
     var placeholder = el("div");
     placeholder.appendChild(el("p", "Loading…", "muted"));
     reserved.appendChild(placeholder);
@@ -1038,13 +1038,12 @@
 
   function renderJobStorage(target, d) {
     var facts = el("dl", null, "facts");
-    var held = BigInt(d.source_reserved_bytes);
-    fact(facts, "Held copies (source disk)", held === 0n ? "None" : short(d.source_reserved_bytes),
-      "The original files the mover took over from the sender's folder, kept in its private holding area on the source disk until you delete them. " +
-      held.toString() + " bytes; source_reserved_bytes");
-    fact(facts, "Delivered copies (destination)", short(d.destination_reserved_bytes),
-      "Copies written to the destination folder, including every kept delivery attempt. " +
-      BigInt(d.destination_reserved_bytes).toString() + " bytes; destination_reserved_bytes");
+    fact(facts, "Reserved on the source disk", bytes(d.source_reserved_bytes),
+      "Space reserved for the original files the mover takes over and holds on the source disk, including files " +
+      "still being taken over. A reservation, not a measurement of what is on disk. source_reserved_bytes");
+    fact(facts, "Reserved at the destination", bytes(d.destination_reserved_bytes),
+      "Space reserved at the destination, including delivery attempts that have not finished or failed. " +
+      "A reservation, not the size of delivered files. destination_reserved_bytes");
     fact(facts, "Files with unknown size", d.unmeasured_files.toString(), "unmeasured_files");
     var a = d.destination_attempts_by_phase;
     fact(facts, "Destination attempts", "Started " + a.Intent + " · Copied " + a.Copied + " · Verified " + a.Verified +
@@ -1052,7 +1051,7 @@
     target.appendChild(facts);
     target.appendChild(el("p", "When a job is accepted the mover takes over the sender's original files and holds them " +
       "on the source disk. It then delivers copies to the destination folder. Deleting the held copies never touches the " +
-      "delivered copies.", "muted small"));
+      "delivered copies. The figures above are space reservations, not measured disk use.", "muted small"));
   }
 
   // ---- Storage ----

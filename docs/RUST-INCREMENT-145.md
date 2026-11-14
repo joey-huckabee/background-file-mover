@@ -81,10 +81,12 @@ incomplete notice), all fixed; final re-review had no findings.
 "Retained data" confused the user (job #1 showed a source folder, a
 "session-001" entry and a recording-ID destination folder). The dashboard now
 uses one term, **held copies on the source disk**:
-- Job detail: a "Where this job's files are" panel with "Held copies (source
-  disk)" and "Delivered copies (destination)", plus one plain sentence: the
-  mover takes over the sender's originals and holds them on the source disk,
-  then delivers copies to the destination folder.
+- Job detail: a "Space reserved for this job" panel with "Reserved on the source
+  disk" and "Reserved at the destination" (always in bytes; these are
+  reservations, including unfinished claims and delivery attempts, not measured
+  files), plus one plain sentence: the mover takes over the sender's originals
+  and holds them on the source disk, then delivers copies to the destination
+  folder.
 - **Delete held copies…** lists each file by name, says they were taken over from
   the sender's folder, and names the destination folder that is not touched.
 - Cancel, Clear, Storage, Overview and Settings use the same term.
