@@ -83,3 +83,13 @@ Builds on the engine of [increment 143](RUST-INCREMENT-143.md).
 - Local native runs (gate SQLite flags, private WSL namespace): fmt and workspace
   clippy clean, proof unit tests, all 30 real-service TLS/admin tests (the
   load-sensitive live-stream test passed alone). The SLES gates run in PR CI.
+
+## CI result
+
+PR54 CI run
+[43560936074](https://github.com/joey-huckabee/background-file-mover/actions/runs/43560936074)
+at `dc6d6fa` passes both full modes: production **419 tests per debug/release
+profile** and nfs-qualification **423/profile** (increment143's 418/422 plus the
+real-service delete route test). Independent review found two issues (renewal on
+replay, session schema), both fixed; re-review had no findings. Merged to main
+as `c91e968`.
