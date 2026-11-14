@@ -1327,7 +1327,7 @@
       "pattern": "^[A-Za-z0-9_.-]+$",
       "x-max-utf8-bytes": 6144,
       "description": "Opaque authenticated confirmation proof, returned unchanged. Engineering limits/expiry/staleness and group50 forgetting are fixed in API-CONTRACT-CLOSEOUT.md; codec/runtime remain unimplemented.",
-      "x-status": "implemented for actions cancel (increment141) and clear-history (increment142): HMAC-SHA256 proof 'c1.<expires_at>.<high_water>.<hex>', per-process key, 300 s; IDs above the issuance high-water mark always skip; delete-data not yet"
+      "x-status": "implemented: cancel (141), clear-history (142), delete-data (144, one job per request, behind admin_ingress.allow_data_deletion, default off). HMAC-SHA256 proof 'c1.<expires_at>.<high_water>.<binding>.<hex>', per-process key, 300 s; delete binds the exact deletable selection fingerprint"
     },
     "DeleteTarget": {
       "type": "object",
@@ -1443,7 +1443,7 @@
         "deletion_targets",
         "complete"
       ],
-      "x-status": "implemented for actions cancel (increment141) and clear-history (increment142): HMAC-SHA256 proof 'c1.<expires_at>.<high_water>.<hex>', per-process key, 300 s; IDs above the issuance high-water mark always skip; delete-data not yet",
+      "x-status": "implemented: cancel (141), clear-history (142), delete-data (144, one job per request, behind admin_ingress.allow_data_deletion, default off). HMAC-SHA256 proof 'c1.<expires_at>.<high_water>.<binding>.<hex>', per-process key, 300 s; delete binds the exact deletable selection fingerprint",
       "x-semantic-rules": [
         "Ordered job_ids include duplicates and exactly match the future mutation body.",
         "Only issue a proof for a complete bounded preview. No truncation or partial deletion authority.",
@@ -2128,7 +2128,8 @@
         "Actual latest-pass observations only. Acceptance does not imply completed deletion.",
         "Dispatch every submitted occurrence; aggregate each observed latest pass/owned target once so repeated IDs cannot double-count files.",
         "Group 51 preserves one active pass/latest results before clear. Empty/ineligible deletion-batch HTTP mapping remains proposed, not newly approved."
-      ]
+      ],
+      "x-status": "implemented increment144 (one job per request; setting default off)"
     },
     "DecimalByteCount": {
       "type": "string",

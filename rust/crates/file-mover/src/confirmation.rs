@@ -25,6 +25,16 @@ pub(crate) struct Scope<'a> {
     pub(crate) job_ids: &'a [i64],
 }
 
+/// Action-specific authenticated binding carried in the token: `-` for none,
+/// or the 64-hex fingerprint of the exact deletable selection (delete-data).
+pub(crate) const NO_BINDING: &str = "-";
+fn valid_binding(b: &str) -> bool {
+    b == NO_BINDING
+        || (b.len() == 64
+            && b.bytes()
+                .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c)))
+}
+
 pub(crate) struct Key(Zeroizing<[u8; 32]>);
 impl Key {
     /// A fresh random key; None if the system random source fails.
@@ -66,7 +76,7 @@ fn hmac(key: &[u8], message: &[u8]) -> [u8; 32] {
     sha256(&outer)
 }
 
-fn frame(scope: &Scope<'_>, high_water: i64, expires_at: i64) -> Vec<u8> {
+fn frame(scope: &Scope<'_>, high_water: i64, binding: &str, expires_at: i64) -> Vec<u8> {
     let mut f = b"BFM-CONFIRMATION\0v1\0".to_vec();
     for text in [scope.instance, scope.principal, scope.action] {
         f.extend_from_slice(&(text.len() as u32).to_be_bytes());
@@ -78,6 +88,8 @@ fn frame(scope: &Scope<'_>, high_water: i64, expires_at: i64) -> Vec<u8> {
         f.extend_from_slice(&id.to_be_bytes());
     }
     f.extend_from_slice(&high_water.to_be_bytes());
+    f.extend_from_slice(&(binding.len() as u32).to_be_bytes());
+    f.extend_from_slice(binding.as_bytes());
     f.extend_from_slice(&expires_at.to_be_bytes());
     f
 }
@@ -91,19 +103,36 @@ fn canonical(text: &str) -> Option<i64> {
 /// Issue a proof valid until `now + LIFETIME_SECONDS`. `high_water` is the
 /// job-ID high-water mark at issuance: IDs above it were never allocated when
 /// the operator confirmed, so the proof can never cover a later job.
-pub(crate) fn issue(key: &Key, scope: &Scope<'_>, high_water: i64, now: i64) -> (String, i64) {
+pub(crate) fn issue(
+    key: &Key,
+    scope: &Scope<'_>,
+    high_water: i64,
+    binding: &str,
+    now: i64,
+) -> (String, i64) {
+    assert!(valid_binding(binding), "confirmation binding");
     let expires_at = now.saturating_add(LIFETIME_SECONDS);
-    let mac = hmac(key.0.as_ref(), &frame(scope, high_water, expires_at));
+    let mac = hmac(
+        key.0.as_ref(),
+        &frame(scope, high_water, binding, expires_at),
+    );
     let hex: String = mac.iter().map(|b| format!("{b:02x}")).collect();
-    (format!("c1.{expires_at}.{high_water}.{hex}"), expires_at)
+    (
+        format!("c1.{expires_at}.{high_water}.{binding}.{hex}"),
+        expires_at,
+    )
 }
 
 /// Verify an unchanged proof for exactly this scope at `now`, returning the
-/// authenticated issuance high-water mark. Any difference (scope, tampering,
-/// expiry, encoding) is the same refusal.
-pub(crate) fn verify(key: &Key, token: &str, scope: &Scope<'_>, now: i64) -> Option<i64> {
+/// authenticated issuance high-water mark and binding. Any difference (scope,
+/// tampering, expiry, encoding) is the same refusal.
+pub(crate) fn verify(key: &Key, token: &str, scope: &Scope<'_>, now: i64) -> Option<(i64, String)> {
     let mut parts = token.strip_prefix("c1.")?.split('.');
-    let (expires, high_water, mac) = (parts.next()?, parts.next()?, parts.next()?);
+    let (expires, high_water, binding, mac) =
+        (parts.next()?, parts.next()?, parts.next()?, parts.next()?);
+    if !valid_binding(binding) {
+        return None;
+    }
     if parts.next().is_some() {
         return None;
     }
@@ -118,9 +147,12 @@ pub(crate) fn verify(key: &Key, token: &str, scope: &Scope<'_>, now: i64) -> Opt
     {
         return None;
     }
-    let expected = hmac(key.0.as_ref(), &frame(scope, high_water, expires_at));
+    let expected = hmac(
+        key.0.as_ref(),
+        &frame(scope, high_water, binding, expires_at),
+    );
     let expected: String = expected.iter().map(|b| format!("{b:02x}")).collect();
-    bool::from(expected.as_bytes().ct_eq(mac.as_bytes())).then_some(high_water)
+    bool::from(expected.as_bytes().ct_eq(mac.as_bytes())).then(|| (high_water, binding.to_owned()))
 }
 
 #[cfg(test)]
@@ -156,7 +188,7 @@ mod tests {
             action: "cancel",
             job_ids: &ids,
         };
-        let (token, expires) = issue(&key, &scope, 41, 1000);
+        let (token, expires) = issue(&key, &scope, 41, NO_BINDING, 1000);
         assert_eq!(expires, 1300);
         assert!(
             token.len() >= 16
@@ -164,8 +196,14 @@ mod tests {
                     .bytes()
                     .all(|b| b.is_ascii_alphanumeric() || b"_.-".contains(&b))
         );
-        assert_eq!(verify(&key, &token, &scope, 1000), Some(41));
-        assert_eq!(verify(&key, &token, &scope, 1299), Some(41));
+        assert_eq!(
+            verify(&key, &token, &scope, 1000),
+            Some((41, NO_BINDING.to_owned()))
+        );
+        assert_eq!(
+            verify(&key, &token, &scope, 1299),
+            Some((41, NO_BINDING.to_owned()))
+        );
         assert_eq!(verify(&key, &token, &scope, 1300), None, "expired");
         assert_eq!(
             verify(&key, &token, &scope, 900),
@@ -194,6 +232,23 @@ mod tests {
         assert!(
             verify(&Key::fixed([8; 32]), &token, &scope, 1000).is_none(),
             "other process"
+        );
+        // The binding is authenticated: a different fingerprint is refused.
+        let bound = "a".repeat(64);
+        let (with, _) = issue(&key, &scope, 41, &bound, 1000);
+        assert_eq!(verify(&key, &with, &scope, 1000), Some((41, bound.clone())));
+        assert_eq!(
+            verify(
+                &key,
+                &with.replacen(&bound, &"b".repeat(64), 1),
+                &scope,
+                1000
+            ),
+            None
+        );
+        assert_eq!(
+            verify(&key, &with.replacen(&bound, "-", 1), &scope, 1000),
+            None
         );
         for bad in [
             token.replacen("c1.", "c2.", 1),

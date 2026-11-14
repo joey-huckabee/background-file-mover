@@ -314,7 +314,7 @@ fn admin_https_login_session_logout_and_boundary_precedence() {
     assert_eq!(s.status, 200);
     assert_eq!(
         s.json(),
-        json!({"authenticated":true,"inactivity_timeout_seconds":1800})
+        json!({"authenticated":true,"inactivity_timeout_seconds":1800,"data_deletion_enabled":false})
     );
     assert_eq!(s.header("mover-csrf-token"), Some(csrf.as_str()));
 
@@ -1582,5 +1582,207 @@ fn admin_clear_history_forgets_delivered_and_cancelled_jobs_but_keeps_files() {
     );
     let page = a.session_path("/api/v2/admin/jobs", &cookie, "").json();
     assert_eq!(page["items"], json!([]));
+    f.stop();
+}
+
+#[test]
+fn admin_delete_data_is_off_by_default_and_removes_only_retained_copies() {
+    let (mut f, a) = admin_fixture();
+    prepare_payload(&f);
+    assert_eq!(f.https("POST", "/api/v2/jobs", "", &f.input()).0, 202);
+    wait_commit(&f);
+    let session = |a: &Admin| {
+        let ok = a.login("admin", PASSWORD);
+        (
+            ok.cookie(),
+            ok.header("mover-csrf-token").unwrap().to_owned(),
+        )
+    };
+    let preview = |a: &Admin, cookie: &str, csrf: &str, action: &str, ids: &str| {
+        a.session_path(
+            &format!("/api/v2/admin/jobs?confirm_action={action}&job_ids={ids}"),
+            cookie,
+            &format!(
+                "Mover-Admin-Activity: interaction\r\nOrigin: {}\r\nMover-CSRF-Token: {csrf}\r\n",
+                a.origin()
+            ),
+        )
+    };
+    let send = |a: &Admin, cookie: &str, csrf: &str, route: &str, proof: &str, body: &[u8]| {
+        a.call(
+            "POST",
+            route,
+            &format!(
+                "Cookie: {cookie}\r\nOrigin: {}\r\nMover-CSRF-Token: {csrf}\r\nContent-Type: application/json\r\nMover-Confirmation: {proof}\r\n",
+                a.origin()
+            ),
+            body,
+        )
+    };
+    let delete = "/api/v2/admin/jobs/delete-data";
+    // Off by default: no preview, the route does not exist, the UI is told.
+    let (cookie, csrf) = session(&a);
+    assert_eq!(
+        a.session(&cookie, "").json()["data_deletion_enabled"],
+        false
+    );
+    assert_eq!(
+        preview(&a, &cookie, &csrf, "delete-data", "1").json(),
+        json!({"error":"invalid_selection"})
+    );
+    let r = send(
+        &a,
+        &cookie,
+        &csrf,
+        delete,
+        "c1.1.1.-.00",
+        br#"{"job_ids":[1]}"#,
+    );
+    assert_eq!((r.status, r.json()), (404, json!({"error":"not_found"})));
+    // Enable it for this host.
+    f.stop();
+    f.config["admin_ingress"]["allow_data_deletion"] = json!(true);
+    f.save();
+    f.start();
+    let (cookie, csrf) = session(&a);
+    assert_eq!(a.session(&cookie, "").json()["data_deletion_enabled"], true);
+    assert_eq!(
+        preview(&a, &cookie, &csrf, "delete-data", "1,1").json(),
+        json!({"error":"invalid_selection"})
+    );
+    let c = preview(&a, &cookie, &csrf, "delete-data", "1").json()["confirmation"].clone();
+    let targets = c["deletion_targets"].as_array().unwrap();
+    assert_eq!(targets.len(), 2, "{c}");
+    assert_eq!(
+        targets[0],
+        json!({"job_id":"1","file_id":"0","kind":"RetainedSource","relative_path":"a","attempt":null,"size_bytes":5})
+    );
+    assert_eq!(targets[1]["relative_path"], "sub/b");
+    let proof = c["token"].as_str().unwrap().to_owned();
+    // A cancel proof cannot delete.
+    let wrong = preview(&a, &cookie, &csrf, "cancel", "1").json()["confirmation"]["token"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert_eq!(
+        send(&a, &cookie, &csrf, delete, &wrong, br#"{"job_ids":[1]}"#).json(),
+        json!({"error":"invalid_confirmation"})
+    );
+    let r = send(&a, &cookie, &csrf, delete, &proof, br#"{"job_ids":[1]}"#);
+    assert_eq!(r.status, 202, "{}", String::from_utf8_lossy(&r.body));
+    let until = Instant::now() + Duration::from_secs(10);
+    while f.operator("/api/v2/jobs/1").1["details"]["deletion"]["completion_pending"] != false {
+        assert!(Instant::now() < until, "{:?}", f.operator("/api/v2/jobs/1"));
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let done = json!({"completion_pending":false,"deleted_count":2,"failed_count":0});
+    assert_eq!(f.operator("/api/v2/jobs/1").1["details"]["deletion"], done);
+    assert!(!f.root.join("source/.file-mover/1-0").exists());
+    assert!(!f.root.join("source/.file-mover/1-1").exists());
+    assert_eq!(
+        fs::read(f.root.join(format!("destination/{UUID}/a"))).unwrap(),
+        b"alpha"
+    );
+    assert!(
+        f.root
+            .join(format!("destination/{UUID}/COMMITTED.json"))
+            .exists()
+    );
+    // The same confirmation replays that pass; a fresh one finds nothing to do.
+    assert_eq!(
+        send(&a, &cookie, &csrf, delete, &proof, br#"{"job_ids":[1]}"#).json(),
+        done
+    );
+    let fresh = preview(&a, &cookie, &csrf, "delete-data", "1").json()["confirmation"].clone();
+    assert_eq!(fresh["deletion_targets"], json!([]));
+    assert_eq!(
+        send(
+            &a,
+            &cookie,
+            &csrf,
+            delete,
+            fresh["token"].as_str().unwrap(),
+            br#"{"job_ids":[1]}"#
+        )
+        .json(),
+        json!({"deleted_count":0,"failed_count":0,"completion_pending":false})
+    );
+    // Cancelled job 2: an older confirmation is stale once a newer pass ran.
+    fs::write(f.root.join("source/current/c"), b"charlie").unwrap();
+    let mut second = f.input();
+    second["recording_id"] = json!("0b6f1c2c-1e9d-4b8a-a7f1-2b5d3c4e5f63");
+    second["files"] = json!(["c", "never-there"]);
+    second
+        .as_object_mut()
+        .unwrap()
+        .remove("expected_sizes_bytes");
+    assert_eq!(
+        f.https("POST", "/api/v2/jobs", "", &second).1["error"],
+        "source_file_missing"
+    );
+    let pc = preview(&a, &cookie, &csrf, "cancel", "2").json()["confirmation"]["token"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert_eq!(
+        send(
+            &a,
+            &cookie,
+            &csrf,
+            "/api/v2/admin/jobs/cancel",
+            &pc,
+            br#"{"job_ids":[2]}"#
+        )
+        .json()["accepted_count"],
+        1
+    );
+    let until = Instant::now() + Duration::from_secs(10);
+    while f.operator("/api/v2/jobs/2").1["details"]["condition"] != "Cancelled" {
+        assert!(Instant::now() < until);
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let older = preview(&a, &cookie, &csrf, "delete-data", "2").json()["confirmation"]["token"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    // Issued a second later, so it is a distinct confirmation (identical scope
+    // and expiry would make the same proof, which correctly replays).
+    std::thread::sleep(Duration::from_millis(1100));
+    let newer = preview(&a, &cookie, &csrf, "delete-data", "2").json()["confirmation"]["token"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert_eq!(
+        send(&a, &cookie, &csrf, delete, &newer, br#"{"job_ids":[2]}"#).status,
+        202
+    );
+    let until = Instant::now() + Duration::from_secs(10);
+    while f.operator("/api/v2/jobs/2").1["details"]["deletion"]["completion_pending"] != false {
+        assert!(Instant::now() < until);
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    assert!(!f.root.join("source/.file-mover/2-0").exists());
+    let r = send(&a, &cookie, &csrf, delete, &older, br#"{"job_ids":[2]}"#);
+    assert_eq!(
+        (r.status, r.json()),
+        (409, json!({"error":"stale_confirmation"}))
+    );
+    // Once the pass is done, the job can be cleared.
+    let p1 = preview(&a, &cookie, &csrf, "clear-history", "1").json()["confirmation"]["token"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert_eq!(
+        send(
+            &a,
+            &cookie,
+            &csrf,
+            "/api/v2/admin/jobs/clear-history",
+            &p1,
+            br#"{"job_ids":[1]}"#
+        )
+        .json(),
+        json!({"cleared_count":1})
+    );
     f.stop();
 }
