@@ -382,6 +382,7 @@
   }
   function renderPage(body, live) {
     var rows = $("history-rows");
+    pageIds = body.items.map(function (i) { return i.job_id; });
     // A live refresh keeps the open detail panel and refreshes it in place.
     var kept = live ? document.querySelector("tr.detail-row") : null;
     if (kept) { kept.remove(); }
@@ -395,6 +396,18 @@
       rowsById[item.job_id] = item;
       var tr = el("tr", null, "job-row");
       tr.dataset.job = item.job_id;
+      var pick = el("td", null, "pick");
+      var box = el("input");
+      box.type = "checkbox";
+      box.checked = selected.has(item.job_id);
+      box.setAttribute("aria-label", "Select job " + item.job_id);
+      box.addEventListener("change", function () {
+        if (box.checked) { selected.add(item.job_id); } else { selected.delete(item.job_id); }
+        bulk.proof = null; bulk.message = "";
+        renderSelection();
+      });
+      pick.appendChild(box);
+      tr.appendChild(pick);
       var cell = el("td");
       var open = el("button", "Job #" + item.job_id, "link", "Show or hide this job's details");
       open.type = "button";
@@ -416,6 +429,7 @@
     });
     $("prev").disabled = page === 0;
     $("next").disabled = page + 1 >= body.pages;
+    renderSelection();
     if (openJob && rowsById[openJob]) {
       var row = rows.querySelector('tr[data-job="' + CSS.escape(openJob) + '"]');
       if (row && kept) {
@@ -452,7 +466,7 @@
     openJob = jobId;
     button.setAttribute("aria-expanded", "true");
     var tr = el("tr", null, "detail-row");
-    var td = el("td"); td.colSpan = 6;
+    var td = el("td"); td.colSpan = 7;
     var box = el("div", null, "detail");
     box.appendChild(el("p", "Loading…", "muted"));
     td.appendChild(box); tr.appendChild(td);
@@ -1036,6 +1050,132 @@
     return !!st && !!(st.proof || st.sending);
   }
 
+  // ---- Bulk selection: cancel or clear several jobs with one confirmation ----
+  var selected = new Set(), pageIds = [];
+  var bulk = { action: null, ids: [], proof: null, expires_at: 0, sending: false, message: "" };
+  function itemById(id) {
+    for (var i = 0; i < allItems.length; i++) { if (allItems[i].job_id === id) { return allItems[i]; } }
+    return null;
+  }
+  // Only jobs the action can apply to are sent; the service skips anything else anyway.
+  function bulkEligible(action, item) {
+    if (!item) { return false; }
+    if (action === "cancel") { return item.state !== "Committed" && item.condition !== "Cancelled" && item.condition !== "CancellationPending"; }
+    return item.state === "Committed" || item.condition === "Cancelled";
+  }
+  function bulkPlan(action) {
+    var ids = [], skipped = 0;
+    Array.from(selected).sort(function (a, b) { return BigInt(a) < BigInt(b) ? -1 : 1; }).forEach(function (id) {
+      if (bulkEligible(action, itemById(id))) { ids.push(id); } else { skipped++; }
+    });
+    return { ids: ids.slice(0, 256), skipped: skipped, over: Math.max(0, ids.length - 256) };
+  }
+  function bulkQuestion(action, ids) {
+    var list = ids.slice(0, 12).map(function (id) { return "#" + id; }).join(", ") + (ids.length > 12 ? " and " + (ids.length - 12) + " more" : "");
+    if (action === "cancel") {
+      return "Cancel " + ids.length + " job(s): " + list + "? The mover stops working on them and will not deliver them. " +
+        "Original files it already took over stay held on the source disk, and any partly delivered files stay at the destination. " +
+        "This cannot be undone.";
+    }
+    return "Remove " + ids.length + " job(s) from the history: " + list + "? The mover forgets them completely: records, activity, " +
+      "storage accounting and recording IDs. If a sender submits one of these recordings again, it is treated as a new recording. " +
+      "No files are touched, but they leave mover management: delivered copies stay at the destination and any held copies on " +
+      "the source disk stay where they are, untracked. This cannot be undone.";
+  }
+  function bulkOutcome(action, body) {
+    if (action === "cancel") {
+      var parts = [];
+      if (String(body.accepted_count) !== "0") { parts.push(body.accepted_count + " cancelling"); }
+      if (String(body.failed_count) !== "0") { parts.push(body.failed_count + " already being cancelled"); }
+      if (String(body.skipped_count) !== "0") { parts.push(body.skipped_count + " skipped (already delivered, cancelled or gone)"); }
+      return "Cancel: " + (parts.join(", ") || "nothing to do") + ".";
+    }
+    return String(body.cleared_count) + " job(s) removed from history.";
+  }
+  function startBulk(action) {
+    var plan = bulkPlan(action);
+    if (!plan.ids.length) { bulk.message = "None of the selected jobs can be " + (action === "cancel" ? "cancelled." : "cleared from history."); renderSelection(); return; }
+    bulk = { action: action, ids: plan.ids, proof: null, expires_at: 0, sending: true, message: "Preparing confirmation…",
+      skipped: plan.skipped, over: plan.over };
+    renderSelection();
+    fetch("/api/v2/admin/jobs?confirm_action=" + action + "&job_ids=" + plan.ids.join(","), {
+      credentials: "same-origin", cache: "no-store",
+      headers: { "Mover-Admin-Activity": "interaction", "Mover-CSRF-Token": csrf || "" }
+    }).then(readReply).then(function (r) {
+      bulk.sending = false;
+      if (r.status === 401) { show(false); return; }
+      var c = r.body && r.body.confirmation;
+      if (r.status !== 200 || !c || c.action !== action) {
+        bulk.message = "Could not prepare the confirmation (" + ((r.body && r.body.error) || r.status) + ").";
+      } else { bulk.proof = c.token; bulk.expires_at = Number(c.expires_at); bulk.message = ""; }
+      renderSelection();
+    }).catch(function () { bulk.sending = false; bulk.message = "The service could not be reached."; renderSelection(); });
+  }
+  function sendBulk() {
+    if (!bulk.proof || bulk.sending) { return; }
+    if (Date.now() / 1000 >= bulk.expires_at) { bulk.proof = null; bulk.message = "The confirmation expired. Start again."; renderSelection(); return; }
+    bulk.sending = true; bulk.message = "Sending…";
+    renderSelection();
+    var action = bulk.action;
+    fetch(action === "cancel" ? "/api/v2/admin/jobs/cancel" : "/api/v2/admin/jobs/clear-history", {
+      method: "POST", credentials: "same-origin", cache: "no-store",
+      headers: { "Content-Type": "application/json", "Mover-CSRF-Token": csrf || "", "Mover-Confirmation": bulk.proof },
+      body: '{"job_ids":[' + bulk.ids.join(",") + "]}"
+    }).then(readReply).then(function (r) {
+      bulk.sending = false;
+      if (r.status === 401) { show(false); return; }
+      var ok = (r.status === 202 && r.body && r.body.accepted_count !== undefined) || (r.status === 200 && r.body && r.body.cleared_count !== undefined);
+      if (r.status === 503 || ((r.status === 200 || r.status === 202) && !ok)) {
+        bulk.message = "No confirmed reply. Click Confirm again to resend the same request."; renderSelection(); return;
+      }
+      bulk.proof = null;
+      if (ok) { bulk.message = bulkOutcome(action, r.body); selected.clear(); }
+      else if (r.body && r.body.error === "invalid_confirmation") { bulk.message = "The confirmation expired or no longer matches. Start again."; }
+      else { bulk.message = "The request was refused (" + ((r.body && r.body.error) || r.status) + ")."; }
+      renderSelection();
+      refreshVisible();
+    }).catch(function () {
+      bulk.sending = false;
+      bulk.message = "No reply from the service. Click Confirm again to resend the same request.";
+      renderSelection();
+    });
+  }
+  function renderSelection() {
+    var bar = $("selection");
+    clear(bar);
+    var all = $("select-all");
+    var onPage = pageIds.filter(function (id) { return selected.has(id); }).length;
+    all.checked = pageIds.length > 0 && onPage === pageIds.length;
+    all.indeterminate = onPage > 0 && onPage < pageIds.length;
+    if (!selected.size && !bulk.message) { bar.hidden = true; return; }
+    bar.hidden = false;
+    if (bulk.proof || (bulk.sending && bulk.action)) {
+      bar.appendChild(el("p", bulkQuestion(bulk.action, bulk.ids) +
+        (bulk.skipped ? " " + bulk.skipped + " other selected job(s) do not qualify and are left out." : "") +
+        (bulk.over ? " Only the first 256 are included; " + bulk.over + " more stay selected for another round." : ""), "notice"));
+      var yes = el("button", bulk.sending ? "Sending…" : "Confirm", "button danger");
+      yes.type = "button"; yes.disabled = bulk.sending || !bulk.proof;
+      yes.addEventListener("click", sendBulk);
+      var no = el("button", "Back", "button");
+      no.type = "button"; no.disabled = bulk.sending;
+      no.addEventListener("click", function () { bulk.proof = null; bulk.message = ""; renderSelection(); });
+      bar.appendChild(yes); bar.appendChild(no);
+    } else if (selected.size) {
+      bar.appendChild(el("strong", selected.size + " selected"));
+      var cancel = el("button", "Cancel jobs…", "button danger", "Stop all work on the selected jobs that are not finished");
+      cancel.type = "button"; cancel.disabled = !bulkPlan("cancel").ids.length;
+      cancel.addEventListener("click", function () { startBulk("cancel"); });
+      var clr = el("button", "Clear from history…", "button danger", "Forget the selected delivered or cancelled jobs");
+      clr.type = "button"; clr.disabled = !bulkPlan("clear-history").ids.length;
+      clr.addEventListener("click", function () { startBulk("clear-history"); });
+      var none = el("button", "Clear selection", "button text");
+      none.type = "button";
+      none.addEventListener("click", function () { selected.clear(); bulk.message = ""; renderHistory(false); });
+      bar.appendChild(cancel); bar.appendChild(clr); bar.appendChild(none);
+    }
+    if (bulk.message) { var m = el("p", bulk.message, "muted"); m.setAttribute("role", "status"); bar.appendChild(m); }
+  }
+
   function renderJobStorage(target, d) {
     var facts = el("dl", null, "facts");
     fact(facts, "Reserved on the source disk", bytes(d.source_reserved_bytes),
@@ -1299,6 +1439,7 @@
       Object.keys(ctl).forEach(function (k) { if (ctl[k]) { ctl[k].abort(); } gen[k]++; });
       csrf = null; allItems = []; page = 0; openJob = null; descending = false;
       pageBudget = 40; olderCursor = null; filter = "all"; query = "";
+      selected.clear(); bulk = { action: null, ids: [], proof: null, expires_at: 0, sending: false, message: "" };
       setView("overview");
       $("password").value = "";
       $("username").focus();
@@ -1387,6 +1528,12 @@
     $("older").disabled = true;
     var done = function () { $("older").disabled = false; };
     loadPage(true).then(done, done);
+  });
+  $("select-all").addEventListener("change", function () {
+    var on = $("select-all").checked;
+    pageIds.forEach(function (id) { if (on) { selected.add(id); } else { selected.delete(id); } });
+    bulk.proof = null; bulk.message = "";
+    renderHistory(false);
   });
   $("search").addEventListener("input", function () {
     query = $("search").value.trim().toLowerCase(); page = 0; openJob = null;

@@ -155,3 +155,22 @@ console.log('byte formatting ok');
   assert.match(deleteOutcome(parseJSON('{"deleted_count":2,"failed_count":1,"completion_pending":false}')), /2 deleted, 1 could not be deleted/);
   console.log('delete confirmation wording ok');
 }
+
+// Bulk selection: eligibility, wording and outcomes.
+{
+  const bSrc = src.slice(src.indexOf('  function bulkEligible('), src.indexOf('  function startBulk('));
+  const { bulkEligible, bulkQuestion, bulkOutcome } = new Function(bSrc + '; return { bulkEligible: bulkEligible, bulkQuestion: bulkQuestion, bulkOutcome: bulkOutcome };')();
+  const delivered = { state: 'Committed', condition: 'Committed' };
+  const review = { state: 'Claimed', condition: 'ReviewRequired' };
+  const pending = { state: 'Claimed', condition: 'CancellationPending' };
+  const cancelled = { state: 'Claimed', condition: 'Cancelled' };
+  assert.deepStrictEqual([delivered, review, pending, cancelled].map(i => bulkEligible('cancel', i)), [false, true, false, false]);
+  assert.deepStrictEqual([delivered, review, pending, cancelled].map(i => bulkEligible('clear-history', i)), [true, false, false, true]);
+  assert.strictEqual(bulkEligible('cancel', null), false);
+  assert.match(bulkQuestion('cancel', ['3', '4']), /Cancel 2 job\(s\): #3, #4\?/);
+  const ids = Array.from({ length: 15 }, (_, i) => String(i + 1));
+  assert.match(bulkQuestion('clear-history', ids), /15 job\(s\).*#12 and 3 more\?.*recording IDs.*treated as a new recording/);
+  assert.match(bulkOutcome('cancel', parseJSON('{"accepted_count":2,"failed_count":0,"skipped_count":1}')), /2 cancelling, 1 skipped/);
+  assert.match(bulkOutcome('clear-history', parseJSON('{"cleared_count":3}')), /3 job\(s\) removed/);
+  console.log('bulk selection ok');
+}

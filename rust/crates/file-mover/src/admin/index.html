@@ -93,9 +93,11 @@
 <button type="button" class="tab filter" data-filter="delivered" aria-pressed="false">Delivered</button>
 <button type="button" class="tab filter" data-filter="cancelled" aria-pressed="false">Cancelled</button></div>
 <label class="search"><svg><use href="#i-search"/></svg><span class="sr-only">Search</span><input id="search" type="search" placeholder="Find a job, recording ID or folder" autocomplete="off" spellcheck="false"></label></div>
+<div id="selection" class="selection" hidden></div>
 <div class="table-scroll">
 <table class="history">
 <thead><tr>
+<th class="pick"><input type="checkbox" id="select-all" aria-label="Select all jobs on this page"></th>
 <th><button id="sort" class="sort" type="button" title="Oldest first; click for newest first">Job &#9650;</button></th>
 <th title="Received: the mover accepted the request. Acquired: the mover took over the source files. Copied/Moved: all files are at the destination. A badge appears only when something is waiting or needs attention.">Progress</th>
 <th title="How many of the job's files are at the destination">Files delivered</th>
