@@ -132,3 +132,15 @@ migrated and no production deletion is enabled.
   clippy clean; all mover-store tests; mover-fs claim and backup tests; all 29
   real-service TLS/admin tests; full API suite with only environment failures
   also seen on main or passing alone. The SLES gates run in PR CI.
+
+## CI result
+
+PR53 CI run
+[43560076059](https://github.com/joey-huckabee/background-file-mover/actions/runs/43560076059)
+at `01138da` passes both full modes: production **418 tests per debug/release
+profile** and nfs-qualification **422/profile** (increment142's 411/415 plus the
+discard primitive test, four store deletion tests, the real-service deletion
+test and, in qualification builds, the mid-replay race regression). Independent
+review raised four findings across two rounds (old-proof pass replay, replay
+during/after deletion, durable absence, deletion starting mid-replay), all fixed;
+final re-review had no findings. Merged to main as `03e78b4`.
