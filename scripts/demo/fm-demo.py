@@ -471,6 +471,8 @@ def job_condition(job_id):
         status, body = http(s, "GET", f"/api/v2/jobs/{job_id}")
     finally:
         s.close()
+    if status == 503:
+        return "busy"  # Bounded status queue under load: poll again.
     if status != 200 or not isinstance(body, dict):
         return f"http {status}"
     return body.get("details", {}).get("condition") or str(body.get("state"))
@@ -515,6 +517,10 @@ def cmd_bench(a):
                 break
             if status != 503 or not body.get("retryable"):
                 fail(f"submission refused: {status} {body}")
+            if body.get("error") in ("retention_capacity", "source_space_unavailable"):
+                # Retryable for a producer, but it will not clear during a benchmark.
+                fail(f"submission refused for capacity ({body['error']}); clear demo history "
+                     f"(Job history > Clear history) or run: fm-demo setup")
             if time.monotonic() - start > a.timeout:
                 fail("timed out waiting for submissions to be accepted")
             time.sleep(0.25)
