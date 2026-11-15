@@ -23,8 +23,11 @@ Requirements the later steps must meet (from review):
 - Deletion targets get exclusive acquisition (or one deletion dispatcher):
   `next_deletion_target()` only reads Pending, so two consumers could otherwise
   run the same target.
-- Shutdown joins every dispatcher and worker child within one deadline and
-  never releases custody early.
+- Shutdown keeps the established rule for every dispatcher and worker child:
+  one original deadline (never reset per worker); a worker still blocked in
+  the kernel at that deadline is reported as `ShutdownIncomplete`, and custody
+  is kept until that worker has actually exited. Joins are not promised to be
+  bounded.
 - Step 7: an all-files completion barrier before manifest publication and
   commit, per-file atomic reservations, and draining of the other files on
   cancellation or failure.
