@@ -1506,6 +1506,10 @@
     e.textContent = text;
     e.className = "live " + cls;
     e.title = hover;
+    // The sidebar status follows the live connection, so it never claims
+    // "Connected" while the service is unreachable.
+    $("instance-detail").textContent = { on: "Connected", wait: "Reconnecting…", off: "Not connected" }[cls] || text;
+    $("instance-dot").className = "live-dot " + cls;
   }
   function refreshVisible() {
     if (retryInUse()) { liveDeferred = true; return; }
