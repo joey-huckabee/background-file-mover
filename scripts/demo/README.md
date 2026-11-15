@@ -14,6 +14,7 @@ scripts\demo\fm-demo.cmd add-job               # one new job (2 files, 3 MiB)
 scripts\demo\fm-demo.cmd add-job --count 5 --interval 3
 scripts\demo\fm-demo.cmd add-job --size-mb 400 # big enough to watch it progress
 scripts\demo\fm-demo.cmd add-job --blocked     # delivery stops: "Needs review"
+scriptsdemom-demo.cmd bench --jobs 4 --files 4 --size-mb 64  # delivery throughput (MiB/s)
 scripts\demo\fm-demo.cmd unblock             # remove the planted file, then Retry
 scripts\demo\fm-demo.cmd stop
 scripts\demo\fm-demo.cmd reset                 # stop and delete all demo state
