@@ -38,6 +38,20 @@ The live speed covers the copy and verify loops only. Flushing to disk
 the end-to-end average (benchmark below: about 186 MiB/s live while copying
 cached data, 54 MiB/s end to end).
 
+## Review fixes
+
+- **Timed events are not starved.** The stream's wait now serves a due
+  heartbeat or progress tick before a pending change (revocation still first).
+  Timers fire at most every few seconds, so they cannot starve changes, while
+  continuous changes could previously suppress speed updates and keepalives.
+  Unit regression: with a change always pending, progress ticks still arrive
+  (and changes are still served).
+- **No stale speeds after reconnect or sign-out.** The page clears all speeds
+  when the stream disconnects, reconnects (`ready`) or signs out; an active
+  transfer reappears with the next progress event.
+- **The final empty update is never lost.** Whether transfers are active is
+  taken from the snapshot actually sent, not from a separate earlier read.
+
 ## Performance check
 
 `fm-demo bench --jobs 1 --files 4 --size-mb 256`, page cache dropped before

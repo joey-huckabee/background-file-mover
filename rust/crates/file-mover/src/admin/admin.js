@@ -1480,6 +1480,7 @@
     if (events) { events.close(); events = null; }
     if (liveRetry) { clearTimeout(liveRetry); liveRetry = null; }
     liveConnected = false;
+    applyProgress(null); // Speeds are only shown while the stream reports them.
   }
   function startLive() {
     stopLive();
@@ -1490,6 +1491,9 @@
     setLive("Connecting…", "wait", "Connecting to live updates");
     events = new EventSource("/api/v2/admin/events");
     events.addEventListener("ready", function () {
+      // A new stream reports active transfers within one interval; anything
+      // shown from before the (re)connect may have finished meanwhile.
+      applyProgress(null);
       setLive("Live", "on", "This page updates automatically when jobs change.");
       // Any change between the last read and this subscription would otherwise
       // be lost: re-read what is visible on every (re)connect.
@@ -1504,6 +1508,7 @@
     events.onerror = function () {
       if (!events) { return; }
       if (events.readyState === EventSource.CONNECTING) {
+        applyProgress(null);
         setLive("Reconnecting…", "wait", "Live updates paused; reconnecting");
         return;
       }

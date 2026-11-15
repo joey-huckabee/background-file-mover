@@ -64,6 +64,7 @@ impl Board {
     pub(crate) fn remove(&self, job: i64) {
         self.entries().remove(&job);
     }
+    #[cfg(test)]
     pub(crate) fn is_empty(&self) -> bool {
         self.entries().is_empty()
     }

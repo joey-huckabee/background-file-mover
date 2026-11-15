@@ -541,18 +541,21 @@ async fn wait(
                 Wake::Closed
             });
         }
+        // Due timers before changes: they fire at most every few seconds, so
+        // they cannot starve changes, while a steady stream of changes would
+        // otherwise starve them (no speed updates or keepalives).
+        if heartbeat.poll_tick(cx).is_ready() {
+            return Poll::Ready(Wake::Heartbeat);
+        }
+        if progress.poll_tick(cx).is_ready() {
+            return Poll::Ready(Wake::Progress);
+        }
         if let Poll::Ready(result) = changed.as_mut().poll(cx) {
             return Poll::Ready(if result.is_ok() {
                 Wake::Changed
             } else {
                 Wake::Closed
             });
-        }
-        if heartbeat.poll_tick(cx).is_ready() {
-            return Poll::Ready(Wake::Heartbeat);
-        }
-        if progress.poll_tick(cx).is_ready() {
-            return Poll::Ready(Wake::Progress);
         }
         Poll::Pending
     })
@@ -673,13 +676,17 @@ async fn events(
                 .await
             }
             Wake::Progress => {
-                // In-memory snapshot only; never touches transfers.
-                let active = !crate::progress::BOARD.is_empty();
+                // In-memory snapshot only; never touches transfers. Whether it
+                // is active comes from the snapshot actually sent.
+                let snapshot = crate::progress::BOARD.snapshot();
+                let active = snapshot["transfers"]
+                    .as_array()
+                    .is_some_and(|t| !t.is_empty());
                 if !active && !progress_shown {
                     continue;
                 }
                 progress_shown = active;
-                let data = crate::progress::BOARD.snapshot().to_string();
+                let data = snapshot.to_string();
                 send(
                     &mut stream,
                     format!("event: progress\ndata: {data}\n\n").as_bytes(),
@@ -1756,6 +1763,38 @@ fn base64(bytes: &[u8]) -> String {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn timed_wakes_are_not_starved_by_continuous_changes() {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_time()
+            .build()
+            .unwrap();
+        rt.block_on(async {
+            let (tx, mut changes) = tokio::sync::watch::channel(0u64);
+            let (_revoker, mut revoked) = tokio::sync::watch::channel(0u64);
+            let now = tokio::time::Instant::now();
+            let hour = std::time::Duration::from_secs(3600);
+            let period = std::time::Duration::from_millis(20);
+            let mut heartbeat = tokio::time::interval_at(now + hour, hour);
+            let mut progress = tokio::time::interval_at(now + period, period);
+            let started = std::time::Instant::now();
+            let (mut ticks, mut changed) = (0, 0);
+            while started.elapsed() < std::time::Duration::from_millis(400) {
+                // A change is always pending when the stream waits.
+                tx.send_modify(|v| *v += 1);
+                match super::wait(&mut changes, &mut revoked, &mut heartbeat, &mut progress).await {
+                    super::Wake::Progress => ticks += 1,
+                    super::Wake::Changed => {
+                        changed += 1;
+                        changes.borrow_and_update();
+                    }
+                    _ => {}
+                }
+            }
+            assert!(ticks >= 5, "progress ticks {ticks}");
+            assert!(changed > ticks, "changes still served: {changed}");
+        });
+    }
     use super::*;
 
     #[test]
