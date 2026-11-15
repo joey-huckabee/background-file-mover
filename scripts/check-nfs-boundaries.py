@@ -51,6 +51,12 @@ def main():
                         help="Qualify destination-full payload copying and audited recovery, including original-state restart")
     parser.add_argument("--source-storage", action="store_true",
                         help="Qualify source-space admission and unchanged-policy recovery on a bounded export")
+    parser.add_argument("--delivery-concurrency", type=int, default=1, choices=range(1, 9),
+                        help="Run the runtime, shutdown and coordinator-death matrices with this many delivery workers (shared destination custody when > 1)")
+    parser.add_argument("--parallel-shutdown", action="store_true",
+                        help="SC-199: two concurrent delivery sessions with partial staged copies, blocked by a hard-NFS outage at shutdown (needs --delivery-concurrency >= 2)")
+    parser.add_argument("--parallel-throughput", action="store_true",
+                        help="SC-200: measure delivery throughput to the NFS destination at --delivery-concurrency")
     parser.add_argument('--sync-observe', action='store_true', help='Correlate actual worker synchronization syscalls and RPC traffic; no invented reply-loss cases')
     parser.add_argument('--sync-capability', help='Passing independent synchronization capability report.json')
     args = parser.parse_args()
@@ -66,6 +72,9 @@ def main():
     assert not (args.shutdown and args.runtime), "select shutdown or runtime matrix, not both"
     assert not args.runtime or args.qualification_gate, "runtime checks require qualification artifacts"
     assert not args.long_outages_only or args.runtime, "long-outages-only requires --runtime"
+    assert not (args.parallel_shutdown or args.parallel_throughput) or args.qualification_gate, "parallel checks require qualification artifacts"
+    assert not args.parallel_shutdown or args.delivery_concurrency >= 2, "parallel shutdown needs --delivery-concurrency >= 2"
+    assert not (args.parallel_shutdown or args.parallel_throughput) or not any((args.runtime, args.shutdown, args.coordinator_death)), "run parallel checks on their own"
     assert not args.ownership or args.qualification_gate, "ownership probes require qualification artifacts"
     assert not args.enrollment_storage or args.qualification_gate, "storage probes require qualification artifacts"
     assert not args.delivery_storage or args.qualification_gate, "delivery storage probes require qualification artifacts"
@@ -119,6 +128,7 @@ def main():
     report["startup_only"] = args.startup_only
     report["shutdown_requested"] = args.shutdown
     report["runtime_requested"] = args.runtime
+    report["delivery_concurrency"] = args.delivery_concurrency
     report["ownership_requested"] = args.ownership
     report["enrollment_storage_requested"] = args.enrollment_storage
     report["delivery_storage_requested"] = args.delivery_storage
@@ -295,8 +305,15 @@ def main():
             assert execute("sha256sum /tmp/" + profile).stdout.split()[0] == digest
             loaded = execute("ldd -r /tmp/" + profile).stdout
             assert "not found" not in loaded and "undefined symbol" not in loaded
+            nfs_refusal = ("filesystem not qualified", "production NFS disabled")
+            # Enrolling the NFS source is where production proves the NFS refusal
+            # (since 109dc4e startup refuses unenrolled state before any source access).
+            enroll = execute("LD_BIND_NOW=1 /tmp/" + profile + " --initialize-source /tmp/local/config.json", "1000:1000", check=False)
+            assert enroll.returncode != 0 and any(reason in enroll.stderr for reason in nfs_refusal), (enroll.returncode, enroll.stdout, enroll.stderr)
+            assert execute("test ! -e /tmp/local/state/jobs.sqlite", "1000:1000", check=False).returncode == 0
+            report["checks"][profile + "_enrollment_rejected"] = enroll.stderr.strip()
             result = execute("LD_BIND_NOW=1 /tmp/" + profile + " /tmp/local/config.json", "1000:1000", check=False)
-            assert result.returncode != 0 and any(reason in result.stderr for reason in ("filesystem not qualified", "production NFS disabled"))
+            assert result.returncode != 0 and any(reason in result.stderr for reason in nfs_refusal + ("SourceEnrollmentRequired",)), (result.returncode, result.stdout, result.stderr)
             assert execute("test ! -e /tmp/local/state/jobs.sqlite", "1000:1000", check=False).returncode == 0
             report["checks"][profile + "_startup_rejected"] = result.stderr.strip()
         if qualification and not args.startup_only:
@@ -443,7 +460,7 @@ def main():
                 completed = run_runtime(run, execute, spawn, restore, server, output, client,
                                         artifact_hashes, report["coordinator_death"]["cases"], death_only=True,
                                         death_scope=args.death_scope or "claim-copy-verify", endpoints=endpoints,
-                                        case_runner=case_runner)
+                                        case_runner=case_runner, delivery_concurrency=args.delivery_concurrency)
                 report["coordinator_death"].update(completed)
                 complete = (len(report["coordinator_death"]["cases"]) == 8 if args.death_scope in {"bootstrap-source-read", "bootstrap-existing-state", "both-nfs-bootstrap", "destination-startup"}
                             else len(report["coordinator_death"]["cases"]) == 4 if args.death_scope in {"source-mid-copy", "lost-reply", "lost-link-reply", "claim-lost-reply"}
@@ -463,15 +480,37 @@ def main():
                     "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
                                       for name in ("check-nfs-boundaries.py", "nfs_runtime.py", "nfs_shutdown.py", "nfs_binding.py", "nfs_fixture_contract.py")}}
                 completed = run_runtime(run, execute, spawn, restore, server, output, client,
-                                        artifact_hashes, report["shutdown"]["cases"], shutdown_only=True)
+                                        artifact_hashes, report["shutdown"]["cases"], shutdown_only=True,
+                                        delivery_concurrency=args.delivery_concurrency)
                 report["shutdown"].update(completed)
                 assert report["shutdown"]["passed"], "NFS shutdown qualification failed; inspect cases"
+            if args.parallel_shutdown or args.parallel_throughput:
+                from nfs_runtime import run_runtime
+                from nfs_parallel import run_parallel_shutdown, run_parallel_throughput
+                artifact_hashes = dict(report["artifacts"])
+                artifact_hashes.update({"qualification-" + c["profile"]: c["binary_sha256"] for c in report["baseline"]["cases"]})
+                report["parallel"] = {"passed": False, "cases": [], "delivery_concurrency": args.delivery_concurrency,
+                    "driver_sha256": {name: hashlib.sha256((ROOT / "scripts" / name).read_bytes()).hexdigest()
+                                      for name in ("check-nfs-boundaries.py", "nfs_runtime.py", "nfs_parallel.py", "nfs_binding.py", "nfs_fixture_contract.py")}}
+                cases = report["parallel"]["cases"]
+                passed = True
+                if args.parallel_shutdown:
+                    passed &= run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, cases,
+                                          delivery_concurrency=args.delivery_concurrency,
+                                          case_runner=lambda Case: run_parallel_shutdown(Case, run, execute, spawn, restore, server, output, client, cases, args.delivery_concurrency))["passed"]
+                if args.parallel_throughput:
+                    passed &= run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, cases,
+                                          delivery_concurrency=args.delivery_concurrency,
+                                          case_runner=lambda Case: run_parallel_throughput(Case, execute, cases, args.delivery_concurrency))["passed"]
+                report["parallel"]["passed"] = passed
+                assert passed, "NFS parallel delivery checks failed; inspect cases"
             if args.runtime:
                 from nfs_runtime import run_runtime
                 artifact_hashes = dict(report["artifacts"])
                 artifact_hashes.update({"qualification-" + c["profile"]: c["binary_sha256"] for c in report["baseline"]["cases"]})
                 report["runtime"] = {"passed": False, "cases": []}
-                completed = run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, report["runtime"]["cases"], long_only=args.long_outages_only)
+                completed = run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, report["runtime"]["cases"], long_only=args.long_outages_only,
+                                        delivery_concurrency=args.delivery_concurrency)
                 report["runtime"]["passed"] = completed["passed"]
                 if not report["runtime"]["passed"]:
                     raise RuntimeError("NFS Rust runtime qualification failed; inspect cases")
@@ -605,7 +644,9 @@ def main():
         if args.isolated_startup:
             assert "Source bootstrap termination requested" in startup_log
         else:
-            assert any(reason in startup_log for reason in ("filesystem not qualified", "production NFS disabled"))
+            # Since 109dc4e production refuses unenrolled state locally, before
+            # any source access; the NFS refusal itself is proven at enrollment.
+            assert any(reason in startup_log for reason in ("filesystem not qualified", "production NFS disabled", "SourceEnrollmentRequired")), startup_log
         report["checks"]["restored"] = "Stable root/namespace identity; metadata recovered and source lock became available"
         assert not args.coordinator_death or report["coordinator_death"]["passed"], "NFS coordinator-death qualification failed; inspect case outcomes and required closed-guard coverage"
         report["status"] = "PASSED"

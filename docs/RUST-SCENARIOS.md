@@ -999,3 +999,10 @@ qualified runtime evidence are unchanged; no new runtime support is claimed.
 | SC-196 | Retry has no captured eligible review | Frozen null permanently skips; fresh deliberate intent is needed. | Group 53/API-E145; admin runtime pending. |
 | SC-197 | Cancellation response is lost | Current-state redispatch; pending duplicate fails, completed/cancelled/missing skip. | Group 53/API-E146; runtime pending. |
 | SC-198 | Valid deletion selects nothing eligible | 202/zero/not pending; no filesystem removal. | Group 53/API-E147; runtime/deletion qualification pending. |
+
+## Parallel delivery on NFS (increment 153)
+
+| Situation ID | User situation | Approved behavior | Evidence/limit |
+|---|---|---|---|
+| SC-199 | Two deliveries are copying when the NFS destination stops answering | Shutdown reports incomplete at the original deadline with both workers; no competitor owns state; restart only after restoration and both workers' exit; both recordings then delivered intact. | Local NFS lab, increment 153; not a production approval. |
+| SC-200 | Several jobs deliver to an NFS destination | Throughput measured by worker count (first submission to last commit); every digest verified afterwards. | Local NFS lab measurement, increment 153. |

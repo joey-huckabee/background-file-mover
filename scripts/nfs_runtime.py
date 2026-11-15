@@ -10,7 +10,8 @@ import traceback
 from nfs_binding import binding_for, provision
 
 
-def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results, long_only=False, shutdown_only=False, death_only=False, death_scope="claim-copy-verify", endpoints=None, case_runner=None, nfs_root="/tmp/nfs", destination_nfs_root=None):
+def run_runtime(run, execute, spawn, restore, server, output, client, artifact_hashes, results, long_only=False, shutdown_only=False, death_only=False, death_scope="claim-copy-verify", endpoints=None, case_runner=None, nfs_root="/tmp/nfs", destination_nfs_root=None, delivery_concurrency=1):
+    assert isinstance(delivery_concurrency, int) and 1 <= delivery_concurrency <= 8
     expected = hashlib.sha256(bytes(2 * 1048576) + b"0123456789abcdefg").hexdigest()
     claim_points = {"claim_apply", "claim_link", "claim_link_rpc", "claim_unlink_rpc"}
     link_points = {"claim_link", "file_link"}
@@ -23,6 +24,9 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             if shutdown:
                 self.label += "-shutdown-" + ("default60" if shutdown_wait is None else str(shutdown_wait))
             self.label += suffix
+            if delivery_concurrency != 1:
+                # Parallel delivery: shared destination custody (increment 151).
+                self.label += f"-c{delivery_concurrency}"
             if both_nfs:
                 assert not production, "both-NFS effects require qualification artifacts"
                 self.label += "-2hosts" if independent_endpoints else "-2exports" if separate_exports else "-both-nfs"
@@ -47,7 +51,8 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
             self.service_logs = []
             self.worker = None
             self.service = None
-            self.result = {"profile": profile, "point": point, "production": production, "passed": False}
+            self.result = {"profile": profile, "point": point, "production": production, "passed": False,
+                           "delivery_concurrency": delivery_concurrency}
             if both_nfs:
                 self.result["layout"] = ("both-nfs-separate-exports-local-state" if separate_exports
                                          else "both-nfs-same-export-private-roots-local-state")
@@ -73,6 +78,8 @@ def run_runtime(run, execute, spawn, restore, server, output, client, artifact_h
                            "destination_root": self.destination, "state_database": self.base + "/state/jobs.sqlite"}
             if shutdown and shutdown_wait is not None:
                 self.config["shutdown_wait_seconds"] = shutdown_wait
+            if delivery_concurrency != 1:
+                self.config["delivery_concurrency"] = delivery_concurrency
             self.config["destination_binding"] = binding_for(self.label+"-destination", destination_nfs, "destination")
             self.config["source_binding"] = binding_for(self.label, source_nfs)
             if independent_endpoints:
