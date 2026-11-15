@@ -1554,6 +1554,12 @@ fn effect_child(
         .spawn()
         .unwrap();
     instance.send(&mut channel).unwrap();
+    if mode == "--internal-delivery-worker" {
+        // As the coordinator does: the advisory progress channel follows the
+        // instance proof. Unread here; the child never waits on it.
+        let (_coordinator, child_end) = mover_fs::progress_pair().unwrap();
+        mover_fs::send_progress_channel(&channel, &child_end).unwrap();
+    }
     (child, channel)
 }
 fn child_reply(

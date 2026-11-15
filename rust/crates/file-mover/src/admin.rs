@@ -19,6 +19,8 @@ const STREAMS: usize = crate::tls_executor::STREAM_JOBS;
 const STREAM_HEARTBEAT: Duration = Duration::from_secs(15);
 const STREAM_COALESCE: Duration = Duration::from_millis(250);
 const STREAM_WRITE: Duration = Duration::from_secs(2);
+/// Live transfer speed: sent this often while transfers are active.
+const STREAM_PROGRESS: Duration = Duration::from_secs(2);
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -516,6 +518,7 @@ enum Wake {
     Changed,
     Revoked,
     Heartbeat,
+    Progress,
     Closed,
 }
 
@@ -524,11 +527,12 @@ enum Wake {
 async fn wait(
     changes: &mut tokio::sync::watch::Receiver<u64>,
     revoked: &mut tokio::sync::watch::Receiver<u64>,
+    heartbeat: &mut tokio::time::Interval,
+    progress: &mut tokio::time::Interval,
 ) -> Wake {
     use std::task::Poll;
     let mut changed = std::pin::pin!(changes.changed());
     let mut revocation = std::pin::pin!(revoked.changed());
-    let mut heartbeat = std::pin::pin!(tokio::time::sleep(STREAM_HEARTBEAT));
     std::future::poll_fn(|cx| {
         if let Poll::Ready(result) = revocation.as_mut().poll(cx) {
             return Poll::Ready(if result.is_ok() {
@@ -537,15 +541,21 @@ async fn wait(
                 Wake::Closed
             });
         }
+        // Due timers before changes: they fire at most every few seconds, so
+        // they cannot starve changes, while a steady stream of changes would
+        // otherwise starve them (no speed updates or keepalives).
+        if heartbeat.poll_tick(cx).is_ready() {
+            return Poll::Ready(Wake::Heartbeat);
+        }
+        if progress.poll_tick(cx).is_ready() {
+            return Poll::Ready(Wake::Progress);
+        }
         if let Poll::Ready(result) = changed.as_mut().poll(cx) {
             return Poll::Ready(if result.is_ok() {
                 Wake::Changed
             } else {
                 Wake::Closed
             });
-        }
-        if heartbeat.as_mut().poll(cx).is_ready() {
-            return Poll::Ready(Wake::Heartbeat);
         }
         Poll::Pending
     })
@@ -637,8 +647,16 @@ async fn events(
     if !send(&mut stream, head.as_bytes()).await {
         return;
     }
+    let tick = |period| {
+        let mut i = tokio::time::interval_at(tokio::time::Instant::now() + period, period);
+        i.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        i
+    };
+    let (mut heartbeat, mut progress) = (tick(STREAM_HEARTBEAT), tick(STREAM_PROGRESS));
+    // Whether the page last saw active transfers (so it also sees them end).
+    let mut progress_shown = false;
     loop {
-        let wake = wait(&mut changes, &mut revoked).await;
+        let wake = wait(&mut changes, &mut revoked, &mut heartbeat, &mut progress).await;
         if matches!(wake, Wake::Closed) {
             break;
         }
@@ -654,6 +672,24 @@ async fn events(
                 send(
                     &mut stream,
                     format!("event: changed\ndata: {{\"version\":{version}}}\n\n").as_bytes(),
+                )
+                .await
+            }
+            Wake::Progress => {
+                // In-memory snapshot only; never touches transfers. Whether it
+                // is active comes from the snapshot actually sent.
+                let snapshot = crate::progress::BOARD.snapshot();
+                let active = snapshot["transfers"]
+                    .as_array()
+                    .is_some_and(|t| !t.is_empty());
+                if !active && !progress_shown {
+                    continue;
+                }
+                progress_shown = active;
+                let data = snapshot.to_string();
+                send(
+                    &mut stream,
+                    format!("event: progress\ndata: {data}\n\n").as_bytes(),
                 )
                 .await
             }
@@ -1727,6 +1763,38 @@ fn base64(bytes: &[u8]) -> String {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn timed_wakes_are_not_starved_by_continuous_changes() {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_time()
+            .build()
+            .unwrap();
+        rt.block_on(async {
+            let (tx, mut changes) = tokio::sync::watch::channel(0u64);
+            let (_revoker, mut revoked) = tokio::sync::watch::channel(0u64);
+            let now = tokio::time::Instant::now();
+            let hour = std::time::Duration::from_secs(3600);
+            let period = std::time::Duration::from_millis(20);
+            let mut heartbeat = tokio::time::interval_at(now + hour, hour);
+            let mut progress = tokio::time::interval_at(now + period, period);
+            let started = std::time::Instant::now();
+            let (mut ticks, mut changed) = (0, 0);
+            while started.elapsed() < std::time::Duration::from_millis(400) {
+                // A change is always pending when the stream waits.
+                tx.send_modify(|v| *v += 1);
+                match super::wait(&mut changes, &mut revoked, &mut heartbeat, &mut progress).await {
+                    super::Wake::Progress => ticks += 1,
+                    super::Wake::Changed => {
+                        changed += 1;
+                        changes.borrow_and_update();
+                    }
+                    _ => {}
+                }
+            }
+            assert!(ticks >= 5, "progress ticks {ticks}");
+            assert!(changed > ticks, "changes still served: {changed}");
+        });
+    }
     use super::*;
 
     #[test]

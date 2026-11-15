@@ -112,6 +112,33 @@
     return whole.toString() + "." + frac + " " + units[u] + " (" + n.toString() + " bytes)";
   }
   function short(value) { return bytes(value).split(" (")[0]; }
+  // ---- Live transfer speed (event "progress", about every 2 s) ----
+  // Text for one active transfer, e.g. "Copying file 2 of 4 · 45% · 52.10 MiB/s".
+  function speedText(t) {
+    if (!t) { return ""; }
+    var total = BigInt(t.bytes_total), done = BigInt(t.bytes_done);
+    var pct = total > 0n ? (done * 100n / total).toString() + "%" : "";
+    var parts = [(t.phase === "verifying" ? "Verifying" : "Copying") + " file " +
+      (Number(t.file_id) + 1) + " of " + t.file_count];
+    if (pct) { parts.push(pct); }
+    parts.push(BigInt(t.bytes_per_second) > 0n ? short(t.bytes_per_second) + "/s" : "waiting for I/O");
+    return parts.join(" · ");
+  }
+  function totalSpeedText(body) {
+    if (!body || !body.transfers || !body.transfers.length) { return ""; }
+    var n = body.transfers.length;
+    return n + (n === 1 ? " transfer" : " transfers") + " · " + short(body.bytes_per_second) + "/s";
+  }
+  var liveTransfers = {}, liveSummary = "";
+  function applyProgress(body) {
+    liveTransfers = {};
+    ((body && body.transfers) || []).forEach(function (t) { liveTransfers[t.job_id] = t; });
+    liveSummary = totalSpeedText(body);
+    $("flow-delivering-note").textContent = liveSummary || "Files taken over, copying";
+    document.querySelectorAll(".speed[data-job]").forEach(function (s) {
+      s.textContent = speedText(liveTransfers[s.dataset.job]);
+    });
+  }
   function time(seconds) {
     if (seconds === null || seconds === undefined) { return "—"; }
     var n = Number(seconds);
@@ -338,7 +365,10 @@
     allItems.slice(-5).reverse().forEach(function (item) {
       var tr = el("tr");
       tr.appendChild(jobCell(item));
-      var p = el("td"); p.appendChild(progress(item, item.transfer_mode)); tr.appendChild(p);
+      var p = el("td"); p.appendChild(progress(item, item.transfer_mode));
+      var speed = el("span", speedText(liveTransfers[item.job_id]), "speed");
+      speed.dataset.job = item.job_id; speed.setAttribute("aria-live", "off");
+      p.appendChild(speed); tr.appendChild(p);
       tr.appendChild(el("td", item.files_delivered + " of " + item.files_total));
       tr.appendChild(el("td", short(item.measured_bytes)));
       tr.appendChild(folderCell(item.source_folder, "source"));
@@ -421,7 +451,10 @@
       var id = identityLabel(item);
       cell.appendChild(el("span", id[0] + " " + id[1], "sub mono"));
       tr.appendChild(cell);
-      var p = el("td"); p.appendChild(progress(item, item.transfer_mode)); tr.appendChild(p);
+      var p = el("td"); p.appendChild(progress(item, item.transfer_mode));
+      var speed = el("span", speedText(liveTransfers[item.job_id]), "speed");
+      speed.dataset.job = item.job_id; speed.setAttribute("aria-live", "off");
+      p.appendChild(speed); tr.appendChild(p);
       tr.appendChild(el("td", item.files_delivered + " of " + item.files_total));
       var size = item.unmeasured_files > 0n
         ? short(item.measured_bytes) + " + " + item.unmeasured_files + " unmeasured"
@@ -1447,6 +1480,7 @@
     if (events) { events.close(); events = null; }
     if (liveRetry) { clearTimeout(liveRetry); liveRetry = null; }
     liveConnected = false;
+    applyProgress(null); // Speeds are only shown while the stream reports them.
   }
   function startLive() {
     stopLive();
@@ -1457,6 +1491,9 @@
     setLive("Connecting…", "wait", "Connecting to live updates");
     events = new EventSource("/api/v2/admin/events");
     events.addEventListener("ready", function () {
+      // A new stream reports active transfers within one interval; anything
+      // shown from before the (re)connect may have finished meanwhile.
+      applyProgress(null);
       setLive("Live", "on", "This page updates automatically when jobs change.");
       // Any change between the last read and this subscription would otherwise
       // be lost: re-read what is visible on every (re)connect.
@@ -1464,10 +1501,14 @@
       refreshVisible();
     });
     events.addEventListener("changed", function () { refreshVisible(); });
+    events.addEventListener("progress", function (e) {
+      try { applyProgress(parseJSON(e.data)); } catch (err) { applyProgress(null); }
+    });
     events.addEventListener("signed-out", function () { stopLive(); show(false); });
     events.onerror = function () {
       if (!events) { return; }
       if (events.readyState === EventSource.CONNECTING) {
+        applyProgress(null);
         setLive("Reconnecting…", "wait", "Live updates paused; reconnecting");
         return;
       }
