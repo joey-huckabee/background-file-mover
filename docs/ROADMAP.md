@@ -331,6 +331,17 @@ features. Do not treat candidate names as compatibility approval.
 - [ ] Rewrite architecture, configuration, CLI, logging, deployment, user,
   feature-interaction, maintainer and 12-factor documentation as the Rust contracts
   settle. Keep deployment artifacts and documentation under relevant CI checks.
+- [ ] Deferred (user, 2026-11-15; resources): restore coordinator-death coverage
+  of the kernel-closed guard. NFS-QUALIFICATION requires observing, in both
+  builds, a terminating worker still in `D` after the kernel closed its guard
+  (the increment 46 counterexample; increment 47 fix). The lab host's newer
+  kernel (6.18 WSL2) never produces it: killed NFS readers exit promptly and
+  blocked NFS writers keep their guard (runs `nfs-20261115T114721Z-492a3abf`
+  at one worker and `...121758Z-8e686fe0` at two; all 18 cases otherwise pass).
+  Options: a qualification-only hook that makes a blocked worker drop its
+  inherited guard (proves the fix on any kernel; changes the pass rule), or a
+  host whose kernel shows the behavior. Until then the matrix cannot pass on
+  this host. See [increment 157](RUST-INCREMENT-157.md).
 - [ ] Rehearse cutover and rollback with durable state and transfer ownership.
   Prevent old and new daemons from manipulating the same source namespace.
 
