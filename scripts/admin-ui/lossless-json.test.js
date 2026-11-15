@@ -151,7 +151,7 @@ console.log('byte formatting ok');
   assert.match(cancelled, /never delivered\. These are the only copies of the recording and will be permanently destroyed/);
   assert.strictEqual(del.blocked({ targets: [] }), true);
   assert.match(del.question('7', { state: 'Committed' }, { targets: [] }), /Nothing to delete/);
-  assert.match(deleteOutcome(parseJSON('{"deleted_count":0,"failed_count":0,"completion_pending":true}')), /Deleting held copies/);
+  assert.match(deleteOutcome(parseJSON('{"deleted_count":0,"failed_count":0,"completion_pending":true}')), /Deleting source files/);
   assert.match(deleteOutcome(parseJSON('{"deleted_count":2,"failed_count":1,"completion_pending":false}')), /2 deleted, 1 could not be deleted/);
   console.log('delete confirmation wording ok');
 }
@@ -159,7 +159,7 @@ console.log('byte formatting ok');
 // Bulk selection: eligibility, wording and outcomes.
 {
   const bSrc = src.slice(src.indexOf('  function bulkEligible('), src.indexOf('  function startBulk('));
-  const { bulkEligible, bulkQuestion, bulkOutcome } = new Function(bSrc + '; return { bulkEligible: bulkEligible, bulkQuestion: bulkQuestion, bulkOutcome: bulkOutcome };')();
+  const { bulkEligible, bulkQuestion, bulkOutcome, clearAllPlan } = new Function(bSrc + '; return { bulkEligible: bulkEligible, bulkQuestion: bulkQuestion, bulkOutcome: bulkOutcome, clearAllPlan: clearAllPlan };')();
   const delivered = { state: 'Committed', condition: 'Committed' };
   const review = { state: 'Claimed', condition: 'ReviewRequired' };
   const pending = { state: 'Claimed', condition: 'CancellationPending' };
@@ -172,6 +172,17 @@ console.log('byte formatting ok');
   assert.match(bulkQuestion('clear-history', ids), /15 job\(s\).*#12 and 3 more\?.*recording IDs.*treated as a new recording/);
   assert.match(bulkOutcome('cancel', parseJSON('{"accepted_count":2,"failed_count":0,"skipped_count":1}')), /2 cancelling, 1 skipped/);
   assert.match(bulkOutcome('clear-history', parseJSON('{"cleared_count":3}')), /3 job\(s\) removed/);
+  // Clear history button: only delivered or cancelled jobs, oldest first, 256 per request.
+  const items = [{ job_id: '10', ...delivered }, { job_id: '9', ...review }, { job_id: '2', ...cancelled }, { job_id: '5', ...pending }];
+  assert.deepStrictEqual(clearAllPlan(items).ids, ['2', '10']);
+  assert.strictEqual(clearAllPlan(items).note, '');
+  assert.strictEqual(clearAllPlan([review]).ids.length, 0);
+  const many = Array.from({ length: 300 }, (_, i) => ({ job_id: String(300 - i), ...delivered }));
+  const plan = clearAllPlan(many);
+  assert.strictEqual(plan.ids.length, 256);
+  assert.strictEqual(plan.ids[0], '1');
+  assert.strictEqual(plan.ids[255], '256');
+  assert.match(plan.note, /click Clear history again for the other 44/);
   console.log('bulk selection ok');
 }
 
