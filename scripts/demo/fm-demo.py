@@ -15,9 +15,12 @@ Commands:
   start | stop | status Run, stop or inspect the demo service.
   add-job [--count N] [--interval S] [--size-mb M] [--files K]
                         Submit synthetic jobs while the dashboard is open.
+  bench [--jobs N] [--files K] [--size-mb M]
+                        Delivery benchmark: submit N jobs of K equal files at
+                        once, wait until all are delivered, report MiB/s.
   reset                 Stop the service and delete all demo state.
 """
-import argparse, fcntl, json, os, pwd, shutil, socket, stat, subprocess, sys, time, uuid
+import argparse, fcntl, json, math, os, pwd, shutil, socket, stat, subprocess, sys, time, uuid
 from pathlib import Path
 
 USER = os.environ.get("FM_DEMO_USER", "joey")
@@ -33,7 +36,7 @@ DATA = Path(ACCOUNT.pw_dir) / "fm-demo"
 MARKER = DATA / ".fm-demo"
 LOCK = DATA / ".fm-demo.lock"
 # Commands that can start, stop or change demo state run one at a time.
-SERIALIZED = {"setup", "start", "stop", "reset", "add-job", "unblock"}
+SERIALIZED = {"setup", "start", "stop", "reset", "add-job", "unblock", "bench"}
 # Foreign files planted by add-job --blocked; only these are ever removed by unblock.
 BLOCKERS = DATA / "blockers.json"
 BLOCKER_TEXT = b"fm-demo blocker: not written by the mover\n"
@@ -183,7 +186,7 @@ def http(sock, method, path, body=b""):
     return int(head.split()[1]), json.loads(payload or b"null")
 
 
-def submit(files, sizes, recording_id=None):
+def write_files(files, sizes, sync=False):
     current = ROOT / "source/current"
     for rel, size in zip(files, sizes):
         path = current / rel
@@ -195,6 +198,15 @@ def submit(files, sizes, recording_id=None):
                 chunk = min(remaining, 4 << 20)
                 f.write(os.urandom(chunk))
                 remaining -= chunk
+            if sync:
+                f.flush()
+                os.fsync(f.fileno())
+
+
+def submit(files, sizes, recording_id=None, write=True):
+    current = ROOT / "source/current"
+    if write:
+        write_files(files, sizes)
     body = {"recording_id": recording_id or str(uuid.uuid4()), "generator_id": "recorder", "source_directory": str(current),
             "files": files, "expected_sizes_bytes": {k: str(v) for k, v in zip(files, sizes)}}
     try:
@@ -449,6 +461,81 @@ def cmd_add_job(a):
             time.sleep(a.interval)
 
 
+def job_condition(job_id):
+    s = socket.socket(socket.AF_UNIX)
+    s.settimeout(30)
+    try:
+        s.connect(str(ROOT / "operator/api.sock"))
+        status, body = http(s, "GET", f"/api/v2/jobs/{job_id}")
+    finally:
+        s.close()
+    if status != 200 or not isinstance(body, dict):
+        return f"http {status}"
+    return body.get("details", {}).get("condition") or str(body.get("state"))
+
+
+def cmd_bench(a):
+    """Delivery throughput on this machine's disks. Files are written first (not
+    timed); the clock runs from the first submission until every job is
+    delivered, so it includes taking over the files and verification."""
+    # Validate before writing anything (the producer accepts 1-256 files).
+    if a.jobs < 1 or a.jobs > 64 or not 1 <= a.files <= 256:
+        fail("bench needs 1-64 jobs and 1-256 files per job")
+    if not (math.isfinite(a.size_mb) and 0 < a.size_mb <= 65536 and math.isfinite(a.timeout) and a.timeout > 0):
+        fail("bench needs a positive file size (at most 65536 MiB) and timeout")
+    if not a.inner:
+        inner("bench", ["--jobs", str(a.jobs), "--files", str(a.files), "--size-mb", str(a.size_mb),
+                        "--timeout", str(a.timeout)])
+    if is_root():
+        fail("internal bench must not run as root")
+    demo_data()
+    size = max(1, int(a.size_mb * (1 << 20)))
+    batches = []
+    for _ in range(a.jobs):
+        # Full UUID, and the folder must be new: never overwrite staged input.
+        name = f"bench-{uuid.uuid4()}"
+        (ROOT / "source/current").mkdir(parents=True, exist_ok=True)
+        os.mkdir(ROOT / "source/current" / name, 0o700)
+        files = [f"{name}/part-{i}.bin" for i in range(a.files)]
+        write_files(files, [size] * a.files, sync=True)  # a finished recording is on disk
+        batches.append(files)
+    total = a.jobs * a.files * size
+    say(f"wrote {a.jobs} job(s) x {a.files} file(s) x {a.size_mb:g} MiB = {total / (1 << 20):.0f} MiB; delivering")
+    start = time.monotonic()
+    ids = []
+    for files in batches:
+        # Taking over large files can outlast one request: like a real sender,
+        # resubmit the same recording until it is accepted (202).
+        recording_id = str(uuid.uuid4())
+        while True:
+            status, body = submit(files, [size] * a.files, recording_id, write=False)
+            if status == 202:
+                break
+            if status != 503 or not body.get("retryable"):
+                fail(f"submission refused: {status} {body}")
+            if time.monotonic() - start > a.timeout:
+                fail("timed out waiting for submissions to be accepted")
+            time.sleep(0.25)
+        ids.append(body["job_id"])
+    accepted = time.monotonic() - start
+    pending = set(ids)
+    while pending:
+        for job_id in sorted(pending):
+            condition = job_condition(job_id)
+            if condition == "Committed":
+                pending.discard(job_id)
+            elif condition in ("ReviewRequired", "Cancelled", "CancellationPending") or condition.startswith("http"):
+                fail(f"job #{job_id} stopped: {condition}")
+        if time.monotonic() - start > a.timeout:
+            fail(f"timed out after {a.timeout} s; {len(pending)} job(s) not delivered")
+        if pending:
+            time.sleep(0.25)
+    elapsed = time.monotonic() - start
+    say(f"delivered {len(ids)} job(s) #{ids[0]}..#{ids[-1]} in {elapsed:.1f} s: "
+        f"{total / (1 << 20) / elapsed:.1f} MiB/s, {a.jobs * a.files / elapsed:.2f} files/s "
+        f"(all accepted after {accepted:.1f} s)")
+
+
 def cmd_unblock(a):
     """Remove only the foreign files add-job --blocked planted (exact content
     check), so a reviewed Retry delivery can succeed."""
@@ -530,6 +617,13 @@ def main():
                    help="plant a foreign file at the destination so delivery stops for review")
     j.add_argument("--inner", action="store_true", help=argparse.SUPPRESS)
     j.set_defaults(fn=cmd_add_job)
+    b = sub.add_parser("bench", help="delivery throughput benchmark")
+    b.add_argument("--jobs", type=int, default=4)
+    b.add_argument("--files", type=int, default=4, help="files per job, all the same size")
+    b.add_argument("--size-mb", type=float, default=64.0, help="size of each file in MiB")
+    b.add_argument("--timeout", type=float, default=1800.0, help=argparse.SUPPRESS)
+    b.add_argument("--inner", action="store_true", help=argparse.SUPPRESS)
+    b.set_defaults(fn=cmd_bench)
     u = sub.add_parser("unblock", help="remove files planted by add-job --blocked")
     u.add_argument("--inner", action="store_true", help=argparse.SUPPRESS)
     u.set_defaults(fn=cmd_unblock)
