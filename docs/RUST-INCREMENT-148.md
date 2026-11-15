@@ -16,6 +16,19 @@ dashboard. Plan (one PR per step, each with review and both SLES gates):
 8. Configurable copy buffer (L2-COPY-002).
 9. Benchmark again; recommend defaults.
 
+Requirements the later steps must meet (from review):
+- A job stays registered as active until its worker child has exited and its
+  final result is persisted; settlement and online clear read that set inside
+  their store transactions, serialized with admission.
+- Deletion targets get exclusive acquisition (or one deletion dispatcher):
+  `next_deletion_target()` only reads Pending, so two consumers could otherwise
+  run the same target.
+- Shutdown joins every dispatcher and worker child within one deadline and
+  never releases custody early.
+- Step 7: an all-files completion barrier before manifest publication and
+  commit, per-file atomic reservations, and draining of the other files on
+  cancellation or failure.
+
 ## Change
 
 `fm-demo bench [--jobs N] [--files K] [--size-mb M]` (development only):
@@ -24,6 +37,14 @@ all jobs, resubmitting while the service answers `handoff_pending` (as a real
 sender does), and polls the operator socket until every job is Committed. It
 reports MiB/s, files/s and when all jobs were accepted. Any job that stops for
 review or is cancelled fails the run. `write_files` is split out of `submit`.
+
+## Review fixes
+
+- Each benchmark job folder uses a full UUID and is created exclusively, so a
+  run never overwrites staged input.
+- Arguments are validated before any file is written (1-64 jobs, 1-256 files,
+  finite positive size and timeout).
+- `--timeout` is passed through to the inner run.
 
 ## Baseline (main at 4d7b024, WSL2 demo, local ext4 on a virtual disk)
 

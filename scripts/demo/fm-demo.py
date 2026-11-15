@@ -20,7 +20,7 @@ Commands:
                         once, wait until all are delivered, report MiB/s.
   reset                 Stop the service and delete all demo state.
 """
-import argparse, fcntl, json, os, pwd, shutil, socket, stat, subprocess, sys, time, uuid
+import argparse, fcntl, json, math, os, pwd, shutil, socket, stat, subprocess, sys, time, uuid
 from pathlib import Path
 
 USER = os.environ.get("FM_DEMO_USER", "joey")
@@ -478,15 +478,24 @@ def cmd_bench(a):
     """Delivery throughput on this machine's disks. Files are written first (not
     timed); the clock runs from the first submission until every job is
     delivered, so it includes taking over the files and verification."""
+    # Validate before writing anything (the producer accepts 1-256 files).
+    if a.jobs < 1 or a.jobs > 64 or not 1 <= a.files <= 256:
+        fail("bench needs 1-64 jobs and 1-256 files per job")
+    if not (math.isfinite(a.size_mb) and 0 < a.size_mb <= 65536 and math.isfinite(a.timeout) and a.timeout > 0):
+        fail("bench needs a positive file size (at most 65536 MiB) and timeout")
     if not a.inner:
-        inner("bench", ["--jobs", str(a.jobs), "--files", str(a.files), "--size-mb", str(a.size_mb)])
+        inner("bench", ["--jobs", str(a.jobs), "--files", str(a.files), "--size-mb", str(a.size_mb),
+                        "--timeout", str(a.timeout)])
     if is_root():
         fail("internal bench must not run as root")
     demo_data()
-    size = int(a.size_mb * (1 << 20))
+    size = max(1, int(a.size_mb * (1 << 20)))
     batches = []
     for _ in range(a.jobs):
-        name = f"bench-{time.strftime('%H%M%S')}-{uuid.uuid4().hex[:4]}"
+        # Full UUID, and the folder must be new: never overwrite staged input.
+        name = f"bench-{uuid.uuid4()}"
+        (ROOT / "source/current").mkdir(parents=True, exist_ok=True)
+        os.mkdir(ROOT / "source/current" / name, 0o700)
         files = [f"{name}/part-{i}.bin" for i in range(a.files)]
         write_files(files, [size] * a.files, sync=True)  # a finished recording is on disk
         batches.append(files)
