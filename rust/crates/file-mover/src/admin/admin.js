@@ -379,6 +379,19 @@
     if (!allItems.length) {
       var empty = el("tr"); var td = el("td", "No jobs are kept yet.", "muted"); td.colSpan = 5; empty.appendChild(td); rows.appendChild(empty);
     }
+    labelCells(rows);
+  }
+  // Narrow windows show rows as stacked cards; label each value with its column.
+  function labelCells(tbody) {
+    var heads = Array.prototype.map.call(tbody.closest("table").querySelectorAll("thead th"), function (th) {
+      return th.textContent.replace(/[▲▼]/g, "").trim();
+    });
+    Array.prototype.forEach.call(tbody.children, function (tr) {
+      if (tr.classList.contains("detail-row")) { return; }
+      Array.prototype.forEach.call(tr.children, function (td, i) {
+        if (td.colSpan === 1 && heads[i] && heads[i] !== "Job") { td.dataset.label = heads[i]; }
+      });
+    });
   }
   function renderAttention() {
     var list = allItems.filter(function (i) { return i.condition === "ReviewRequired"; });
@@ -396,6 +409,7 @@
       tr.appendChild(folderCell(item.destination_folder, "destination"));
       rows.appendChild(tr);
     });
+    labelCells(rows);
   }
   function loadOverviewStorage() {
     return request("/api/v2/retention", false, "overview").then(function (r) {
@@ -466,6 +480,23 @@
       tr.appendChild(folderCell(item.destination_folder, "destination"));
       rows.appendChild(tr);
     });
+    if (body.total === 0) {
+      // Nothing to show: say why, and offer the way back when filtered.
+      var none = el("tr"); var cell = el("td", null, "empty-results"); cell.colSpan = 7;
+      var filtered = query !== "" || filter !== "all";
+      cell.appendChild(el("p", allItems.length === 0 ? "No jobs are kept yet." : "No jobs match these filters."));
+      if (filtered && allItems.length) {
+        var reset = el("button", "Show all jobs", "button");
+        reset.type = "button";
+        reset.addEventListener("click", function () {
+          filter = "all"; query = ""; $("search").value = ""; page = 0; openJob = null;
+          syncFilters(); renderHistory(false); $("search").focus();
+        });
+        cell.appendChild(reset);
+      }
+      none.appendChild(cell); rows.appendChild(none);
+    }
+    labelCells(rows);
     $("prev").disabled = page === 0;
     $("next").disabled = page + 1 >= body.pages;
     renderSelection();

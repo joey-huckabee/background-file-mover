@@ -123,3 +123,36 @@ nav a.active .nav-count.amber{background:#f8efd9;color:#7d5a1d}
 #confirm-dialog .dialog-body p{overflow-wrap:anywhere}#confirm-dialog .dialog-warning{line-height:1.6}
 .speed{display:block;margin-top:5px;font-size:10px;color:#527744;font-variant-numeric:tabular-nums}.speed:empty{display:none}
 .pick{width:36px}#selection{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 20px;border-bottom:1px solid var(--line);background:#fbfaf4}#selection[hidden]{display:none}#selection .notice{flex-basis:100%;margin:0}#selection p.muted{flex-basis:100%;margin:0}
+/* Robustness pass (increment 158). Contrast: text meets WCAG AA (4.5:1) on its
+   actual background; decorative separators and disabled controls excepted. */
+.live{color:#5a665f}.live.on{color:#2f6b45}
+.breadcrumb,.secure,.subhead,.eyebrow,th,.card-caption,dt,.muted,.stat-top,.stat-bottom,.capacity-note,.card-foot,.phase-note,.mono,.folder-cell,.table-footer,#history-status,.facts dt{color:#5a665f}
+.step{color:#5a665f}.pill{color:#3c5a44}
+.attention-strip p,.stat.attention .stat-bottom{color:#7a5414}
+nav a.active .nav-count{color:#3c5a44}.nav-label{color:#9fb5a6}
+/* Expanded job detail: the width of the visible card, not of the (wider,
+   horizontally scrolling) table, so every panel is readable without scrolling. */
+.table-scroll{container-type:inline-size}
+tr.detail-row .detail{position:sticky;left:16px;width:calc(100cqw - 32px);box-sizing:border-box}
+/* Empty results: a clear message with a way back. */
+td.empty-results{padding:40px 16px;text-align:center;color:#5a665f}
+td.empty-results .button{margin-top:12px}
+@media(max-width:800px){
+  .top-right{gap:8px}.secure,.top-divider{display:none}
+  /* Status dot only; the wording stays available to screen readers. */
+  .live{font-size:0;gap:0}
+  .breadcrumb{gap:6px}
+  .tabs{flex-wrap:wrap}
+}
+@media(max-width:600px){
+  /* Tables become stacked cards; each value is labelled with its column. */
+  .card table thead{display:none}
+  .card table,.card table tbody,.card table tr,.card table td{display:block;width:auto}
+  .card table tr{padding:10px 16px;border-bottom:1px solid var(--line)}
+  .card table tr:last-child{border-bottom:0}
+  .card table td{border:0;padding:3px 0;white-space:normal}
+  .card table td[data-label]::before{content:attr(data-label);display:block;font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:#5a665f}
+  .card table td.pick{float:right}
+  .folder-cell{max-width:none;overflow-wrap:anywhere;white-space:normal}
+  tr.detail-row .detail{position:static;width:auto}
+}
