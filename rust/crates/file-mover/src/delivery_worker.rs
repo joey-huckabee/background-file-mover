@@ -37,6 +37,15 @@ impl std::fmt::Display for DeliveryCancelled {
     }
 }
 impl std::error::Error for DeliveryCancelled {}
+/// A destination capacity reservation taken by `Store::transfer_capacity`.
+/// Saving the attempt consumes it; dropping this releases it if the attempt
+/// was never saved (failure, cancellation or stop).
+struct Reserved<'a>(&'a Store, i64, usize);
+impl Drop for Reserved<'_> {
+    fn drop(&mut self) {
+        let _ = self.0.release_transfer_capacity(self.1, self.2);
+    }
+}
 fn stop_if_cancelled(store: &Store, id: i64) -> Result<()> {
     if store.cancellation_requested(id)? {
         return Err(Box::new(DeliveryCancelled));
@@ -434,6 +443,7 @@ fn deliver_steps(
         let mut t = match existing {
             Some(t) if t.phase == TransferPhase::Intent => {
                 store.transfer_capacity(id, index)?;
+                let _reserved = Reserved(store, id, index); // until saved or abandoned
                 let next = session.transfer(
                     Operation::Restart {
                         assignment: Assignment::new(&t, &c),
@@ -453,6 +463,7 @@ fn deliver_steps(
             Some(t) => t,
             None => {
                 store.transfer_capacity(id, index)?;
+                let _reserved = Reserved(store, id, index); // until saved or abandoned
                 let mut template = if index > 0 {
                     store.transfer(id, 0)?.ok_or("missing recording anchor")?
                 } else {

@@ -185,6 +185,90 @@ fn retention_reports_pending_observations_without_truncating_large_totals() {
     assert!(r.configured_limits.is_none());
 }
 #[test]
+fn destination_capacity_check_and_reservation_are_one_step() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let mut c = context();
+    c.policy.group_by_generator = false;
+    let input = Submission::new(
+        "g",
+        "reservations",
+        "/mnt/recordings/current",
+        vec![
+            FileSpec::new("a", None).unwrap(),
+            FileSpec::new("b", None).unwrap(),
+        ],
+    )
+    .unwrap();
+    let j = s.accept(&input, &c).unwrap();
+    let mut intents = Vec::new();
+    for index in 0..2 {
+        let mut intent = intent_for(&j, index, 3);
+        intent.source.inode += index as u64;
+        s.begin_claim(&intent).unwrap();
+        s.finish_claim(&intent).unwrap();
+        intents.push(intent);
+    }
+    // Room for 3 more destination bytes beside the 6 held at the source
+    // (limits apply per side).
+    s.configure_limits(10, 5).unwrap();
+    // Two concurrent deliveries: the first reservation holds the room.
+    s.transfer_capacity(j.job_id, 0).unwrap();
+    assert!(matches!(
+        s.transfer_capacity(j.job_id, 1),
+        Err(StoreError::AdmissionFull)
+    ));
+    // Re-checking the same file does not count its own reservation twice.
+    s.transfer_capacity(j.job_id, 0).unwrap();
+    // A released (unsaved) attempt frees the room.
+    s.release_transfer_capacity(j.job_id, 0).unwrap();
+    s.release_transfer_capacity(j.job_id, 0).unwrap(); // no-op
+    s.transfer_capacity(j.job_id, 1).unwrap();
+    // While file 1 holds the room, file 0 cannot save a new attempt either.
+    let intent = &intents[0];
+    let t = Transfer {
+        job_id: j.job_id,
+        recording_directory: j.job_id.to_string(),
+        file_index: 0,
+        attempt: 1,
+        destination_root: c.destination_path.clone(),
+        relative_name: "a".into(),
+        root: intent.root.clone(),
+        area: intent.area.clone(),
+        parent: intent.parent.clone(),
+        staging_directory: intent.area.clone(),
+        stage: ObjectIdentity {
+            size: 0,
+            ..intent.source.clone()
+        },
+        sha256: None,
+        phase: TransferPhase::Intent,
+    };
+    assert!(matches!(
+        s.save_transfer(&t),
+        Err(StoreError::AdmissionFull)
+    ));
+    // Saving the reserved attempt turns the reservation into the ledger entry.
+    s.release_transfer_capacity(j.job_id, 1).unwrap();
+    s.transfer_capacity(j.job_id, 0).unwrap();
+    s.save_transfer(&t).unwrap();
+    assert_eq!(
+        s.retention(None)
+            .unwrap()
+            .unwrap()
+            .destination_reserved_bytes,
+        3
+    );
+    // Ledger 3 + file 1's 3 > 5: still full, and nothing is left pending.
+    assert!(matches!(
+        s.transfer_capacity(j.job_id, 1),
+        Err(StoreError::AdmissionFull)
+    ));
+    s.configure_limits(10, 6).unwrap();
+    s.transfer_capacity(j.job_id, 1).unwrap();
+}
+
+#[test]
 fn retention_counts_old_attempts_and_committed_sources_without_releasing_capacity() {
     let f = Fixture::new();
     let s = Store::open(f.db()).unwrap();

@@ -635,9 +635,15 @@ impl Store {
         self.call(move |db| load_transfer(&db.connection, job_id, index))
     }
     /// Trusted synchronous worker results; caller proves custody/synchronization.
+    /// Saves a transfer. Saving a new attempt turns its pending destination
+    /// reservation (see `transfer_capacity`) into the durable ledger entry.
     pub fn save_transfer(&self, transfer: &Transfer) -> Result<()> {
         let transfer = transfer.clone();
-        self.call(move |db| db.save_transfer(&transfer))
+        self.call(move |db| {
+            db.save_transfer(&transfer)?;
+            db.pending.remove(&(transfer.job_id, transfer.file_index));
+            Ok(())
+        })
     }
     pub fn configure_limits(&self, jobs: u64, bytes: u64) -> Result<()> {
         self.call(move |db| {
@@ -651,19 +657,35 @@ impl Store {
     pub fn claim_capacity(&self, extra: u64) -> Result<()> {
         self.call(move |db| {
             if let Some((_, bytes)) = db.limits {
-                check_retained_bytes(&db.connection, extra, bytes, false)?;
+                check_retained_bytes(&db.connection, extra, bytes, false, 0)?;
             }
             Ok(())
         })
     }
+    /// Checks destination capacity for a new attempt of file `index` and
+    /// reserves it until that attempt is saved (`save_transfer`) or released
+    /// (`release_transfer_capacity`). The check and the reservation are one
+    /// store step, so concurrent deliveries cannot both pass the check before
+    /// either creates a staging file. Reservations are in memory only: they
+    /// cover work in flight in this process, never durable state.
     pub fn transfer_capacity(&self, id: i64, index: usize) -> Result<()> {
         self.call(move |db| {
             if let Some((_, bytes)) = db.limits {
                 let claim = load_claim(&db.connection, id, index)?
                     .ok_or(StoreError::CorruptState)?
                     .0;
-                check_retained_bytes(&db.connection, claim.source.size, bytes, true)?;
+                let pending = db.pending_bytes(Some((id, index)));
+                check_retained_bytes(&db.connection, claim.source.size, bytes, true, pending)?;
+                db.pending.insert((id, index), claim.source.size);
             }
+            Ok(())
+        })
+    }
+    /// Drops a reservation whose attempt was not saved (failure, cancellation,
+    /// stop). Releasing an absent reservation is a no-op.
+    pub fn release_transfer_capacity(&self, id: i64, index: usize) -> Result<()> {
+        self.call(move |db| {
+            db.pending.remove(&(id, index));
             Ok(())
         })
     }
@@ -947,8 +969,19 @@ struct Database {
     connection: Connection,
     limits: Option<(u64, u64)>,
     history_clear: bool,
+    /// Destination reservations for attempts in flight, by (job, file):
+    /// checked and taken in one store step, cleared when the attempt is saved
+    /// or released. In memory only.
+    pending: std::collections::BTreeMap<(i64, usize), u64>,
 }
 impl Database {
+    fn pending_bytes(&self, except: Option<(i64, usize)>) -> u128 {
+        self.pending
+            .iter()
+            .filter(|(k, _)| Some(**k) != except)
+            .map(|(_, v)| u128::from(*v))
+            .sum()
+    }
     fn open(path: &Path, read_only: bool) -> Result<Self> {
         Self::open_mode(path, read_only, false)
     }
@@ -1026,6 +1059,7 @@ impl Database {
         Ok(Self {
             connection,
             limits: None,
+            pending: Default::default(),
             history_clear,
         })
     }
@@ -1045,7 +1079,7 @@ impl Database {
             }
         } else {
             if let Some((_, bytes)) = self.limits {
-                check_retained_bytes(&tx, intent.source.size, bytes, false)?;
+                check_retained_bytes(&tx, intent.source.size, bytes, false, 0)?;
             }
             tx.execute("INSERT INTO claims(job_id,file_index,root_path,source_name,private_name,root_identity,parent_identity,area_identity,source_identity) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9)",
                 params![intent.job_id, intent.file_index as i64, intent.root_path, intent.source_name,
@@ -1214,6 +1248,9 @@ impl Database {
         })
     }
     fn save_transfer(&mut self, t: &Transfer) -> Result<()> {
+        // Other files' reservations count; this file's own does not (this save
+        // is what it reserved for).
+        let pending = self.pending_bytes(Some((t.job_id, t.file_index)));
         let tx = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
@@ -1226,7 +1263,7 @@ impl Database {
             let claim = load_claim(&tx, t.job_id, t.file_index)?
                 .ok_or(StoreError::CorruptState)?
                 .0;
-            check_retained_bytes(&tx, claim.source.size, bytes, true)?;
+            check_retained_bytes(&tx, claim.source.size, bytes, true, pending)?;
         }
         if let Some(p) = &prior {
             if p == t {
@@ -1644,9 +1681,17 @@ fn load_manifest(c: &Connection, id: i64) -> Result<Option<ManifestRecord>> {
     })
     .transpose()
 }
-fn check_retained_bytes(c: &Connection, extra: u64, limit: u64, destination: bool) -> Result<()> {
+/// `pending` adds in-memory reservations not yet in the ledger.
+fn check_retained_bytes(
+    c: &Connection,
+    extra: u64,
+    limit: u64,
+    destination: bool,
+    pending: u128,
+) -> Result<()> {
     let total = retention::reserved_bytes(c, destination, None)?
-        .checked_add(u128::from(extra))
+        .checked_add(pending)
+        .and_then(|t| t.checked_add(u128::from(extra)))
         .ok_or(StoreError::CorruptState)?;
     if total > u128::from(limit) {
         return Err(StoreError::AdmissionFull);
