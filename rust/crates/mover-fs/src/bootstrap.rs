@@ -149,6 +149,22 @@ pub fn send_bound_bootstrap_lock(
 ) -> Result<(), String> {
     send_lock(channel, path, Some(binding))
 }
+/// Called only in the destination acquisition child (shared delivery
+/// custody): validates the job's destination binding and pinned observation,
+/// then sends the locked description. The receipt carries no authorization;
+/// every delivery child revalidates its own job's binding against it.
+pub fn send_destination_bootstrap_lock(
+    channel: &mut UnixStream,
+    path: &str,
+    binding: &super::DestinationBinding,
+    expected: Option<&str>,
+) -> Result<(), String> {
+    let acquired = LocalClaimLock::acquire_destination(path, binding, expected).map(|mut lock| {
+        lock.destination_authorization = None;
+        lock
+    });
+    send_acquired(channel, path, acquired)
+}
 fn send_lock(
     channel: &mut UnixStream,
     path: &str,
@@ -158,6 +174,13 @@ fn send_lock(
         Some(binding) => LocalClaimLock::acquire_bound(path, binding),
         None => LocalClaimLock::acquire(path),
     };
+    send_acquired(channel, path, acquired)
+}
+fn send_acquired(
+    channel: &mut UnixStream,
+    path: &str,
+    acquired: super::Result<LocalClaimLock>,
+) -> Result<(), String> {
     let receipt = match &acquired {
         Ok(lock) => Receipt {
             version: 2,

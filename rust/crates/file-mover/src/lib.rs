@@ -428,7 +428,10 @@ impl Worker {
         // alone settles cancellations and runs deletion targets (one consumer
         // per target). Bookkeeping is per job, never per copied chunk.
         let mut deliveries = Vec::new();
+        let custody = Arc::new(SharedCustody::default());
+        let parallel = c.delivery_concurrency > 1;
         for worker in 0..c.delivery_concurrency {
+        let custody = custody.clone();
         let delivery_stop = stop.clone();
         let delivery_store = store.clone();
         let delivery_guard = guard.clone();
@@ -535,6 +538,20 @@ impl Worker {
                             // job and still reach the idle sleep.
                             #[allow(for_loops_over_fallibles)]
                             for (id, _working) in picked {
+                                // Held to the end of this block: through the
+                                // child's reaping and the final persistence.
+                                let lane = custody.lane(
+                                    &delivery_store,
+                                    id,
+                                    &delivery_guard,
+                                    &delivery_stop,
+                                    parallel,
+                                );
+                                let shared = match &lane {
+                                    Lane::Shared(lock) => Some(lock.clone()),
+                                    Lane::Serialized(_) => None,
+                                    Lane::Wait => continue, // Next tick.
+                                };
                                 let mut problem = None;
                                 let result = delivery_worker::deliver(
                                     &delivery_store,
@@ -542,7 +559,16 @@ impl Worker {
                                     &delivery_guard,
                                     &delivery_stop,
                                     &mut problem,
+                                    shared.as_deref(),
                                 );
+                                // A failed shared delivery may mean stale custody
+                                // (for example a remounted destination): the next
+                                // delivery reacquires instead of reusing it.
+                                if let (Some(lock), Err(error)) = (&shared, &result)
+                                    && !error.is::<delivery_worker::DeliveryCancelled>()
+                                {
+                                    custody.forget(lock);
+                                }
                                 // Informational record first, so the review shows the cause.
                                 if let Some(p) = problem
                                     && let Err(error) = delivery_store.record_problem(
@@ -1147,6 +1173,94 @@ impl ActiveJobs {
     }
     pub(crate) fn contains(&self, job: i64) -> bool {
         self.set().contains(&job)
+    }
+}
+/// Destination custody for delivery workers. With `delivery_concurrency` 1
+/// every delivery uses the serialized lane, exactly as before parallel
+/// delivery: its child acquires the destination itself. With more workers, a
+/// bound job uses the coordinator's shared custody for its destination path,
+/// acquired once in a supervised child (one attempt in flight) and inherited
+/// by every delivery child, which validates its own job's binding and pin
+/// against it. If acquisition fails, the job falls back to the serialized
+/// lane, so destination outages and refusals keep their existing deferral
+/// and review behavior. Cooperative custody, not NFS fencing.
+#[derive(Default)]
+struct SharedCustody {
+    held: std::sync::Mutex<std::collections::BTreeMap<String, Arc<mover_fs::LocalClaimLock>>>,
+    /// One acquisition in flight; also the serialized lane, so a legacy child
+    /// never races an acquisition for the same destination lock.
+    lane: std::sync::Mutex<()>,
+}
+enum Lane<'a> {
+    Shared(Arc<mover_fs::LocalClaimLock>),
+    Serialized(#[allow(dead_code)] std::sync::MutexGuard<'a, ()>),
+    /// Shared custody of this destination is still in use; try next tick.
+    Wait,
+}
+impl SharedCustody {
+    fn held(&self) -> std::sync::MutexGuard<'_, std::collections::BTreeMap<String, Arc<mover_fs::LocalClaimLock>>> {
+        self.held.lock().unwrap_or_else(|e| e.into_inner())
+    }
+    fn serialized(&self) -> std::sync::MutexGuard<'_, ()> {
+        self.lane.lock().unwrap_or_else(|e| e.into_inner())
+    }
+    fn lane(
+        &self,
+        store: &Store,
+        id: i64,
+        guard: &mover_fs::LocalClaimLock,
+        stop: &AtomicBool,
+        parallel: bool,
+    ) -> Lane<'_> {
+        let Ok(Some(job)) = store.get(id) else {
+            return Lane::Serialized(self.serialized()); // deliver reports it.
+        };
+        let path = job.context.destination_path.clone();
+        let binding = job
+            .context
+            .destination_binding
+            .as_deref()
+            .and_then(|b| serde_json::from_str::<mover_fs::DestinationBinding>(b).ok());
+        if let (true, Some(binding)) = (parallel, binding) {
+            if let Some(lock) = self.held().get(&path) {
+                return Lane::Shared(lock.clone());
+            }
+            let serial = self.serialized();
+            if let Some(lock) = self.held().get(&path) {
+                return Lane::Shared(lock.clone());
+            }
+            let pin = store.destination_observation(id).ok().flatten();
+            let acquired = guard.instance().map_err(|e| e.to_string()).and_then(|instance| {
+                bootstrap::acquire_destination(&path, &binding, pin.as_deref(), stop, instance)
+            });
+            match acquired {
+                Ok(lock) => {
+                    let lock = Arc::new(lock);
+                    self.held().insert(path, lock.clone());
+                    return Lane::Shared(lock);
+                }
+                Err(error) => {
+                    eprintln!("Shared destination custody for delivery {id} unavailable ({error}); using the serialized lane");
+                    return Lane::Serialized(serial);
+                }
+            }
+        }
+        // Serialized lane: the child acquires the destination itself, which
+        // requires that this coordinator does not hold it. Shared custody of
+        // the same path is released once no delivery uses it.
+        let serial = self.serialized();
+        let mut held = self.held();
+        if let Some(lock) = held.get(&path) {
+            if Arc::strong_count(lock) > 1 {
+                return Lane::Wait;
+            }
+            held.remove(&path);
+        }
+        drop(held);
+        Lane::Serialized(serial)
+    }
+    fn forget(&self, lock: &Arc<mover_fs::LocalClaimLock>) {
+        self.held().retain(|_, held| !Arc::ptr_eq(held, lock));
     }
 }
 /// A worker's hold on one active job; dropping it leaves the job.

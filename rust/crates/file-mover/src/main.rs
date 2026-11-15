@@ -47,6 +47,12 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
         return file_mover::bootstrap::worker();
     }
+    if path == "--internal-destination-worker" {
+        if args.next().is_some() {
+            return Err("internal worker takes no arguments".into());
+        }
+        return file_mover::bootstrap::destination_worker();
+    }
     if path == "--internal-enrollment-worker" {
         if args.next().is_some() {
             return Err("internal worker takes no arguments".into());

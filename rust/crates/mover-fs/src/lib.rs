@@ -142,7 +142,10 @@ mod relocate;
 pub use qualification::pause as qualification_pause;
 pub use qualification::tls_cpu_hold as qualification_tls_cpu_hold;
 mod transfer;
-pub use bootstrap::{BootstrapReceiver, send_bootstrap_lock, send_bound_bootstrap_lock};
+pub use bootstrap::{
+    BootstrapReceiver, send_bootstrap_lock, send_bound_bootstrap_lock,
+    send_destination_bootstrap_lock,
+};
 pub use manifest::commit_manifest;
 pub use manifest::commit_manifest_with_checkpoints;
 pub fn destination_unavailable(path: &str) -> bool {

@@ -3417,6 +3417,105 @@ fn populated_state_without_destination_policy_refuses_service_startup() {
         b"legacy retained"
     );
 }
+fn set_delivery_concurrency(f: &Fixture, n: u32) {
+    let path = f.root.join("config.json");
+    let mut config: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    config["delivery_concurrency"] = json!(n);
+    std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
+}
+#[test]
+fn adopted_destination_custody_requires_that_destinations_own_lock() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    provision_destination(&f);
+    let destination = f.root.join("destination");
+    let destination = destination.to_str().unwrap();
+    let held = mover_fs::LocalClaimLock::acquire_destination(destination, &destination_binding(), None)
+        .unwrap();
+    let pin = held.destination_authorization().unwrap().observation.clone();
+    // Another mover cannot take the destination while it is held.
+    assert!(
+        mover_fs::LocalClaimLock::acquire_destination(destination, &destination_binding(), None)
+            .is_err()
+    );
+    // A delivery child adopts the held description with its job's binding and pin.
+    let adopted = mover_fs::LocalClaimLock::adopt_destination(
+        destination,
+        &destination_binding(),
+        Some(&pin),
+        held.inherit().unwrap().into(),
+    )
+    .unwrap();
+    assert_eq!(
+        adopted.destination_authorization().unwrap().observation,
+        pin
+    );
+    // A different pin or binding is refused even with the right description.
+    assert!(
+        mover_fs::LocalClaimLock::adopt_destination(
+            destination,
+            &destination_binding(),
+            Some("other-observation"),
+            held.inherit().unwrap().into(),
+        )
+        .is_err()
+    );
+    let mut foreign = destination_binding();
+    foreign.marker_id = "foreign".into();
+    assert!(
+        mover_fs::LocalClaimLock::adopt_destination(
+            destination,
+            &foreign,
+            None,
+            held.inherit().unwrap().into(),
+        )
+        .is_err()
+    );
+    // Any other lock description (here the source's) is not destination custody.
+    let source = mover_fs::LocalClaimLock::acquire(f.root.join("source").to_str().unwrap()).unwrap();
+    assert!(
+        mover_fs::LocalClaimLock::adopt_destination(
+            destination,
+            &destination_binding(),
+            None,
+            source.inherit().unwrap().into(),
+        )
+        .is_err()
+    );
+}
+#[test]
+fn parallel_delivery_keeps_outage_deferral_and_foreign_marker_review() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    set_delivery_concurrency(&f, 2);
+    f.start();
+    // Destination not provisioned: deferred, never review, nothing allocated.
+    f.write("data", b"waits for the destination");
+    let body = f.input("parallel-outage", json!(["data"]));
+    assert_eq!(f.post(&body).0, 202);
+    std::thread::sleep(Duration::from_secs(2));
+    let s = status(&f, "1").1;
+    // The same deferral as with one worker: a wait, never a counted failure.
+    assert_eq!(s["details"]["condition"], "Retrying", "{s}");
+    assert_eq!(s["details"]["delivery_retry"]["code"], "destination_unavailable", "{s}");
+    assert_eq!(s["details"]["delivery_retry"]["failures"], 0, "{s}");
+    assert!(!f.destination("1", "").exists());
+    // A foreign marker is still a binding refusal (review), not a deferral.
+    f.stop();
+    provision_destination(&f);
+    let marker = f.root.join("destination/.file-mover/destination-binding.json");
+    let mut foreign = destination_binding();
+    foreign.marker_id = "foreign".into();
+    std::fs::write(&marker, foreign.encode()).unwrap();
+    f.start();
+    wait_delivery_failure(&f);
+    assert!(!f.destination("1", "").exists());
+    f.stop();
+    assert_eq!(
+        std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
+        b"waits for the destination"
+    );
+}
 #[test]
 fn unavailable_destination_claims_then_foreign_marker_requires_review_without_allocation() {
     let mut f = Fixture::new(300);
