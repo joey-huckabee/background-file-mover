@@ -644,7 +644,9 @@ def main():
         if args.isolated_startup:
             assert "Source bootstrap termination requested" in startup_log
         else:
-            assert any(reason in startup_log for reason in ("filesystem not qualified", "production NFS disabled"))
+            # Since 109dc4e production refuses unenrolled state locally, before
+            # any source access; the NFS refusal itself is proven at enrollment.
+            assert any(reason in startup_log for reason in ("filesystem not qualified", "production NFS disabled", "SourceEnrollmentRequired")), startup_log
         report["checks"]["restored"] = "Stable root/namespace identity; metadata recovered and source lock became available"
         assert not args.coordinator_death or report["coordinator_death"]["passed"], "NFS coordinator-death qualification failed; inspect case outcomes and required closed-guard coverage"
         report["status"] = "PASSED"
