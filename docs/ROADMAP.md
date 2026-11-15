@@ -334,14 +334,15 @@ features. Do not treat candidate names as compatibility approval.
 - [ ] Deferred (user, 2026-11-15; resources): restore coordinator-death coverage
   of the kernel-closed guard. NFS-QUALIFICATION requires observing, in both
   builds, a terminating worker still in `D` after the kernel closed its guard
-  (the increment 46 counterexample; increment 47 fix). The lab host's newer
-  kernel (6.18 WSL2) never produces it: killed NFS readers exit promptly and
-  blocked NFS writers keep their guard (runs `nfs-20261115T114721Z-492a3abf`
-  at one worker and `...121758Z-8e686fe0` at two; all 18 cases otherwise pass).
-  Options: a qualification-only hook that makes a blocked worker drop its
-  inherited guard (proves the fix on any kernel; changes the pass rule), or a
-  host whose kernel shows the behavior. Until then the matrix cannot pass on
-  this host. See [increment 157](RUST-INCREMENT-157.md).
+  (the increment 46 counterexample; increment 47 fix). It was not observed on
+  the lab host (kernel 6.18 WSL2) in runs `nfs-20261115T114721Z-492a3abf`
+  (one worker) and `...121758Z-8e686fe0` (two): terminating NFS readers exited
+  promptly and terminating NFS writers kept their guard; all 18 cases otherwise
+  pass. The cause is not established. Options: a proposed qualification-only
+  controlled test that makes a blocked worker drop its inherited guard (it
+  would need its own review and a changed pass rule), further investigation of
+  natural triggers, or a host whose kernel shows the behavior. Until then the
+  matrix has not passed on this host. See [increment 157](RUST-INCREMENT-157.md).
 - [ ] Rehearse cutover and rollback with durable state and transfer ownership.
   Prevent old and new daemons from manipulating the same source namespace.
 

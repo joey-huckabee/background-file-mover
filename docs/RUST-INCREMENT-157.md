@@ -19,8 +19,9 @@ pass.
   the SQLite files are fingerprinted (size and SHA-256); after SIGTERM and the
   bootstrap child's confirmed exit (before NFS restoration) the database must be
   byte-identical, a `-wal` file may exist only empty (startup opens the database
-  to check state compatibility; nothing is written), and no rollback journal may
-  exist. The worker lifetime records are runtime ownership state and are not
+  to check state compatibility), and no rollback journal may exist. This is an
+  end-state check of database content; it does not prove that no transient
+  SQLite I/O occurred. The worker lifetime records are runtime ownership state and are not
   fingerprinted. Assertions report both fingerprints.
 - [NFS-QUALIFICATION](NFS-QUALIFICATION.md) describes the enrollment step and
   the unchanged-state check.
@@ -40,11 +41,13 @@ The user deferred this for resources; it is recorded under "Release and
 operational obligations" in the [roadmap](ROADMAP.md). The coordinator-death
 matrix requires observing, in both builds, a terminating worker still in `D`
 after the kernel closed its guard (the increment 46 counterexample, fixed in
-increment 47). On the lab host's kernel (6.18 WSL2) that state does not occur:
-in runs `nfs-20261115T114721Z-492a3abf` (one worker) and
+increment 47). It was not observed on the lab host (kernel 6.18 WSL2) in
+runs `nfs-20261115T114721Z-492a3abf` (one worker) and
 `nfs-20261115T121758Z-8e686fe0` (two workers), every terminating verification
 worker exited promptly when stopped (eight repetitions per run), and the
 terminating copy workers stayed in `D` holding their guard. All 18 cases pass
-otherwise. Options when resumed: a qualification-only hook that makes a
-blocked worker drop its inherited guard (proves the increment 47 fix on any
-kernel, changes the pass rule), or a host whose kernel shows the behavior.
+otherwise. These finite runs show only that the state was not observed; its
+cause is not established. Options when resumed: a proposed qualification-only
+controlled test that makes a blocked worker drop its inherited guard (it would
+need its own review and a changed pass rule), further investigation of natural
+triggers, or a host whose kernel shows the behavior.
