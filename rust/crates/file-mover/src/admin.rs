@@ -1620,6 +1620,7 @@ fn settings(
             "check_expected_sizes": c.check_expected_sizes,
             "missing_file_retry_window_seconds": c.missing_file_retry_window_seconds,
             "shutdown_wait_seconds": c.shutdown_wait_seconds,
+            "delivery_concurrency": c.delivery_concurrency,
         },
         "storage": {
             "max_retained_jobs": c.max_retained_jobs,

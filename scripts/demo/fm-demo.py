@@ -306,7 +306,8 @@ def _setup_state(a):
               "native_ingress": {"transport": "http", "operator_socket": str(ROOT / "operator/api.sock")},
               "generator_id": "recorder", "source_root": str(ROOT / "source"),
               "destination_root": str(ROOT / "destination"), "state_database": str(ROOT / "state/jobs.sqlite"),
-              "source_binding": source, "destination_binding": destination, "shutdown_wait_seconds": 5}
+              "source_binding": source, "destination_binding": destination, "shutdown_wait_seconds": 5,
+              "delivery_concurrency": 4}
     CONFIG.write_text(json.dumps(config))
     run_exe("--initialize-source", str(CONFIG))
 

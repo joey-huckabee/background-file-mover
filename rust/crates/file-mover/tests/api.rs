@@ -2399,6 +2399,7 @@ fn unsafe_startup_configuration_is_rejected() {
         max_retained_bytes: 1024 * 1024 * 1024 * 1024,
         source_space_admission: Default::default(),
         shutdown_wait_seconds: 60,
+        delivery_concurrency: 1,
     };
     assert!(c.validate().is_err());
     let mut c = c;
@@ -2406,6 +2407,68 @@ fn unsafe_startup_configuration_is_rejected() {
     assert!(c.validate().is_ok());
     c.state_database = "/source/db".into();
     assert!(c.validate().is_err());
+    c.state_database = "/state/db".into();
+    for (concurrency, ok) in [(0, false), (1, true), (8, true), (9, false)] {
+        c.delivery_concurrency = concurrency;
+        assert_eq!(
+            c.validate().is_ok(),
+            ok,
+            "delivery_concurrency {concurrency}"
+        );
+    }
+}
+#[test]
+fn parallel_delivery_commits_every_job_exactly_once() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    let path = f.root.join("config.json");
+    let mut config: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    config["delivery_concurrency"] = json!(4);
+    std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
+    f.start();
+    provision_destination(&f);
+    // Four delivery worker threads (thread names are cut to 15 bytes).
+    let pid = f.child.as_ref().unwrap().id();
+    let workers = std::fs::read_dir(format!("/proc/{pid}/task"))
+        .unwrap()
+        .filter(|t| {
+            let comm = std::fs::read_to_string(t.as_ref().unwrap().path().join("comm")).unwrap();
+            comm.trim_end() == "mover-local-del"
+        })
+        .count();
+    assert_eq!(workers, 4);
+    let mut jobs = Vec::new();
+    for n in 0..6 {
+        let (a, b) = (format!("j{n}-a"), format!("j{n}-b"));
+        f.write(&a, format!("first {n}").as_bytes());
+        f.write(&b, format!("second {n}").as_bytes());
+        let (status, response) = f.post(&f.input(&format!("parallel-{n}"), json!([a, b])));
+        assert_eq!(status, 202, "{response}");
+        jobs.push(response["job_id"].as_str().unwrap().to_owned());
+    }
+    for (n, id) in jobs.iter().enumerate() {
+        let manifest = wait_manifest(&f, id);
+        assert_eq!(manifest["files"].as_array().unwrap().len(), 2);
+        assert_eq!(
+            std::fs::read(f.destination(id, &format!("j{n}-a"))).unwrap(),
+            format!("first {n}").as_bytes()
+        );
+        assert_eq!(
+            std::fs::read(f.destination(id, &format!("j{n}-b"))).unwrap(),
+            format!("second {n}").as_bytes()
+        );
+    }
+    f.stop();
+    let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    for id in &jobs {
+        let id: i64 = id.parse().unwrap();
+        let job = s.status(id).unwrap().unwrap();
+        assert!(job.job.recording.is_committed());
+        // One attempt per file: no job was delivered twice.
+        for t in &job.transfers {
+            assert_eq!(t.as_ref().unwrap().attempt, 1);
+        }
+    }
 }
 
 #[test]
@@ -3358,6 +3421,165 @@ fn populated_state_without_destination_policy_refuses_service_startup() {
         b"legacy retained"
     );
 }
+fn set_delivery_concurrency(f: &Fixture, n: u32) {
+    let path = f.root.join("config.json");
+    let mut config: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    config["delivery_concurrency"] = json!(n);
+    std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
+}
+#[test]
+fn adopted_destination_custody_requires_that_destinations_own_lock() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    provision_destination(&f);
+    let destination = f.root.join("destination");
+    let destination = destination.to_str().unwrap();
+    let held =
+        mover_fs::LocalClaimLock::acquire_destination(destination, &destination_binding(), None)
+            .unwrap();
+    let pin = held
+        .destination_authorization()
+        .unwrap()
+        .observation
+        .clone();
+    // Another mover cannot take the destination while it is held.
+    assert!(
+        mover_fs::LocalClaimLock::acquire_destination(destination, &destination_binding(), None)
+            .is_err()
+    );
+    // A delivery child adopts the held description with its job's binding and pin.
+    let adopted = mover_fs::LocalClaimLock::adopt_destination(
+        destination,
+        &destination_binding(),
+        Some(&pin),
+        held.inherit().unwrap().into(),
+    )
+    .unwrap();
+    assert_eq!(
+        adopted.destination_authorization().unwrap().observation,
+        pin
+    );
+    // A different pin or binding is refused even with the right description.
+    assert!(
+        mover_fs::LocalClaimLock::adopt_destination(
+            destination,
+            &destination_binding(),
+            Some("other-observation"),
+            held.inherit().unwrap().into(),
+        )
+        .is_err()
+    );
+    let mut foreign = destination_binding();
+    foreign.marker_id = "foreign".into();
+    assert!(
+        mover_fs::LocalClaimLock::adopt_destination(
+            destination,
+            &foreign,
+            None,
+            held.inherit().unwrap().into(),
+        )
+        .is_err()
+    );
+    // Any other lock description (here the source's) is not destination custody.
+    let source =
+        mover_fs::LocalClaimLock::acquire(f.root.join("source").to_str().unwrap()).unwrap();
+    assert!(
+        mover_fs::LocalClaimLock::adopt_destination(
+            destination,
+            &destination_binding(),
+            None,
+            source.inherit().unwrap().into(),
+        )
+        .is_err()
+    );
+}
+#[test]
+fn replaced_destination_lock_is_a_binding_review_then_custody_is_reacquired() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    set_delivery_concurrency(&f, 2);
+    provision_destination(&f);
+    f.start();
+    f.write("one", b"first");
+    let (code, first) = f.post(&f.input("replaced-lock-1", json!(["one"])));
+    assert_eq!(code, 202);
+    wait_manifest(&f, first["job_id"].as_str().unwrap());
+    // The coordinator now holds shared custody. Replace the destination's named
+    // coordinator lock: the held description no longer is that lock.
+    let lock = f
+        .root
+        .join("destination/.file-mover")
+        .join(mover_fs::COORDINATOR_LOCK);
+    std::fs::remove_file(&lock).unwrap();
+    std::fs::write(&lock, b"").unwrap();
+    std::fs::set_permissions(&lock, std::fs::Permissions::from_mode(0o600)).unwrap();
+    f.write("two", b"second");
+    assert_eq!(f.post(&f.input("replaced-lock-2", json!(["two"]))).0, 202);
+    // An immediate destination-binding review, not a counted retry.
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let s = loop {
+        let s = status(&f, "2").1;
+        if s["details"]["condition"] == "ReviewRequired" {
+            break s;
+        }
+        assert!(Instant::now() < deadline, "{s}");
+        std::thread::sleep(Duration::from_millis(50));
+    };
+    assert_eq!(
+        s["details"]["delivery_retry"]["code"], "destination_binding_requires_review",
+        "{s}"
+    );
+    assert!(!f.destination("2", "").exists());
+    // The drained custody is released and reacquired: later jobs deliver.
+    f.write("three", b"third");
+    let (code, third) = f.post(&f.input("replaced-lock-3", json!(["three"])));
+    assert_eq!(code, 202);
+    let id = third["job_id"].as_str().unwrap().to_owned();
+    wait_manifest(&f, &id);
+    assert_eq!(
+        std::fs::read(f.destination(&id, "three")).unwrap(),
+        b"third"
+    );
+    f.stop();
+}
+#[test]
+fn parallel_delivery_keeps_outage_deferral_and_foreign_marker_review() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    set_delivery_concurrency(&f, 2);
+    f.start();
+    // Destination not provisioned: deferred, never review, nothing allocated.
+    f.write("data", b"waits for the destination");
+    let body = f.input("parallel-outage", json!(["data"]));
+    assert_eq!(f.post(&body).0, 202);
+    std::thread::sleep(Duration::from_secs(2));
+    let s = status(&f, "1").1;
+    // The same deferral as with one worker: a wait, never a counted failure.
+    assert_eq!(s["details"]["condition"], "Retrying", "{s}");
+    assert_eq!(
+        s["details"]["delivery_retry"]["code"], "destination_unavailable",
+        "{s}"
+    );
+    assert_eq!(s["details"]["delivery_retry"]["failures"], 0, "{s}");
+    assert!(!f.destination("1", "").exists());
+    // A foreign marker is still a binding refusal (review), not a deferral.
+    f.stop();
+    provision_destination(&f);
+    let marker = f
+        .root
+        .join("destination/.file-mover/destination-binding.json");
+    let mut foreign = destination_binding();
+    foreign.marker_id = "foreign".into();
+    std::fs::write(&marker, foreign.encode()).unwrap();
+    f.start();
+    wait_delivery_failure(&f);
+    assert!(!f.destination("1", "").exists());
+    f.stop();
+    assert_eq!(
+        std::fs::read(f.root.join("source/.file-mover/1-0/data")).unwrap(),
+        b"waits for the destination"
+    );
+}
 #[test]
 fn unavailable_destination_claims_then_foreign_marker_requires_review_without_allocation() {
     let mut f = Fixture::new(300);
@@ -3860,13 +4082,14 @@ fn local_instance_refuses_all_effect_entry_points_before_bootstrap_or_sqlite() {
     f.stop();
 }
 #[test]
-fn all_six_worker_modes_retain_explicit_local_ownership_without_parent_holder() {
+fn every_worker_mode_retains_explicit_local_ownership_without_parent_holder() {
     use std::os::unix::net::UnixStream;
     let f = Fixture::uninitialized(300);
     let db = f.root.join("state/jobs.sqlite");
     let exe = std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap();
     for mode in [
         "bootstrap",
+        "destination",
         "enrollment",
         "claim",
         "payload",

@@ -95,6 +95,10 @@ enum Operation {
         destination_binding: Option<mover_fs::DestinationBinding>,
         #[serde(default)]
         destination_observation: Option<String>,
+        /// The child's stdout is the coordinator's destination custody (shared
+        /// delivery), adopted instead of acquiring a new lock.
+        #[serde(default)]
+        shared_destination: bool,
     },
     Prepare {
         assignment: Assignment,
@@ -221,7 +225,10 @@ pub(crate) struct Problem {
     pub(crate) file: Option<usize>,
 }
 impl Session {
-    fn start(guard: &LocalClaimLock) -> Result<Self> {
+    /// `shared`: the coordinator's destination custody, passed as the child's
+    /// stdout; otherwise stdout is the source custody again (legacy mode, where
+    /// the child acquires the destination itself).
+    fn start(guard: &LocalClaimLock, shared: Option<&LocalClaimLock>) -> Result<Self> {
         let (mut channel, worker) = UnixStream::pair()?;
         channel.set_read_timeout(Some(Duration::from_millis(100)))?;
         channel.set_write_timeout(Some(Duration::from_secs(3)))?;
@@ -230,7 +237,7 @@ impl Session {
             Command::new(std::env::current_exe()?)
                 .arg("--internal-delivery-worker")
                 .stdin(Stdio::from(guard.inherit()?))
-                .stdout(Stdio::from(guard.inherit()?))
+                .stdout(Stdio::from(shared.unwrap_or(guard).inherit()?))
                 .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
                 .spawn()?,
         );
@@ -350,6 +357,7 @@ pub(crate) fn deliver(
     guard: &LocalClaimLock,
     stop: &AtomicBool,
     problem: &mut Option<Problem>,
+    shared: Option<&LocalClaimLock>,
 ) -> Result<bool> {
     // Declared before the session so they drop after it: an unsaved attempt's
     // capacity stays reserved until its worker child has been killed and
@@ -357,7 +365,16 @@ pub(crate) fn deliver(
     let mut holds = Vec::new();
     let mut session = None;
     let mut file = None;
-    let result = deliver_steps(store, id, guard, stop, &mut session, &mut file, &mut holds);
+    let result = deliver_steps(
+        store,
+        id,
+        guard,
+        stop,
+        &mut session,
+        &mut file,
+        &mut holds,
+        shared,
+    );
     if let Err(error) = &result
         && !stop.load(Ordering::Relaxed)
         && !error.is::<DeliveryCancelled>()
@@ -377,6 +394,7 @@ pub(crate) fn deliver(
     result
 }
 
+#[allow(clippy::too_many_arguments)]
 fn deliver_steps<'a>(
     store: &'a Store,
     id: i64,
@@ -385,8 +403,14 @@ fn deliver_steps<'a>(
     slot: &mut Option<Session>,
     file: &mut Option<usize>,
     holds: &mut Vec<mover_store::CapacityHold<'a>>,
+    shared: Option<&LocalClaimLock>,
 ) -> Result<bool> {
     let job = store.get(id)?.ok_or("unknown job")?;
+    if shared.is_some_and(|s| {
+        !s.matches_path(&job.context.destination_path) || job.context.destination_binding.is_none()
+    }) {
+        return Err("shared destination custody scope mismatch".into());
+    }
     stop_if_cancelled(store, id)?;
     if job.recording.handoff() != Handoff::Ready202
         || job.context.policy.group_by_generator
@@ -394,7 +418,7 @@ fn deliver_steps<'a>(
     {
         return Err("invalid delivery context".into());
     }
-    let session = slot.insert(Session::start(guard)?);
+    let session = slot.insert(Session::start(guard, shared)?);
     let opened = session.call(
         Operation::Open {
             job_id: id,
@@ -408,6 +432,7 @@ fn deliver_steps<'a>(
                 .map(|b| serde_json::from_str(b))
                 .transpose()?,
             destination_observation: store.destination_observation(id)?,
+            shared_destination: shared.is_some(),
         },
         stop,
     )?;
@@ -625,7 +650,8 @@ pub fn worker() -> Result<()> {
     let _instance = mover_fs::InstanceGuard::receive(&mut channel)?;
     channel.set_read_timeout(None)?; // Preserve the existing session assignment wait.
     channel.set_write_timeout(Some(Duration::from_secs(3)))?;
-    let mut context: Option<(i64, String, String, LocalClaimLock)> = None;
+    // (job, recording directory, source root, destination custody, shared).
+    let mut context: Option<(i64, String, String, LocalClaimLock, bool)> = None;
     let mut source_authorization: Option<Option<mover_fs::SourceAuthorization>> = None;
     let mut sequence = 0;
     while let Some(bytes) = child_frame(&mut channel)? {
@@ -664,6 +690,7 @@ pub fn worker() -> Result<()> {
                     destination_root,
                     destination_binding,
                     destination_observation,
+                    shared_destination,
                 } => {
                     if context.is_some() || job_id <= 0 {
                         return Err("invalid open assignment".into());
@@ -676,7 +703,16 @@ pub fn worker() -> Result<()> {
                         &source_root,
                         request.source_authorization.as_ref(),
                     )?;
-                    mover_fs::validate_payload_locks(&source_root, &source_root)?;
+                    if shared_destination && destination_binding.is_none() {
+                        return Err("shared destination custody requires a binding".into());
+                    }
+                    // Shared mode: stdout is destination custody, checked once
+                    // the destination is known to be available (below).
+                    if shared_destination {
+                        mover_fs::validate_source_lock(&source_root)?;
+                    } else {
+                        mover_fs::validate_payload_locks(&source_root, &source_root)?;
+                    }
                     checking_destination = destination_binding.is_some();
                     if let (Some(source), Some(destination)) =
                         (&request.source_authorization, &destination_binding)
@@ -696,6 +732,13 @@ pub fn worker() -> Result<()> {
                         return Err("destination policy required".into());
                     }
                     let destination = match &destination_binding {
+                        // The job's own binding and pin, against the shared custody.
+                        Some(binding) if shared_destination => LocalClaimLock::adopt_destination(
+                            &destination_root,
+                            binding,
+                            destination_observation.as_deref(),
+                            std::io::stdout().as_fd().try_clone_to_owned()?,
+                        )?,
                         Some(binding) => LocalClaimLock::acquire_destination(
                             &destination_root,
                             binding,
@@ -707,21 +750,47 @@ pub fn worker() -> Result<()> {
                         None => return Err("destination observation without policy".into()),
                     };
                     destination.validate()?;
+                    if shared_destination {
+                        // Within the binding-refusal boundary (a binding is required).
+                        mover_fs::validate_destination_lock(&destination_root)?;
+                    }
                     reply.destination_authorization =
                         destination.destination_authorization().cloned();
-                    context = Some((job_id, component, source_root, destination));
+                    context = Some((
+                        job_id,
+                        component,
+                        source_root,
+                        destination,
+                        shared_destination,
+                    ));
                     source_authorization = Some(request.source_authorization.clone());
                 }
                 command => {
-                    let (id, component, source, destination) =
+                    let (id, component, source, destination, shared) =
                         context.as_ref().ok_or("delivery not opened")?;
+                    // The descriptors this session was started with: stdout is
+                    // the destination custody in shared mode (checked inside the
+                    // binding-refusal boundary), the source otherwise.
+                    let source_locks = |source: &str| {
+                        if *shared {
+                            mover_fs::validate_source_lock(source)
+                        } else {
+                            mover_fs::validate_payload_locks(source, source)
+                        }
+                    };
+                    let destination_locks = || {
+                        if *shared {
+                            mover_fs::validate_destination_lock(destination.source_path())?;
+                        }
+                        destination.validate()
+                    };
                     mover_fs::validate_worker_source(
                         source,
                         request.source_authorization.as_ref(),
                     )?;
-                    mover_fs::validate_payload_locks(source, source)?;
+                    source_locks(source)?;
                     checking_destination = true;
-                    destination.validate()?;
+                    destination_locks()?;
                     checking_destination = false;
                     let (assignment, kind, manifest) = match command {
                         Operation::Prepare { assignment } => (assignment, 0, None),
@@ -771,9 +840,9 @@ pub fn worker() -> Result<()> {
                         source,
                         request.source_authorization.as_ref(),
                     )?;
-                    mover_fs::validate_payload_locks(source, source)?;
+                    source_locks(source)?;
                     checking_destination = true;
-                    destination.validate()?;
+                    destination_locks()?;
                 }
             }
             Ok(())

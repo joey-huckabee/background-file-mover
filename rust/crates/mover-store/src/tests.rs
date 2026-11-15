@@ -3749,6 +3749,28 @@ fn admin_cancel_refuses_new_claims_and_reset_missing() {
 }
 
 #[test]
+fn delivery_candidate_recheck_matches_the_candidate_list() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt")
+        .unwrap();
+    let ready = history_job(&s, "recheck-ready", 0);
+    let done = history_job(&s, "recheck-done", 4);
+    assert_eq!(
+        s.delivery_candidates(10_000, 64).unwrap(),
+        vec![ready.job_id]
+    );
+    assert!(s.is_delivery_candidate(ready.job_id, 10_000).unwrap());
+    assert!(!s.is_delivery_candidate(done.job_id, 10_000).unwrap());
+    assert!(!s.is_delivery_candidate(999_999, 10_000).unwrap());
+    // A pending cancellation removes it from both.
+    s.admin_cancel(ready.job_id, "operator", 100).unwrap();
+    assert!(s.delivery_candidates(10_000, 64).unwrap().is_empty());
+    assert!(!s.is_delivery_candidate(ready.job_id, 10_000).unwrap());
+    assert!(s.is_delivery_candidate(ready.job_id, -1).is_err());
+}
+
+#[test]
 fn settlement_waits_only_for_jobs_still_being_delivered() {
     let f = Fixture::new();
     let s = Store::open(f.db()).unwrap();

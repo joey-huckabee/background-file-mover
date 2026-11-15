@@ -319,6 +319,52 @@ impl LocalClaimLock {
         lock.validate()?;
         Ok(lock)
     }
+    /// Shared delivery custody: the same binding and pin checks as
+    /// `acquire_destination`, but custody is the inherited lock description
+    /// `held` (the coordinator's), which must be this destination's named
+    /// coordinator lock. It is re-locked on the same description (which
+    /// succeeds only for that description) instead of opening a new one.
+    /// Cooperative custody, not NFS fencing.
+    pub fn adopt_destination(
+        path: &str,
+        binding: &DestinationBinding,
+        expected: Option<&str>,
+        held: rustix::fd::OwnedFd,
+    ) -> Result<Self> {
+        binding.validate()?;
+        let observation = observe_marker(
+            path,
+            binding,
+            &binding.filesystem,
+            binding.nfs_mount.as_ref(),
+            DESTINATION_MARKER,
+        )?;
+        if expected.is_some_and(|pin| pin != observation) {
+            return Err(ClaimError::Blocked(
+                "destination binding observation changed",
+            ));
+        }
+        let root = root(path)?;
+        let namespace = namespace(&root)?;
+        super::custody::validate(&namespace, &held)?;
+        super::custody::exclusive(&held)?;
+        let lock = super::custody::validate(&namespace, &held)?;
+        let adopted = Self {
+            instance: None,
+            path: path.into(),
+            root: owned_directory(&root, false)?,
+            namespace: owned_directory(&namespace, true)?,
+            lock,
+            authorization: None,
+            destination_authorization: Some(DestinationAuthorization {
+                binding: binding.clone(),
+                observation,
+            }),
+            _held: held,
+        };
+        adopted.validate()?;
+        Ok(adopted)
+    }
     pub fn destination_authorization(&self) -> Option<&DestinationAuthorization> {
         self.destination_authorization.as_ref()
     }

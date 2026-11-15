@@ -70,9 +70,16 @@ pub struct Config {
     pub source_space_admission: source_space::Policy,
     #[serde(default = "shutdown_default")]
     pub shutdown_wait_seconds: u32,
+    /// Jobs delivered at the same time (1-8), each by its own worker thread and
+    /// worker child. Fixed in configuration, never derived from CPU count.
+    #[serde(default = "delivery_concurrency_default")]
+    pub delivery_concurrency: u32,
 }
 fn shutdown_default() -> u32 {
     60
+}
+fn delivery_concurrency_default() -> u32 {
+    1
 }
 fn retained_jobs_default() -> u64 {
     64
@@ -99,6 +106,9 @@ impl Config {
         self.source_space_admission.validate()?;
         if !(1..=3600).contains(&self.shutdown_wait_seconds) {
             return Err("shutdown_wait_seconds must be an integer from 1 through 3600");
+        }
+        if !(1..=8).contains(&self.delivery_concurrency) {
+            return Err("delivery_concurrency must be an integer from 1 through 8");
         }
         self.destination_binding
             .validate()
@@ -283,7 +293,7 @@ type OperatorWork = (Observation, oneshot::Sender<Response>);
 struct Worker {
     sender: Option<mpsc::SyncSender<Work>>,
     thread: Option<std::thread::JoinHandle<()>>,
-    delivery: Option<std::thread::JoinHandle<()>>,
+    deliveries: Vec<std::thread::JoinHandle<()>>,
     stop: Arc<AtomicBool>,
     observer: Option<mpsc::SyncSender<OperatorWork>>,
     observation: Option<std::thread::JoinHandle<()>>,
@@ -412,17 +422,31 @@ impl Worker {
                     let _ = reply.send(response);
                 }
             })?;
-        let delivery_stop = stop.clone();
-        let delivery_store = store.clone();
-        let delivery_guard = guard.clone();
-        let delivery = std::thread::Builder::new()
-            .name("mover-local-delivery".into())
+        // Delivery workers: `delivery_concurrency` threads, each delivering one
+        // job at a time through its own worker child. A job is taken through
+        // `ActiveJobs`, so no two workers ever deliver the same job. Worker 0
+        // alone settles cancellations and runs deletion targets (one consumer
+        // per target). Bookkeeping is per job, never per copied chunk.
+        let mut deliveries = Vec::new();
+        let custody = Arc::new(SharedCustody::default());
+        let parallel = c.delivery_concurrency > 1;
+        for worker in 0..c.delivery_concurrency {
+            let custody = custody.clone();
+            let delivery_stop = stop.clone();
+            let delivery_store = store.clone();
+            let delivery_guard = guard.clone();
+            let delivering = delivering.clone();
+            let (settle_claim_active, settle_delivering) =
+                (settle_claim_active.clone(), settle_delivering.clone());
+            let spawned = std::thread::Builder::new()
+            .name(if worker == 0 { "mover-local-delivery".into() } else { format!("mover-local-delivery-{worker}") })
             .spawn(move || {
                 while !delivery_stop.load(Ordering::Relaxed) {
                     if delivery_guard.instance().and_then(|g| g.validate()).is_err() {
                         delivery_stop.store(true, Ordering::Relaxed);
                         break;
                     }
+                    if worker == 0 {
                     // Settle cancellations of jobs no worker is still on.
                     let (active, busy) = (settle_claim_active.clone(), settle_delivering.clone());
                     if let Err(error) = delivery_store.settle_cancellations(
@@ -482,15 +506,51 @@ impl Worker {
                             break;
                         }
                     }
-                    match delivery_store.delivery_candidates(now(), 1) {
+                    }
+                    match delivery_store.delivery_candidates(now(), 64) {
                         Ok(ids) => {
+                            // Take the first ready job no other worker holds. The
+                            // job is marked active before deliver's first
+                            // cancellation check, then rechecked: the list may
+                            // predate another worker finishing it.
+                            let mut picked = None;
                             for id in ids {
                                 if delivery_stop.load(Ordering::Relaxed) {
                                     break;
                                 }
-                                // Marked active before deliver's first cancellation check.
-                                let Some(_working) = delivering.enter(id) else {
+                                let Some(working) = delivering.enter(id) else {
                                     continue; // Another worker is on this job.
+                                };
+                                match delivery_store.is_delivery_candidate(id, now()) {
+                                    Ok(true) => {
+                                        picked = Some((id, working));
+                                        break;
+                                    }
+                                    Ok(false) => continue,
+                                    Err(error) => {
+                                        eprintln!("Delivery discovery failed: {error}");
+                                        delivery_stop.store(true, Ordering::Relaxed);
+                                        break;
+                                    }
+                                }
+                            }
+                            // A loop (not `if let`) so the `continue`s below end this
+                            // job and still reach the idle sleep.
+                            #[allow(for_loops_over_fallibles)]
+                            for (id, _working) in picked {
+                                // Held to the end of this block: through the
+                                // child's reaping and the final persistence.
+                                let lane = custody.lane(
+                                    &delivery_store,
+                                    id,
+                                    &delivery_guard,
+                                    &delivery_stop,
+                                    parallel,
+                                );
+                                let shared = match &lane {
+                                    Lane::Shared(lock) => Some(lock.clone()),
+                                    Lane::Serialized(_) => None,
+                                    Lane::Wait => continue, // Next tick.
                                 };
                                 let mut problem = None;
                                 let result = delivery_worker::deliver(
@@ -499,7 +559,16 @@ impl Worker {
                                     &delivery_guard,
                                     &delivery_stop,
                                     &mut problem,
+                                    shared.as_deref(),
                                 );
+                                // A failed shared delivery may mean stale custody
+                                // (for example a remounted destination): the next
+                                // delivery reacquires instead of reusing it.
+                                if let (Some(lock), Err(error)) = (&shared, &result)
+                                    && !error.is::<delivery_worker::DeliveryCancelled>()
+                                {
+                                    custody.forget(lock);
+                                }
                                 // Informational record first, so the review shows the cause.
                                 if let Some(p) = problem
                                     && let Err(error) = delivery_store.record_problem(
@@ -555,7 +624,18 @@ impl Worker {
                     }
                     std::thread::sleep(Duration::from_millis(100));
                 }
-            })?;
+            });
+            match spawned {
+                Ok(t) => deliveries.push(t),
+                Err(error) => {
+                    stop.store(true, Ordering::Relaxed);
+                    for t in deliveries {
+                        let _ = t.join();
+                    }
+                    return Err(error.into());
+                }
+            }
+        }
         let (sender, receiver) = mpsc::sync_channel::<Work>(1);
         let claim_stop = stop.clone();
         let check_expected_sizes = c.check_expected_sizes;
@@ -596,14 +676,16 @@ impl Worker {
             Ok(thread) => thread,
             Err(error) => {
                 stop.store(true, Ordering::Relaxed);
-                let _ = delivery.join();
+                for t in deliveries {
+                    let _ = t.join();
+                }
                 return Err(error.into());
             }
         };
         Ok(Self {
             sender: Some(sender),
             thread: Some(thread),
-            delivery: Some(delivery),
+            deliveries,
             stop,
             observer: Some(observer),
             observation: Some(observation),
@@ -627,7 +709,7 @@ impl Drop for Worker {
         if let Some(t) = self.thread.take() {
             let _ = t.join();
         }
-        if let Some(t) = self.delivery.take() {
+        for t in self.deliveries.drain(..) {
             let _ = t.join();
         }
     }
@@ -1091,6 +1173,133 @@ impl ActiveJobs {
     }
     pub(crate) fn contains(&self, job: i64) -> bool {
         self.set().contains(&job)
+    }
+}
+/// Destination custody for delivery workers. With `delivery_concurrency` 1
+/// every delivery uses the serialized lane, exactly as before parallel
+/// delivery: its child acquires the destination itself. With more workers, a
+/// bound job uses the coordinator's shared custody for its destination path,
+/// acquired once in a supervised child (one attempt in flight) and inherited
+/// by every delivery child, which validates its own job's binding and pin
+/// against it. If acquisition fails, the job falls back to the serialized
+/// lane, so destination outages and refusals keep their existing deferral
+/// and review behavior. Cooperative custody, not NFS fencing.
+#[derive(Default)]
+struct SharedCustody {
+    /// Per destination path: the custody, and whether it is draining (a shared
+    /// delivery failed: no new delivery uses it, and it is released and
+    /// reacquired only after every delivery still using it has exited).
+    held: std::sync::Mutex<std::collections::BTreeMap<String, Held>>,
+    /// One acquisition in flight; also the serialized lane, so a legacy child
+    /// never races an acquisition for the same destination lock.
+    lane: std::sync::Mutex<()>,
+}
+type Held = (Arc<mover_fs::LocalClaimLock>, bool);
+enum Current {
+    Usable(Arc<mover_fs::LocalClaimLock>),
+    Draining,
+    Absent,
+}
+enum Lane<'a> {
+    Shared(Arc<mover_fs::LocalClaimLock>),
+    Serialized(#[allow(dead_code)] std::sync::MutexGuard<'a, ()>),
+    /// Shared custody of this destination is still in use; try next tick.
+    Wait,
+}
+impl SharedCustody {
+    fn held(&self) -> std::sync::MutexGuard<'_, std::collections::BTreeMap<String, Held>> {
+        self.held.lock().unwrap_or_else(|e| e.into_inner())
+    }
+    fn serialized(&self) -> std::sync::MutexGuard<'_, ()> {
+        self.lane.lock().unwrap_or_else(|e| e.into_inner())
+    }
+    fn lane(
+        &self,
+        store: &Store,
+        id: i64,
+        guard: &mover_fs::LocalClaimLock,
+        stop: &AtomicBool,
+        parallel: bool,
+    ) -> Lane<'_> {
+        let Ok(Some(job)) = store.get(id) else {
+            return Lane::Serialized(self.serialized()); // deliver reports it.
+        };
+        let path = job.context.destination_path.clone();
+        let binding = job
+            .context
+            .destination_binding
+            .as_deref()
+            .and_then(|b| serde_json::from_str::<mover_fs::DestinationBinding>(b).ok());
+        if let (true, Some(binding)) = (parallel, binding) {
+            match self.current(&path) {
+                Current::Usable(lock) => return Lane::Shared(lock),
+                Current::Draining => return Lane::Wait,
+                Current::Absent => {}
+            }
+            let serial = self.serialized();
+            match self.current(&path) {
+                Current::Usable(lock) => return Lane::Shared(lock),
+                Current::Draining => return Lane::Wait,
+                Current::Absent => {}
+            }
+            let pin = store.destination_observation(id).ok().flatten();
+            let acquired = guard
+                .instance()
+                .map_err(|e| e.to_string())
+                .and_then(|instance| {
+                    bootstrap::acquire_destination(&path, &binding, pin.as_deref(), stop, instance)
+                });
+            match acquired {
+                Ok(lock) => {
+                    let lock = Arc::new(lock);
+                    self.held().insert(path, (lock.clone(), false));
+                    return Lane::Shared(lock);
+                }
+                Err(error) => {
+                    eprintln!(
+                        "Shared destination custody for delivery {id} unavailable ({error}); using the serialized lane"
+                    );
+                    return Lane::Serialized(serial);
+                }
+            }
+        }
+        // Serialized lane: the child acquires the destination itself, which
+        // requires that this coordinator does not hold it. Shared custody of
+        // the same path is released once no delivery uses it.
+        let serial = self.serialized();
+        let mut held = self.held();
+        if let Some((lock, _)) = held.get(&path) {
+            if Arc::strong_count(lock) > 1 {
+                return Lane::Wait;
+            }
+            held.remove(&path);
+        }
+        drop(held);
+        Lane::Serialized(serial)
+    }
+    /// The usable custody of `path`, if any. A draining entry that no delivery
+    /// uses any more is removed (its lock closes), so the caller reacquires.
+    fn current(&self, path: &str) -> Current {
+        let mut held = self.held();
+        match held.get(path) {
+            None => Current::Absent,
+            Some((lock, false)) => Current::Usable(lock.clone()),
+            Some((lock, true)) if Arc::strong_count(lock) > 1 => Current::Draining,
+            Some(_) => {
+                held.remove(path);
+                Current::Absent
+            }
+        }
+    }
+    /// A shared delivery failed, possibly on stale custody (for example a
+    /// remounted destination): stop handing it out. It is released and
+    /// reacquired once every delivery still using it has exited.
+    fn forget(&self, lock: &Arc<mover_fs::LocalClaimLock>) {
+        for (held, draining) in self.held().values_mut() {
+            if Arc::ptr_eq(held, lock) {
+                *draining = true;
+            }
+        }
     }
 }
 /// A worker's hold on one active job; dropping it leaves the job.
@@ -2133,6 +2342,42 @@ mod history_tests {
     fn history_cursor_encodes_order() {
         assert_eq!(super::history_cursor("ab12", false, 7), "c1.ab12.a.7");
         assert_eq!(super::history_cursor("ab12", true, 7), "c1.ab12.d.7");
+    }
+    #[test]
+    fn draining_custody_waits_for_its_last_user_then_reacquires() {
+        use std::os::unix::fs::PermissionsExt;
+        let base = std::env::temp_dir().join(format!("fm-custody-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir(&base).unwrap();
+        std::fs::set_permissions(&base, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let area = base.join(".file-mover");
+        std::fs::create_dir(&area).unwrap();
+        std::fs::set_permissions(&area, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let lock_file = area.join(mover_fs::COORDINATOR_LOCK);
+        std::fs::write(&lock_file, b"").unwrap();
+        std::fs::set_permissions(&lock_file, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let path = base.to_str().unwrap();
+        let custody = super::SharedCustody::default();
+        let lock = std::sync::Arc::new(mover_fs::LocalClaimLock::acquire(path).unwrap());
+        custody.held().insert(path.into(), (lock, false));
+        // Jobs A and B deliver with the shared custody.
+        let super::Current::Usable(a) = custody.current(path) else {
+            panic!()
+        };
+        let super::Current::Usable(b) = custody.current(path) else {
+            panic!()
+        };
+        // A fails: the custody drains instead of disappearing while B uses it.
+        custody.forget(&a);
+        drop(a);
+        // Job C must wait: acquiring now would collide with B's description.
+        assert!(matches!(custody.current(path), super::Current::Draining));
+        assert!(mover_fs::LocalClaimLock::acquire(path).is_err());
+        // B exits: the drained custody is released and C reacquires.
+        drop(b);
+        assert!(matches!(custody.current(path), super::Current::Absent));
+        assert!(mover_fs::LocalClaimLock::acquire(path).is_ok());
+        std::fs::remove_dir_all(&base).unwrap();
     }
     #[test]
     fn active_jobs_track_each_worker_hold() {
