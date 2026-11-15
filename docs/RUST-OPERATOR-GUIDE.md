@@ -636,6 +636,58 @@ replays remain possible. Raising configured limits does not add physical space,
 remove retained attempts or qualify sustained shortage admission. Preserve state
 and data if safe capacity cannot be provided; offline repair/cleanup is deferred.
 
+## Delivery speed settings: parallel delivery and copy buffer
+
+Three optional settings in the service configuration file (the same JSON file
+as `shutdown_wait_seconds`) control how much delivery work runs at once and the
+size of the copy buffer. All are fixed at startup; restart the service after a
+change. Values outside the ranges below refuse startup. Settings shows the
+active values under Transfers.
+
+```json
+{
+  "delivery_concurrency": 1,
+  "delivery_file_concurrency": 1,
+  "copy_buffer_bytes": 1048576
+}
+```
+
+| Setting | Meaning | Allowed | Default |
+| --- | --- | --- | --- |
+| `delivery_concurrency` | Jobs delivered at the same time | 1-8 | 1 |
+| `delivery_file_concurrency` | Files of one job copied at the same time | 1-8 | 1 |
+| `copy_buffer_bytes` | Bytes read and written per step when copying and when re-reading to verify | 65536-67108864, a multiple of 4096 | 1048576 (1 MiB) |
+
+With either concurrency above 1 the service holds the destination's lock
+itself (shared destination custody) and hands it to every delivery worker.
+If that cannot be taken (for example the destination is unavailable), the
+affected job is delivered as with the defaults, one worker at a time.
+
+### Copy buffer sizes
+
+Copy `copy_buffer_bytes` exactly as shown (the value must be a whole number of
+bytes, not "1M").
+
+| Add to the configuration | Size | When to use |
+| --- | --- | --- |
+| `"copy_buffer_bytes": 65536` | 64 KiB (minimum) | Very low memory, or many parallel workers |
+| `"copy_buffer_bytes": 262144` | 256 KiB | Low memory; measured within noise of the default locally |
+| `"copy_buffer_bytes": 1048576` | 1 MiB (default) | Recommended for local disks and NFS; matches the common NFS `rsize`/`wsize` maximum |
+| `"copy_buffer_bytes": 4194304` | 4 MiB | Only if a site measurement shows a gain (none on the local test disk) |
+| `"copy_buffer_bytes": 16777216` | 16 MiB | Not recommended: slower on the local test disk |
+| `"copy_buffer_bytes": 67108864` | 64 MiB (maximum) | Not recommended |
+
+Memory: each active copy or verification holds one buffer, so the configured
+copy and verification buffers use up to `delivery_concurrency` x
+`delivery_file_concurrency` x `copy_buffer_bytes` at once (for example
+4 x 4 x 1 MiB = 16 MiB). This excludes fixed 1 MiB buffers used for recovery
+checks (for example digest rechecks during publication recovery) and all other
+process memory.
+
+Measure a change before keeping it: on the WSL demo, `fm-demo bench` reports
+MiB/s (see [scripts/demo/README.md](../scripts/demo/README.md)); results for
+each setting are in increments 155 (buffer) and 156 (parallel settings).
+
 ## Configure source-space admission
 
 [Increment 36](RUST-INCREMENT-36.md) adds the optional local source-space guard.

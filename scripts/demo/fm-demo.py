@@ -471,6 +471,8 @@ def job_condition(job_id):
         status, body = http(s, "GET", f"/api/v2/jobs/{job_id}")
     finally:
         s.close()
+    if status == 503:
+        return "busy"  # Bounded status queue under load: poll again.
     if status != 200 or not isinstance(body, dict):
         return f"http {status}"
     return body.get("details", {}).get("condition") or str(body.get("state"))
@@ -515,6 +517,20 @@ def cmd_bench(a):
                 break
             if status != 503 or not body.get("retryable"):
                 fail(f"submission refused: {status} {body}")
+            # Retryable for a producer, but neither clears during a benchmark.
+            if body.get("error") == "retention_capacity":
+                # The configured job/byte limits (accounting): clearing history
+                # frees accounting slots only; it deletes no files.
+                fail("submission refused: the demo's retention limits are reached; "
+                     "clear history (Job history > Clear history) or run: fm-demo setup")
+            if body.get("error") == "source_space_low":
+                # Confirmed: physical free space on the source disk is below policy.
+                fail("submission refused: source disk free space is below the configured minimum; "
+                     "free disk space in WSL (fm-demo setup removes all demo data)")
+            if body.get("error") == "source_space_unavailable":
+                # The free-space observation itself is unusable (failed or stale).
+                fail("submission refused: the source free-space check could not be observed; "
+                     "diagnose it (see the service log and Storage > Source free-space check)")
             if time.monotonic() - start > a.timeout:
                 fail("timed out waiting for submissions to be accepted")
             time.sleep(0.25)

@@ -73,6 +73,11 @@ any other installation.
   changes.
 - The service runs as the transient systemd unit `fm-demo-review`, so it keeps
   running after the command returns, until `stop` or a WSL restart.
+- `bench` keeps everything it delivers: about twice its total size per run
+  (the held source copies plus the delivered copies) and four jobs of history.
+  The demo allows 64 jobs and uses the WSL disk; after several runs use
+  `fm-demo setup` to start over. A run stops with a clear message if the
+  service refuses submissions for capacity.
 - Jobs are submitted to the producer on `127.0.0.1:18080` (loopback HTTP) with
   random file contents under the demo source folder.
 - Safety: the tool only ever deletes inside the demo user's own `~/fm-demo`
