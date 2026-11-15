@@ -566,6 +566,19 @@ def main():
             execute("chmod 555 " + startup_binary)
             assert execute("sha256sum " + startup_binary).stdout.split()[0] == artifact["sha256"]
             report["startup_artifact"] = {"build":"nfs-qualification","sha256":artifact["sha256"],"source_sha256":qualification["source_sha256"]}
+            # Since 109dc4e startup refuses unenrolled state before any source
+            # access, so enroll first (NFS available) for the startup below to
+            # reach the source bootstrap. Its database must not change while the
+            # bootstrap is blocked: fingerprint the SQLite files (the worker
+            # lifetime records are runtime ownership state and may change).
+            execute(startup_binary + " --initialize-source /tmp/local/config.json", "1000:1000")
+            state_fingerprint = lambda: execute(
+                "cd /tmp/local/state && for f in jobs.sqlite jobs.sqlite-wal jobs.sqlite-journal; do "
+                "if test -e $f; then echo \"$f $(stat -c %s $f) $(sha256sum <$f | cut -d' ' -f1)\"; fi; done",
+                "1000:1000").stdout
+            enrolled_state = state_fingerprint()
+            assert "jobs.sqlite " in enrolled_state
+            report["checks"]["isolated_startup_enrolled_state"] = enrolled_state.splitlines()
         # Model the actual inherited open-file-description lock with OS tools.
         # Child holds fd 9 after coordinator death; no Rust effects are claimed.
         holder = spawn("exec 9<>/tmp/nfs/source/.file-mover/coordinator.lock; flock -xn 9; echo $$ >/tmp/local/parent.pid; /bin/sh -c 'echo $$ >/tmp/local/child.pid; while test ! -e /tmp/local/release-lock; do sleep 0.2; done' & wait", "inherited-lock")
@@ -622,9 +635,18 @@ def main():
         if args.isolated_startup:
             assert startup.wait(timeout=5) == 0
             assert execute("test ! -e /proc/" + children[0], "1000:1000", check=False).returncode == 0
-            assert execute("test ! -e /tmp/local/state/jobs.sqlite", "1000:1000", check=False).returncode == 0
+            after_state = state_fingerprint()
+            report["checks"]["isolated_startup_state_after"] = after_state.splitlines()
+            # Startup opens the database (state compatibility, 109dc4e) before the
+            # bootstrap: SQLite may create an empty WAL. Nothing may be written:
+            # the database is byte-identical, any WAL is empty, no rollback journal.
+            database = lambda s: [l for l in s.splitlines() if l.startswith("jobs.sqlite ")]
+            wal = [l for l in after_state.splitlines() if l.startswith("jobs.sqlite-wal ")]
+            assert database(after_state) == database(enrolled_state), ("outage startup changed the enrolled database", enrolled_state, after_state)
+            assert all(l.split()[1] == "0" for l in wal), ("outage startup wrote to the WAL", after_state)
+            assert not any(l.startswith("jobs.sqlite-journal ") for l in after_state.splitlines()), after_state
             health.wait(timeout=5)
-            report["checks"]["isolated_startup"] = "SIGTERM ended service and confirmed bootstrap child exit before server restoration; no SQLite or readiness"
+            report["checks"]["isolated_startup"] = "SIGTERM ended service and confirmed bootstrap child exit before server restoration; enrolled database byte-identical, no WAL content or journal; no readiness"
         report["checks"]["startup_sigterm"] = {"exit_observed_before_restore": startup.poll() is not None}
         execute("kill -KILL $(cat /tmp/local/interrupted.pid)", "1000:1000")
         time.sleep(1)

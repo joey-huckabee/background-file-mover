@@ -111,7 +111,14 @@ NFS database/state parent in both profiles and build modes, without creating a
 guard/database or opening the deliberately absent source. These local-state
 refusals do not qualify cross-host exclusion or delayed RPC settlement. It first
 proves both production profiles reject a reachable NFS source without creating
-SQLite. `scripts/nfs_baseline.py` then drives the actual qualification service
+SQLite: since 109dc4e (unenrolled state is refused before any source access),
+the NFS refusal is proven at `--initialize-source`, and the plain start may
+refuse for the missing enrollment instead. With `--isolated-startup` the
+qualification build first enrolls the NFS source (while it is reachable), so
+the later outage startup reaches and blocks in the source bootstrap; that
+check then requires the enrolled SQLite files to be unchanged (size and
+SHA-256) after SIGTERM and bootstrap-child exit, instead of "no SQLite
+created". See [increment 157](RUST-INCREMENT-157.md). `scripts/nfs_baseline.py` then drives the actual qualification service
 through REST in pinned SLES userspace, using the saved private hard-mounted
 NFSv4.1 fixture. SQLite stays local. It tests NFS as source, as destination and
 as both, in debug and release, asserting actual filesystem types.
