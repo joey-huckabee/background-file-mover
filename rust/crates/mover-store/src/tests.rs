@@ -213,17 +213,22 @@ fn destination_capacity_check_and_reservation_are_one_step() {
     // (limits apply per side).
     s.configure_limits(10, 5).unwrap();
     // Two concurrent deliveries: the first reservation holds the room.
-    s.transfer_capacity(j.job_id, 0).unwrap();
+    let first = s.transfer_capacity(j.job_id, 0).unwrap();
     assert!(matches!(
         s.transfer_capacity(j.job_id, 1),
         Err(StoreError::AdmissionFull)
     ));
-    // Re-checking the same file does not count its own reservation twice.
-    s.transfer_capacity(j.job_id, 0).unwrap();
-    // A released (unsaved) attempt frees the room.
-    s.release_transfer_capacity(j.job_id, 0).unwrap();
-    s.release_transfer_capacity(j.job_id, 0).unwrap(); // no-op
-    s.transfer_capacity(j.job_id, 1).unwrap();
+    // Re-checking the same file replaces its reservation (no double count);
+    // dropping the older hold must not release the newer reservation.
+    let again = s.transfer_capacity(j.job_id, 0).unwrap();
+    drop(first);
+    assert!(matches!(
+        s.transfer_capacity(j.job_id, 1),
+        Err(StoreError::AdmissionFull)
+    ));
+    // A dropped (unsaved) attempt frees the room.
+    drop(again);
+    let second = s.transfer_capacity(j.job_id, 1).unwrap();
     // While file 1 holds the room, file 0 cannot save a new attempt either.
     let intent = &intents[0];
     let t = Transfer {
@@ -248,10 +253,12 @@ fn destination_capacity_check_and_reservation_are_one_step() {
         s.save_transfer(&t),
         Err(StoreError::AdmissionFull)
     ));
-    // Saving the reserved attempt turns the reservation into the ledger entry.
-    s.release_transfer_capacity(j.job_id, 1).unwrap();
-    s.transfer_capacity(j.job_id, 0).unwrap();
+    drop(second);
+    // Saving the reserved attempt turns the reservation into the ledger
+    // entry; dropping its hold afterwards changes nothing.
+    let hold = s.transfer_capacity(j.job_id, 0).unwrap();
     s.save_transfer(&t).unwrap();
+    drop(hold);
     assert_eq!(
         s.retention(None)
             .unwrap()
@@ -265,7 +272,7 @@ fn destination_capacity_check_and_reservation_are_one_step() {
         Err(StoreError::AdmissionFull)
     ));
     s.configure_limits(10, 6).unwrap();
-    s.transfer_capacity(j.job_id, 1).unwrap();
+    let _last = s.transfer_capacity(j.job_id, 1).unwrap();
 }
 
 #[test]

@@ -663,30 +663,31 @@ impl Store {
         })
     }
     /// Checks destination capacity for a new attempt of file `index` and
-    /// reserves it until that attempt is saved (`save_transfer`) or released
-    /// (`release_transfer_capacity`). The check and the reservation are one
-    /// store step, so concurrent deliveries cannot both pass the check before
-    /// either creates a staging file. Reservations are in memory only: they
-    /// cover work in flight in this process, never durable state.
-    pub fn transfer_capacity(&self, id: i64, index: usize) -> Result<()> {
-        self.call(move |db| {
-            if let Some((_, bytes)) = db.limits {
-                let claim = load_claim(&db.connection, id, index)?
-                    .ok_or(StoreError::CorruptState)?
-                    .0;
-                let pending = db.pending_bytes(Some((id, index)));
-                check_retained_bytes(&db.connection, claim.source.size, bytes, true, pending)?;
-                db.pending.insert((id, index), claim.source.size);
-            }
-            Ok(())
-        })
-    }
-    /// Drops a reservation whose attempt was not saved (failure, cancellation,
-    /// stop). Releasing an absent reservation is a no-op.
-    pub fn release_transfer_capacity(&self, id: i64, index: usize) -> Result<()> {
-        self.call(move |db| {
-            db.pending.remove(&(id, index));
-            Ok(())
+    /// reserves it, in one store step, so concurrent deliveries cannot both
+    /// pass the check before either creates a staging file. The reservation
+    /// lasts until the attempt is saved (`save_transfer` consumes it) or the
+    /// returned hold is dropped. Holders whose effect runs in a worker child
+    /// must keep the hold until that child has exited. Reservations are in
+    /// memory only: they cover work in flight, never durable state.
+    pub fn transfer_capacity(&self, id: i64, index: usize) -> Result<CapacityHold<'_>> {
+        let token = self.call(move |db| {
+            let Some((_, bytes)) = db.limits else {
+                return Ok(None);
+            };
+            let claim = load_claim(&db.connection, id, index)?
+                .ok_or(StoreError::CorruptState)?
+                .0;
+            let pending = db.pending_bytes(Some((id, index)));
+            check_retained_bytes(&db.connection, claim.source.size, bytes, true, pending)?;
+            db.next_reservation += 1;
+            let token = db.next_reservation;
+            db.pending.insert((id, index), (claim.source.size, token));
+            Ok(Some(token))
+        })?;
+        Ok(CapacityHold {
+            store: self,
+            key: (id, index),
+            token,
         })
     }
     pub fn instance_id(&self) -> Result<String> {
@@ -972,14 +973,15 @@ struct Database {
     /// Destination reservations for attempts in flight, by (job, file):
     /// checked and taken in one store step, cleared when the attempt is saved
     /// or released. In memory only.
-    pending: std::collections::BTreeMap<(i64, usize), u64>,
+    pending: std::collections::BTreeMap<(i64, usize), (u64, u64)>,
+    next_reservation: u64,
 }
 impl Database {
     fn pending_bytes(&self, except: Option<(i64, usize)>) -> u128 {
         self.pending
             .iter()
             .filter(|(k, _)| Some(**k) != except)
-            .map(|(_, v)| u128::from(*v))
+            .map(|(_, (size, _))| u128::from(*size))
             .sum()
     }
     fn open(path: &Path, read_only: bool) -> Result<Self> {
@@ -1060,6 +1062,7 @@ impl Database {
             connection,
             limits: None,
             pending: Default::default(),
+            next_reservation: 0,
             history_clear,
         })
     }
@@ -1680,6 +1683,29 @@ fn load_manifest(c: &Connection, id: i64) -> Result<Option<ManifestRecord>> {
         Ok(m)
     })
     .transpose()
+}
+/// A destination capacity reservation for one attempt (see
+/// `Store::transfer_capacity`). Dropping it releases the reservation unless the
+/// attempt was saved; a newer reservation of the same file is never released
+/// by an older hold.
+#[must_use = "dropping the hold releases the reservation"]
+pub struct CapacityHold<'a> {
+    store: &'a Store,
+    key: (i64, usize),
+    token: Option<u64>,
+}
+impl Drop for CapacityHold<'_> {
+    fn drop(&mut self) {
+        let (key, Some(token)) = (self.key, self.token) else {
+            return;
+        };
+        let _ = self.store.call(move |db| {
+            if db.pending.get(&key).is_some_and(|(_, t)| *t == token) {
+                db.pending.remove(&key);
+            }
+            Ok(())
+        });
+    }
 }
 /// `pending` adds in-memory reservations not yet in the ledger.
 fn check_retained_bytes(
