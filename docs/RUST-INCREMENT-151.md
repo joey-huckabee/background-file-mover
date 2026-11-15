@@ -55,6 +55,26 @@ an earlier run) out of the destination, so it stays exclusive per service:
   delivery reacquires rather than reusing possibly stale custody.
 - Shared `flock` is cooperative custody, not NFS fencing (unchanged).
 
+## Review fixes
+
+- **Draining instead of dropping custody.** A failed shared delivery used to
+  remove the coordinator's custody at once, while other deliveries could still
+  hold the same description: a third job's acquisition then hit `EAGAIN`, its
+  serialized fallback failed too, and it went to review. Now the custody is
+  marked draining: no new delivery uses it, new deliveries of that destination
+  wait, and once the last delivery using it has exited it is released and
+  reacquired. Unit regression (jobs A and B share custody, A fails, C waits
+  while B runs and another acquisition is refused, C reacquires after B).
+- **Destination lock checks keep the binding-refusal classification.** Source
+  (stdin) and destination (stdout) descriptor checks are now separate
+  (`validate_source_lock`, `validate_destination_lock`); in shared mode the
+  destination check runs inside the destination-binding boundary at Open and
+  before and after every step, so a replaced destination coordinator lock is an
+  immediate binding review, not an ordinary counted retry. API regression:
+  after a shared delivery, the destination's named lock is replaced; the next
+  job goes to review with `destination_binding_requires_review`, and a later
+  job is delivered after custody is reacquired.
+
 ## Performance requirement (user, 2026-11-15)
 
 Status and metrics must not affect the performance of the copy or move. Any

@@ -3494,6 +3494,55 @@ fn adopted_destination_custody_requires_that_destinations_own_lock() {
     );
 }
 #[test]
+fn replaced_destination_lock_is_a_binding_review_then_custody_is_reacquired() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    set_delivery_concurrency(&f, 2);
+    provision_destination(&f);
+    f.start();
+    f.write("one", b"first");
+    let (code, first) = f.post(&f.input("replaced-lock-1", json!(["one"])));
+    assert_eq!(code, 202);
+    wait_manifest(&f, first["job_id"].as_str().unwrap());
+    // The coordinator now holds shared custody. Replace the destination's named
+    // coordinator lock: the held description no longer is that lock.
+    let lock = f
+        .root
+        .join("destination/.file-mover")
+        .join(mover_fs::COORDINATOR_LOCK);
+    std::fs::remove_file(&lock).unwrap();
+    std::fs::write(&lock, b"").unwrap();
+    std::fs::set_permissions(&lock, std::fs::Permissions::from_mode(0o600)).unwrap();
+    f.write("two", b"second");
+    assert_eq!(f.post(&f.input("replaced-lock-2", json!(["two"]))).0, 202);
+    // An immediate destination-binding review, not a counted retry.
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let s = loop {
+        let s = status(&f, "2").1;
+        if s["details"]["condition"] == "ReviewRequired" {
+            break s;
+        }
+        assert!(Instant::now() < deadline, "{s}");
+        std::thread::sleep(Duration::from_millis(50));
+    };
+    assert_eq!(
+        s["details"]["delivery_retry"]["code"], "destination_binding_requires_review",
+        "{s}"
+    );
+    assert!(!f.destination("2", "").exists());
+    // The drained custody is released and reacquired: later jobs deliver.
+    f.write("three", b"third");
+    let (code, third) = f.post(&f.input("replaced-lock-3", json!(["three"])));
+    assert_eq!(code, 202);
+    let id = third["job_id"].as_str().unwrap().to_owned();
+    wait_manifest(&f, &id);
+    assert_eq!(
+        std::fs::read(f.destination(&id, "three")).unwrap(),
+        b"third"
+    );
+    f.stop();
+}
+#[test]
 fn parallel_delivery_keeps_outage_deferral_and_foreign_marker_review() {
     let mut f = Fixture::new(300);
     f.stop();

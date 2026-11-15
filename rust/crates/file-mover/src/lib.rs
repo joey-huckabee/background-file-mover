@@ -1186,10 +1186,19 @@ impl ActiveJobs {
 /// and review behavior. Cooperative custody, not NFS fencing.
 #[derive(Default)]
 struct SharedCustody {
-    held: std::sync::Mutex<std::collections::BTreeMap<String, Arc<mover_fs::LocalClaimLock>>>,
+    /// Per destination path: the custody, and whether it is draining (a shared
+    /// delivery failed: no new delivery uses it, and it is released and
+    /// reacquired only after every delivery still using it has exited).
+    held: std::sync::Mutex<std::collections::BTreeMap<String, Held>>,
     /// One acquisition in flight; also the serialized lane, so a legacy child
     /// never races an acquisition for the same destination lock.
     lane: std::sync::Mutex<()>,
+}
+type Held = (Arc<mover_fs::LocalClaimLock>, bool);
+enum Current {
+    Usable(Arc<mover_fs::LocalClaimLock>),
+    Draining,
+    Absent,
 }
 enum Lane<'a> {
     Shared(Arc<mover_fs::LocalClaimLock>),
@@ -1198,10 +1207,7 @@ enum Lane<'a> {
     Wait,
 }
 impl SharedCustody {
-    fn held(
-        &self,
-    ) -> std::sync::MutexGuard<'_, std::collections::BTreeMap<String, Arc<mover_fs::LocalClaimLock>>>
-    {
+    fn held(&self) -> std::sync::MutexGuard<'_, std::collections::BTreeMap<String, Held>> {
         self.held.lock().unwrap_or_else(|e| e.into_inner())
     }
     fn serialized(&self) -> std::sync::MutexGuard<'_, ()> {
@@ -1225,12 +1231,16 @@ impl SharedCustody {
             .as_deref()
             .and_then(|b| serde_json::from_str::<mover_fs::DestinationBinding>(b).ok());
         if let (true, Some(binding)) = (parallel, binding) {
-            if let Some(lock) = self.held().get(&path) {
-                return Lane::Shared(lock.clone());
+            match self.current(&path) {
+                Current::Usable(lock) => return Lane::Shared(lock),
+                Current::Draining => return Lane::Wait,
+                Current::Absent => {}
             }
             let serial = self.serialized();
-            if let Some(lock) = self.held().get(&path) {
-                return Lane::Shared(lock.clone());
+            match self.current(&path) {
+                Current::Usable(lock) => return Lane::Shared(lock),
+                Current::Draining => return Lane::Wait,
+                Current::Absent => {}
             }
             let pin = store.destination_observation(id).ok().flatten();
             let acquired = guard
@@ -1242,7 +1252,7 @@ impl SharedCustody {
             match acquired {
                 Ok(lock) => {
                     let lock = Arc::new(lock);
-                    self.held().insert(path, lock.clone());
+                    self.held().insert(path, (lock.clone(), false));
                     return Lane::Shared(lock);
                 }
                 Err(error) => {
@@ -1258,7 +1268,7 @@ impl SharedCustody {
         // the same path is released once no delivery uses it.
         let serial = self.serialized();
         let mut held = self.held();
-        if let Some(lock) = held.get(&path) {
+        if let Some((lock, _)) = held.get(&path) {
             if Arc::strong_count(lock) > 1 {
                 return Lane::Wait;
             }
@@ -1267,8 +1277,29 @@ impl SharedCustody {
         drop(held);
         Lane::Serialized(serial)
     }
+    /// The usable custody of `path`, if any. A draining entry that no delivery
+    /// uses any more is removed (its lock closes), so the caller reacquires.
+    fn current(&self, path: &str) -> Current {
+        let mut held = self.held();
+        match held.get(path) {
+            None => Current::Absent,
+            Some((lock, false)) => Current::Usable(lock.clone()),
+            Some((lock, true)) if Arc::strong_count(lock) > 1 => Current::Draining,
+            Some(_) => {
+                held.remove(path);
+                Current::Absent
+            }
+        }
+    }
+    /// A shared delivery failed, possibly on stale custody (for example a
+    /// remounted destination): stop handing it out. It is released and
+    /// reacquired once every delivery still using it has exited.
     fn forget(&self, lock: &Arc<mover_fs::LocalClaimLock>) {
-        self.held().retain(|_, held| !Arc::ptr_eq(held, lock));
+        for (held, draining) in self.held().values_mut() {
+            if Arc::ptr_eq(held, lock) {
+                *draining = true;
+            }
+        }
     }
 }
 /// A worker's hold on one active job; dropping it leaves the job.
@@ -2311,6 +2342,42 @@ mod history_tests {
     fn history_cursor_encodes_order() {
         assert_eq!(super::history_cursor("ab12", false, 7), "c1.ab12.a.7");
         assert_eq!(super::history_cursor("ab12", true, 7), "c1.ab12.d.7");
+    }
+    #[test]
+    fn draining_custody_waits_for_its_last_user_then_reacquires() {
+        use std::os::unix::fs::PermissionsExt;
+        let base = std::env::temp_dir().join(format!("fm-custody-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir(&base).unwrap();
+        std::fs::set_permissions(&base, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let area = base.join(".file-mover");
+        std::fs::create_dir(&area).unwrap();
+        std::fs::set_permissions(&area, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let lock_file = area.join(mover_fs::COORDINATOR_LOCK);
+        std::fs::write(&lock_file, b"").unwrap();
+        std::fs::set_permissions(&lock_file, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let path = base.to_str().unwrap();
+        let custody = super::SharedCustody::default();
+        let lock = std::sync::Arc::new(mover_fs::LocalClaimLock::acquire(path).unwrap());
+        custody.held().insert(path.into(), (lock, false));
+        // Jobs A and B deliver with the shared custody.
+        let super::Current::Usable(a) = custody.current(path) else {
+            panic!()
+        };
+        let super::Current::Usable(b) = custody.current(path) else {
+            panic!()
+        };
+        // A fails: the custody drains instead of disappearing while B uses it.
+        custody.forget(&a);
+        drop(a);
+        // Job C must wait: acquiring now would collide with B's description.
+        assert!(matches!(custody.current(path), super::Current::Draining));
+        assert!(mover_fs::LocalClaimLock::acquire(path).is_err());
+        // B exits: the drained custody is released and C reacquires.
+        drop(b);
+        assert!(matches!(custody.current(path), super::Current::Absent));
+        assert!(mover_fs::LocalClaimLock::acquire(path).is_ok());
+        std::fs::remove_dir_all(&base).unwrap();
     }
     #[test]
     fn active_jobs_track_each_worker_hold() {

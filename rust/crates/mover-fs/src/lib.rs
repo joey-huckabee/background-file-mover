@@ -293,15 +293,23 @@ pub fn source_space_statistics(
 }
 
 pub fn validate_payload_locks(source_path: &str, destination_path: &str) -> Result<()> {
-    for (path, held) in [
-        (source_path, rustix::io::dup(std::io::stdin())?),
-        (destination_path, rustix::io::dup(std::io::stdout())?),
-    ] {
-        let expected = namespace(&root(path)?)?;
-        custody::validate(&expected, &held)?;
-        custody::exclusive(&held)?;
-        custody::validate(&expected, &held)?;
-    }
+    validate_source_lock(source_path)?;
+    validate_destination_lock(destination_path)
+}
+/// The worker's inherited stdin must be `path`'s coordinator lock description.
+pub fn validate_source_lock(path: &str) -> Result<()> {
+    inherited_lock(path, rustix::io::dup(std::io::stdin())?)
+}
+/// The worker's inherited stdout must be `path`'s coordinator lock description
+/// (the destination's in shared delivery custody).
+pub fn validate_destination_lock(path: &str) -> Result<()> {
+    inherited_lock(path, rustix::io::dup(std::io::stdout())?)
+}
+fn inherited_lock(path: &str, held: OwnedFd) -> Result<()> {
+    let expected = namespace(&root(path)?)?;
+    custody::validate(&expected, &held)?;
+    custody::exclusive(&held)?;
+    custody::validate(&expected, &held)?;
     Ok(())
 }
 /// Bound workers check profile/custody before any payload traversal. Unbound

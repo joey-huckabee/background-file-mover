@@ -708,7 +708,9 @@ pub fn worker() -> Result<()> {
                     }
                     // Shared mode: stdout is destination custody, checked once
                     // the destination is known to be available (below).
-                    if !shared_destination {
+                    if shared_destination {
+                        mover_fs::validate_source_lock(&source_root)?;
+                    } else {
                         mover_fs::validate_payload_locks(&source_root, &source_root)?;
                     }
                     checking_destination = destination_binding.is_some();
@@ -749,7 +751,8 @@ pub fn worker() -> Result<()> {
                     };
                     destination.validate()?;
                     if shared_destination {
-                        mover_fs::validate_payload_locks(&source_root, &destination_root)?;
+                        // Within the binding-refusal boundary (a binding is required).
+                        mover_fs::validate_destination_lock(&destination_root)?;
                     }
                     reply.destination_authorization =
                         destination.destination_authorization().cloned();
@@ -766,22 +769,28 @@ pub fn worker() -> Result<()> {
                     let (id, component, source, destination, shared) =
                         context.as_ref().ok_or("delivery not opened")?;
                     // The descriptors this session was started with: stdout is
-                    // the destination custody in shared mode, the source otherwise.
-                    let locks = |source: &str| {
-                        let held = if *shared {
-                            destination.source_path()
+                    // the destination custody in shared mode (checked inside the
+                    // binding-refusal boundary), the source otherwise.
+                    let source_locks = |source: &str| {
+                        if *shared {
+                            mover_fs::validate_source_lock(source)
                         } else {
-                            source
-                        };
-                        mover_fs::validate_payload_locks(source, held)
+                            mover_fs::validate_payload_locks(source, source)
+                        }
+                    };
+                    let destination_locks = || {
+                        if *shared {
+                            mover_fs::validate_destination_lock(destination.source_path())?;
+                        }
+                        destination.validate()
                     };
                     mover_fs::validate_worker_source(
                         source,
                         request.source_authorization.as_ref(),
                     )?;
-                    locks(source)?;
+                    source_locks(source)?;
                     checking_destination = true;
-                    destination.validate()?;
+                    destination_locks()?;
                     checking_destination = false;
                     let (assignment, kind, manifest) = match command {
                         Operation::Prepare { assignment } => (assignment, 0, None),
@@ -831,9 +840,9 @@ pub fn worker() -> Result<()> {
                         source,
                         request.source_authorization.as_ref(),
                     )?;
-                    locks(source)?;
+                    source_locks(source)?;
                     checking_destination = true;
-                    destination.validate()?;
+                    destination_locks()?;
                 }
             }
             Ok(())
