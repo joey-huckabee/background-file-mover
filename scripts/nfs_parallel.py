@@ -1,9 +1,9 @@
 """Parallel delivery on real NFS (increment 153): concurrent kernel-blocked
 delivery workers at shutdown, and delivery throughput by worker count.
 
-Never synthesizes a blocked child: the NFS server is stopped while two
-delivery workers are copying to the NFS destination, so both are held in the
-kernel. Uses the shared runtime Case (local state, local source, NFS
+Never synthesizes a blocked child: the NFS server is stopped once two
+delivery sessions have both staged part of their copy on the NFS destination,
+so both are held in the kernel. Uses the shared runtime Case (local state, local source, NFS
 destination) with `delivery_concurrency` from the matrix."""
 from nfs_fixture_contract import SECOND_RECORDING_ID, THIRD_RECORDING_ID, producer_request
 import json
@@ -45,8 +45,8 @@ def _recording(execute, case, name, mib, recording_id):
 
 
 def run_parallel_shutdown(Case, run, execute, spawn, restore, server, output, client, results, concurrency):
-    """SC-160: two concurrent deliveries blocked by a hard-NFS outage keep the
-    established shutdown rule: ShutdownIncomplete at the original deadline
+    """SC-199: two concurrent delivery sessions, each with a partial staged
+    copy, blocked by a hard-NFS outage keep the established shutdown rule: ShutdownIncomplete at the original deadline
     with both workers listed, state ownership refused to competitors, restart
     only after NFS restoration and both workers' exit, then both recordings
     delivered intact."""
@@ -56,7 +56,7 @@ def run_parallel_shutdown(Case, run, execute, spawn, restore, server, output, cl
         try:
             case = Case(profile, "copy_chunk", shutdown=True, shutdown_wait=2, suffix="-parallel")
             result = case.result
-            result.update({"scenario_id": "SC-160", "shutdown_wait_seconds": 2, "samples": []})
+            result.update({"scenario_id": "SC-199", "shutdown_wait_seconds": 2, "samples": []})
             bodies = [_recording(execute, case, name, LARGE_MIB, rid)
                       for name, rid in (("first", SECOND_RECORDING_ID), ("second", THIRD_RECORDING_ID))]
             case.start(False)
@@ -73,6 +73,20 @@ def run_parallel_shutdown(Case, run, execute, spawn, restore, server, output, cl
                 time.sleep(0.1)
             assert len(workers) == 2, f"two concurrent delivery workers not observed: {workers}"
             result["concurrent_workers"] = workers
+            # Copy-phase evidence: both sessions have staged bytes (and are not
+            # finished) before the outage.
+            staged = {}
+            for _ in range(300):
+                staged = {}
+                for body, _ in bodies:
+                    sizes = execute(f"stat -c %s {case.destination}/{body['recording_id']}/.staging/*.part 2>/dev/null || true",
+                                    "1000:1000").stdout.split()
+                    staged[body["recording_id"]] = [int(s) for s in sizes]
+                if all(any(0 < s < LARGE_MIB * 1048576 for s in v) for v in staged.values()):
+                    break
+                time.sleep(0.1)
+            assert all(any(0 < s < LARGE_MIB * 1048576 for s in v) for v in staged.values()), f"both copies not in progress: {staged}"
+            result["staged_bytes_before_outage"] = staged
             run(["exec", server, "rpc.nfsd", "0"])
             time.sleep(3)
             states = {pid: case.state(pid) for pid in workers}
@@ -139,18 +153,21 @@ def run_parallel_shutdown(Case, run, execute, spawn, restore, server, output, cl
 
 
 def run_parallel_throughput(Case, execute, results, concurrency):
-    """SC-161 (measurement): THROUGHPUT_JOBS jobs of THROUGHPUT_MIB each from a
-    local source to the NFS destination, release build, this worker count."""
+    """SC-200 (measurement): THROUGHPUT_JOBS jobs of THROUGHPUT_MIB each from a
+    local source to the NFS destination, release build, this worker count.
+    Timed from the first submission to the last observed commit; digests are
+    verified after the clock stops, so they never compete with deliveries."""
     case = None
     try:
         case = Case("release", "copy_chunk", suffix="-throughput")
         result = case.result
-        result.update({"scenario_id": "SC-161", "jobs": THROUGHPUT_JOBS, "mib_per_job": THROUGHPUT_MIB})
+        result.update({"scenario_id": "SC-200", "jobs": THROUGHPUT_JOBS, "mib_per_job": THROUGHPUT_MIB})
         bodies = []
         for index, rid in enumerate(("44444444-4444-4444-8444-44444444444" + str(i) for i in range(THROUGHPUT_JOBS))):
             bodies.append(_recording(execute, case, f"t{index}", THROUGHPUT_MIB, rid))
         case.start(False)
         began = time.monotonic()
+        deadline = began + 900  # Submissions and deliveries share one bound.
         jobs = []
         for body, _ in bodies:
             while True:
@@ -158,15 +175,16 @@ def run_parallel_throughput(Case, execute, results, concurrency):
                 if code == 202:
                     break
                 assert code == 503 and reply.get("retryable"), reply
+                assert time.monotonic() < deadline, "submission not accepted in time"
                 time.sleep(0.25)
             jobs.append(reply["job_id"])
-        deadline = time.monotonic() + 900
-        for job, (body, digest) in zip(jobs, bodies):
+        for job in jobs:
             _committed(case, job, deadline)
+        elapsed = time.monotonic() - began
+        for body, digest in bodies:
             name = body["files"][0]
             delivered = execute(f"sha256sum {case.destination}/{body['recording_id']}/{name}", "1000:1000").stdout.split()[0]
             assert delivered == digest
-        elapsed = time.monotonic() - began
         total = THROUGHPUT_JOBS * THROUGHPUT_MIB
         result.update({"elapsed_seconds": round(elapsed, 2), "mib_per_second": round(total / elapsed, 1), "passed": True})
         print(f"NFS throughput c={concurrency}: {total} MiB in {elapsed:.1f} s = {total / elapsed:.1f} MiB/s", flush=True)

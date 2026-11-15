@@ -54,9 +54,9 @@ def main():
     parser.add_argument("--delivery-concurrency", type=int, default=1, choices=range(1, 9),
                         help="Run the runtime, shutdown and coordinator-death matrices with this many delivery workers (shared destination custody when > 1)")
     parser.add_argument("--parallel-shutdown", action="store_true",
-                        help="Two concurrent delivery workers blocked by a hard-NFS outage at shutdown (needs --delivery-concurrency >= 2)")
+                        help="SC-199: two concurrent delivery sessions with partial staged copies, blocked by a hard-NFS outage at shutdown (needs --delivery-concurrency >= 2)")
     parser.add_argument("--parallel-throughput", action="store_true",
-                        help="Measure delivery throughput to the NFS destination at --delivery-concurrency")
+                        help="SC-200: measure delivery throughput to the NFS destination at --delivery-concurrency")
     parser.add_argument('--sync-observe', action='store_true', help='Correlate actual worker synchronization syscalls and RPC traffic; no invented reply-loss cases')
     parser.add_argument('--sync-capability', help='Passing independent synchronization capability report.json')
     args = parser.parse_args()

@@ -17,16 +17,20 @@ below are under `rust/validation/` (local evidence, not committed).
   shutdown and coordinator-death matrices with `delivery_concurrency` N in each
   case's service config (case labels end in `-cN`).
 - New `scripts/nfs_parallel.py`:
-  - **SC-160 `--parallel-shutdown`** (needs N >= 2): two 1 GiB jobs deliver at
-    once to the NFS destination; the NFS server is stopped while both workers
-    copy, so both are held in the kernel (`D`). Shutdown with a 2 s budget must
+  - **SC-199 `--parallel-shutdown`** (needs N >= 2): two 1 GiB jobs deliver at
+    once to the NFS destination; once both sessions have staged part of their
+    copy (a `.part` file with 0 < size < 1 GiB, recorded), the NFS server is
+    stopped, so both delivery sessions are held in the kernel (`D`). Shutdown with a 2 s budget must
     report `ShutdownIncomplete` with both workers listed; a competing service
     (own port) must be refused by state ownership; after restoration both
     workers exit, `--status` shows no owner, and a restart delivers both
     recordings with digests equal to the originals. Debug and release.
-  - **SC-161 `--parallel-throughput`**: four 256 MiB jobs from a local source
+  - **SC-200 `--parallel-throughput`**: four 256 MiB jobs from a local source
     to the NFS destination (release build), timed from the first submission
-    to the last commit, every digest checked.
+    to the last observed commit; every digest is verified after the clock
+    stops. Submissions and deliveries share one 900 s bound.
+  - Both are listed in [RUST-SCENARIOS](RUST-SCENARIOS.md) (SC-199, SC-200;
+    existing IDs unchanged).
 
 ### Harness drift repaired (independent of parallel delivery)
 
@@ -54,22 +58,24 @@ created". Parallel runs below therefore omit `--isolated-startup`. Follow-up.
 | --- | --- | --- |
 | `nfs-20261115T124908Z-4981df55` runtime matrix (22 cases incl. 3-minute outages) + state checks | 2 | **PASSED** |
 | `nfs-20261115T101345Z-07f92425` shutdown matrix SC-093 | 2 | 12/12 cases pass |
-| `nfs-20261115T095646Z-5f9101eb` SC-160 parallel shutdown | 4 | 2/2 pass (debug, release) |
+| `nfs-20261115T134704Z-a41de036` SC-199 parallel shutdown | 4 | debug pass; release interrupted by a lab Podman connection reset during recovery polling (both copies staged and both sessions in `D` before that) |
+| `nfs-20261115T095646Z-5f9101eb` SC-199, earlier driver (no staged-copy evidence) | 4 | 2/2 pass |
+| SC-199 release re-run | 4 | in progress; result to be added |
 | `nfs-20261115T121758Z-8e686fe0` coordinator death SC-092 | 2 | 18/18 cases pass; coverage rule not met (below) |
 | `nfs-20261115T114721Z-492a3abf` coordinator death SC-092 (control) | 1 | 18/18 cases pass; same coverage gap |
 
-SC-160 (both builds): two delivery workers held in `D`; `ShutdownIncomplete`
-after 2.8 s with both PIDs; competitor refused; both workers gone after
-restoration; restart committed both jobs (attempt 2 each) with matching
-digests.
+SC-199: two delivery sessions with partial staged copies (debug run: 61 MiB
+and 53 MiB staged) held in `D`; `ShutdownIncomplete` after about 2.8 s with
+both PIDs; competitor refused; both workers gone after restoration; restart
+committed both jobs (attempt 2 each) with matching digests.
 
 Coordinator death: every case passes in both runs, with identical outcome
 counts at 1 and 2 workers (6 blocked orphans, 2 terminating orphans and 10
 prompt exits retaining ownership). The matrix additionally requires observing a
 kernel-closed guard in both profiles (a terminating `verify_read` worker whose
 guard the kernel closes), with up to three repetitions; neither run observed
-it. Because the single-worker control shows the same gap, this is a timing
-property of this lab host, not of parallel delivery. Matrices that earlier
+it. The single-worker control shows the same gap, so it also occurs without
+parallel delivery; its cause is not established by these runs. Matrices that earlier
 runs' reports qualified are not re-qualified by these local runs; they show no
 regression with parallel delivery.
 
@@ -77,12 +83,16 @@ The shutdown and parallel runs end with a status of FAILED only through the
 outage-startup drift check fixed afterwards (their matrices passed); the
 runtime run includes the fix and is PASSED end to end.
 
-## Throughput to NFS (SC-161, release, 4 x 256 MiB)
+## Throughput to NFS (SC-200, release, 4 x 256 MiB)
 
 | Workers | Time | Rate |
 | --- | --- | --- |
-| 1 (`nfs-20261115T094623Z-c9d24443`) | 28.3 s | 36.2 MiB/s |
-| 4 (`nfs-20261115T095646Z-5f9101eb`) | 23.2 s | 44.1 MiB/s |
+| 1 (`nfs-20261115T133640Z-10286af3`, PASSED) | 25.7 s | 39.8 MiB/s |
+| 4 (`nfs-20261115T134704Z-a41de036`) | 17.6 s | 58.1 MiB/s |
 
-About 22% faster with four workers. The lab's NFS server runs on the same
-host (no network latency), so this understates the gain over a real network.
+About 46% faster with four workers. The lab's NFS server runs on the same
+host (no network latency), so this likely understates the gain over a real
+network. Earlier figures (36.2 and 44.1 MiB/s, runs `...094623Z-c9d24443`
+and `...095646Z-5f9101eb`) were taken with destination digests computed
+inside the timed window, competing with the remaining deliveries; they are
+superseded.
