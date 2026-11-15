@@ -2410,7 +2410,11 @@ fn unsafe_startup_configuration_is_rejected() {
     c.state_database = "/state/db".into();
     for (concurrency, ok) in [(0, false), (1, true), (8, true), (9, false)] {
         c.delivery_concurrency = concurrency;
-        assert_eq!(c.validate().is_ok(), ok, "delivery_concurrency {concurrency}");
+        assert_eq!(
+            c.validate().is_ok(),
+            ok,
+            "delivery_concurrency {concurrency}"
+        );
     }
 }
 #[test]
@@ -3430,9 +3434,14 @@ fn adopted_destination_custody_requires_that_destinations_own_lock() {
     provision_destination(&f);
     let destination = f.root.join("destination");
     let destination = destination.to_str().unwrap();
-    let held = mover_fs::LocalClaimLock::acquire_destination(destination, &destination_binding(), None)
-        .unwrap();
-    let pin = held.destination_authorization().unwrap().observation.clone();
+    let held =
+        mover_fs::LocalClaimLock::acquire_destination(destination, &destination_binding(), None)
+            .unwrap();
+    let pin = held
+        .destination_authorization()
+        .unwrap()
+        .observation
+        .clone();
     // Another mover cannot take the destination while it is held.
     assert!(
         mover_fs::LocalClaimLock::acquire_destination(destination, &destination_binding(), None)
@@ -3472,7 +3481,8 @@ fn adopted_destination_custody_requires_that_destinations_own_lock() {
         .is_err()
     );
     // Any other lock description (here the source's) is not destination custody.
-    let source = mover_fs::LocalClaimLock::acquire(f.root.join("source").to_str().unwrap()).unwrap();
+    let source =
+        mover_fs::LocalClaimLock::acquire(f.root.join("source").to_str().unwrap()).unwrap();
     assert!(
         mover_fs::LocalClaimLock::adopt_destination(
             destination,
@@ -3497,13 +3507,18 @@ fn parallel_delivery_keeps_outage_deferral_and_foreign_marker_review() {
     let s = status(&f, "1").1;
     // The same deferral as with one worker: a wait, never a counted failure.
     assert_eq!(s["details"]["condition"], "Retrying", "{s}");
-    assert_eq!(s["details"]["delivery_retry"]["code"], "destination_unavailable", "{s}");
+    assert_eq!(
+        s["details"]["delivery_retry"]["code"], "destination_unavailable",
+        "{s}"
+    );
     assert_eq!(s["details"]["delivery_retry"]["failures"], 0, "{s}");
     assert!(!f.destination("1", "").exists());
     // A foreign marker is still a binding refusal (review), not a deferral.
     f.stop();
     provision_destination(&f);
-    let marker = f.root.join("destination/.file-mover/destination-binding.json");
+    let marker = f
+        .root
+        .join("destination/.file-mover/destination-binding.json");
     let mut foreign = destination_binding();
     foreign.marker_id = "foreign".into();
     std::fs::write(&marker, foreign.encode()).unwrap();
@@ -4018,13 +4033,14 @@ fn local_instance_refuses_all_effect_entry_points_before_bootstrap_or_sqlite() {
     f.stop();
 }
 #[test]
-fn all_six_worker_modes_retain_explicit_local_ownership_without_parent_holder() {
+fn every_worker_mode_retains_explicit_local_ownership_without_parent_holder() {
     use std::os::unix::net::UnixStream;
     let f = Fixture::uninitialized(300);
     let db = f.root.join("state/jobs.sqlite");
     let exe = std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap();
     for mode in [
         "bootstrap",
+        "destination",
         "enrollment",
         "claim",
         "payload",

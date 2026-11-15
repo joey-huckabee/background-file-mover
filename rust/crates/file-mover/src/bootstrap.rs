@@ -84,7 +84,15 @@ pub fn acquire(
             &serde_json::json!({"version":1,"source_root":path,"source_binding":binding}),
         )?)
     };
-    supervise("--internal-bootstrap-worker", "Source bootstrap", request, path, Some(binding), stop, instance)
+    supervise(
+        "--internal-bootstrap-worker",
+        "Source bootstrap",
+        request,
+        path,
+        Some(binding),
+        stop,
+        instance,
+    )
 }
 
 /// Destination custody for shared delivery, acquired in a supervised child so
@@ -101,10 +109,20 @@ pub fn acquire_destination(
 ) -> Result<LocalClaimLock, String> {
     let request = || -> Result<Vec<u8>, Box<dyn std::error::Error>> {
         binding.validate()?;
-        Ok(serde_json::to_vec(&serde_json::json!({"version":1,"destination_root":path,
-            "destination_binding":binding,"destination_observation":expected}))?)
+        Ok(serde_json::to_vec(
+            &serde_json::json!({"version":1,"destination_root":path,
+            "destination_binding":binding,"destination_observation":expected}),
+        )?)
     };
-    supervise("--internal-destination-worker", "Destination custody", request, path, None, stop, instance)
+    supervise(
+        "--internal-destination-worker",
+        "Destination custody",
+        request,
+        path,
+        None,
+        stop,
+        instance,
+    )
 }
 
 fn supervise(

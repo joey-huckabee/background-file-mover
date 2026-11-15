@@ -3756,7 +3756,10 @@ fn delivery_candidate_recheck_matches_the_candidate_list() {
         .unwrap();
     let ready = history_job(&s, "recheck-ready", 0);
     let done = history_job(&s, "recheck-done", 4);
-    assert_eq!(s.delivery_candidates(10_000, 64).unwrap(), vec![ready.job_id]);
+    assert_eq!(
+        s.delivery_candidates(10_000, 64).unwrap(),
+        vec![ready.job_id]
+    );
     assert!(s.is_delivery_candidate(ready.job_id, 10_000).unwrap());
     assert!(!s.is_delivery_candidate(done.job_id, 10_000).unwrap());
     assert!(!s.is_delivery_candidate(999_999, 10_000).unwrap());

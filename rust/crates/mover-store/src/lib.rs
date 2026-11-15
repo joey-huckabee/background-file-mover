@@ -709,10 +709,15 @@ impl Store {
         self.call(move |db| db.save_manifest(&m))
     }
     pub fn delivery_candidates(&self, now: i64, limit: u32) -> Result<Vec<i64>> {
-        self.call(move|db| {
-            if now<0 || limit==0 || limit>64 {return Err(StoreError::InvalidContext);}
-            let mut s=db.connection.prepare(&format!("SELECT j.job_id {DELIVERY_CANDIDATES} ORDER BY j.job_id LIMIT ?2"))?;
-            Ok(s.query_map(params![now,limit],|r|r.get(0))?.collect::<std::result::Result<Vec<_>,_>>()?)
+        self.call(move |db| {
+            if now < 0 || limit == 0 || limit > 64 {
+                return Err(StoreError::InvalidContext);
+            }
+            let mut s = db.connection.prepare(&format!(
+                "SELECT j.job_id {DELIVERY_CANDIDATES} ORDER BY j.job_id LIMIT ?2"
+            ))?;
+            Ok(s.query_map(params![now, limit], |r| r.get(0))?
+                .collect::<std::result::Result<Vec<_>, _>>()?)
         })
     }
     /// Whether job `id` is still ready for delivery at `now` (same rule as

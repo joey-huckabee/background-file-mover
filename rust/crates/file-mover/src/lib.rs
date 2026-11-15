@@ -431,14 +431,14 @@ impl Worker {
         let custody = Arc::new(SharedCustody::default());
         let parallel = c.delivery_concurrency > 1;
         for worker in 0..c.delivery_concurrency {
-        let custody = custody.clone();
-        let delivery_stop = stop.clone();
-        let delivery_store = store.clone();
-        let delivery_guard = guard.clone();
-        let delivering = delivering.clone();
-        let (settle_claim_active, settle_delivering) =
-            (settle_claim_active.clone(), settle_delivering.clone());
-        let spawned = std::thread::Builder::new()
+            let custody = custody.clone();
+            let delivery_stop = stop.clone();
+            let delivery_store = store.clone();
+            let delivery_guard = guard.clone();
+            let delivering = delivering.clone();
+            let (settle_claim_active, settle_delivering) =
+                (settle_claim_active.clone(), settle_delivering.clone());
+            let spawned = std::thread::Builder::new()
             .name(if worker == 0 { "mover-local-delivery".into() } else { format!("mover-local-delivery-{worker}") })
             .spawn(move || {
                 while !delivery_stop.load(Ordering::Relaxed) {
@@ -625,16 +625,16 @@ impl Worker {
                     std::thread::sleep(Duration::from_millis(100));
                 }
             });
-        match spawned {
-            Ok(t) => deliveries.push(t),
-            Err(error) => {
-                stop.store(true, Ordering::Relaxed);
-                for t in deliveries {
-                    let _ = t.join();
+            match spawned {
+                Ok(t) => deliveries.push(t),
+                Err(error) => {
+                    stop.store(true, Ordering::Relaxed);
+                    for t in deliveries {
+                        let _ = t.join();
+                    }
+                    return Err(error.into());
                 }
-                return Err(error.into());
             }
-        }
         }
         let (sender, receiver) = mpsc::sync_channel::<Work>(1);
         let claim_stop = stop.clone();
@@ -1198,7 +1198,10 @@ enum Lane<'a> {
     Wait,
 }
 impl SharedCustody {
-    fn held(&self) -> std::sync::MutexGuard<'_, std::collections::BTreeMap<String, Arc<mover_fs::LocalClaimLock>>> {
+    fn held(
+        &self,
+    ) -> std::sync::MutexGuard<'_, std::collections::BTreeMap<String, Arc<mover_fs::LocalClaimLock>>>
+    {
         self.held.lock().unwrap_or_else(|e| e.into_inner())
     }
     fn serialized(&self) -> std::sync::MutexGuard<'_, ()> {
@@ -1230,9 +1233,12 @@ impl SharedCustody {
                 return Lane::Shared(lock.clone());
             }
             let pin = store.destination_observation(id).ok().flatten();
-            let acquired = guard.instance().map_err(|e| e.to_string()).and_then(|instance| {
-                bootstrap::acquire_destination(&path, &binding, pin.as_deref(), stop, instance)
-            });
+            let acquired = guard
+                .instance()
+                .map_err(|e| e.to_string())
+                .and_then(|instance| {
+                    bootstrap::acquire_destination(&path, &binding, pin.as_deref(), stop, instance)
+                });
             match acquired {
                 Ok(lock) => {
                     let lock = Arc::new(lock);
@@ -1240,7 +1246,9 @@ impl SharedCustody {
                     return Lane::Shared(lock);
                 }
                 Err(error) => {
-                    eprintln!("Shared destination custody for delivery {id} unavailable ({error}); using the serialized lane");
+                    eprintln!(
+                        "Shared destination custody for delivery {id} unavailable ({error}); using the serialized lane"
+                    );
                     return Lane::Serialized(serial);
                 }
             }

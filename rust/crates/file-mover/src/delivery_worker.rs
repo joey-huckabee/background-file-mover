@@ -768,7 +768,11 @@ pub fn worker() -> Result<()> {
                     // The descriptors this session was started with: stdout is
                     // the destination custody in shared mode, the source otherwise.
                     let locks = |source: &str| {
-                        let held = if *shared { destination.source_path() } else { source };
+                        let held = if *shared {
+                            destination.source_path()
+                        } else {
+                            source
+                        };
                         mover_fs::validate_payload_locks(source, held)
                     };
                     mover_fs::validate_worker_source(
