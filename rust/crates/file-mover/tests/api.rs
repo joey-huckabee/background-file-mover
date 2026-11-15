@@ -1297,7 +1297,12 @@ fn delivery_session_validates_the_copy_buffer_it_is_given() {
         &binding(),
     )
     .unwrap();
-    for (bytes, accepted) in [(Some(65536), true), (None, true), (Some(1000), false), (Some((64 << 20) + 4096), false)] {
+    for (bytes, accepted) in [
+        (Some(65536), true),
+        (None, true),
+        (Some(1000), false),
+        (Some((64 << 20) + 4096), false),
+    ] {
         let (mut child, mut channel) = effect_child(&guard, &guard, "--internal-delivery-worker");
         let opened = session_authorized_reply(
             &mut channel,
@@ -2467,12 +2472,20 @@ fn unsafe_startup_configuration_is_rejected() {
     c.state_database = "/state/db".into();
     for (concurrency, ok) in [(0, false), (1, true), (8, true), (9, false)] {
         c.delivery_concurrency = concurrency;
-        assert_eq!(c.validate().is_ok(), ok, "delivery_concurrency {concurrency}");
+        assert_eq!(
+            c.validate().is_ok(),
+            ok,
+            "delivery_concurrency {concurrency}"
+        );
     }
     c.delivery_concurrency = 1;
     for (concurrency, ok) in [(0, false), (1, true), (8, true), (9, false)] {
         c.delivery_file_concurrency = concurrency;
-        assert_eq!(c.validate().is_ok(), ok, "delivery_file_concurrency {concurrency}");
+        assert_eq!(
+            c.validate().is_ok(),
+            ok,
+            "delivery_file_concurrency {concurrency}"
+        );
     }
     c.delivery_file_concurrency = 1;
     for (bytes, ok) in [

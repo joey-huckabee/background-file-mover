@@ -738,14 +738,14 @@ fn deliver_files_parallel(
                         let current = match &mut session {
                             Some(s) => s,
                             None => match open_session(
-                            store,
-                            id,
-                            job,
-                            guard,
-                            Some(shared),
-                            tuning.copy_buffer,
-                            stop,
-                        ) {
+                                store,
+                                id,
+                                job,
+                                guard,
+                                Some(shared),
+                                tuning.copy_buffer,
+                                stop,
+                            ) {
                                 Ok(Some(s)) => session.insert(s),
                                 Ok(None) => return fail(FileFailure::Deferred, None, None),
                                 Err(e) => {
@@ -822,7 +822,8 @@ fn deliver_steps<'a>(
     {
         return Err("invalid delivery context".into());
     }
-    let Some(opened) = open_session(store, id, &job, guard, shared, tuning.copy_buffer, stop)? else {
+    let Some(opened) = open_session(store, id, &job, guard, shared, tuning.copy_buffer, stop)?
+    else {
         return Ok(false);
     };
     let session = slot.insert(opened);
@@ -1126,27 +1127,37 @@ pub fn worker() -> Result<()> {
                                     let file_index =
                                         u32::try_from(t.file_index).unwrap_or(u32::MAX);
                                     let total = c.source.size;
-                                    mover_fs::copy_effect_observed(&t, &c, copy_buffer, &mut |done| {
-                                        progress.report(mover_fs::ProgressUpdate {
-                                            file_index,
-                                            phase: mover_fs::ProgressPhase::Copying,
-                                            done,
-                                            total,
-                                        })
-                                    })?
+                                    mover_fs::copy_effect_observed(
+                                        &t,
+                                        &c,
+                                        copy_buffer,
+                                        &mut |done| {
+                                            progress.report(mover_fs::ProgressUpdate {
+                                                file_index,
+                                                phase: mover_fs::ProgressPhase::Copying,
+                                                done,
+                                                total,
+                                            })
+                                        },
+                                    )?
                                 }
                                 TransferPhase::Copied => {
                                     let file_index =
                                         u32::try_from(t.file_index).unwrap_or(u32::MAX);
                                     let total = t.stage.size;
-                                    mover_fs::verify_effect_observed(&t, &c, copy_buffer, &mut |done| {
-                                        progress.report(mover_fs::ProgressUpdate {
-                                            file_index,
-                                            phase: mover_fs::ProgressPhase::Verifying,
-                                            done,
-                                            total,
-                                        })
-                                    })?
+                                    mover_fs::verify_effect_observed(
+                                        &t,
+                                        &c,
+                                        copy_buffer,
+                                        &mut |done| {
+                                            progress.report(mover_fs::ProgressUpdate {
+                                                file_index,
+                                                phase: mover_fs::ProgressPhase::Verifying,
+                                                done,
+                                                total,
+                                            })
+                                        },
+                                    )?
                                 }
                                 TransferPhase::PublishIntent => mover_fs::publish_effect(&t, &c)?,
                                 _ => return Err("invalid payload phase".into()),

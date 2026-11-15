@@ -395,7 +395,14 @@ pub fn verify_effect_observed(
     claimed_intent(intent)?;
     let (_, _, staging, _, _) = directories(t)?;
     let fd = fs::openat(&staging, format!("{}.part", t.attempt), FILE, Mode::empty())?;
-    if Some(digest_with_fixture(fd, &t.stage, true, buffer_bytes, observe)?) != t.sha256 {
+    if Some(digest_with_fixture(
+        fd,
+        &t.stage,
+        true,
+        buffer_bytes,
+        observe,
+    )?) != t.sha256
+    {
         return Err("destination digest mismatch".into());
     }
     let mut next = t.clone();
