@@ -305,8 +305,15 @@ def main():
             assert execute("sha256sum /tmp/" + profile).stdout.split()[0] == digest
             loaded = execute("ldd -r /tmp/" + profile).stdout
             assert "not found" not in loaded and "undefined symbol" not in loaded
+            nfs_refusal = ("filesystem not qualified", "production NFS disabled")
+            # Enrolling the NFS source is where production proves the NFS refusal
+            # (since 109dc4e startup refuses unenrolled state before any source access).
+            enroll = execute("LD_BIND_NOW=1 /tmp/" + profile + " --initialize-source /tmp/local/config.json", "1000:1000", check=False)
+            assert enroll.returncode != 0 and any(reason in enroll.stderr for reason in nfs_refusal), (enroll.returncode, enroll.stdout, enroll.stderr)
+            assert execute("test ! -e /tmp/local/state/jobs.sqlite", "1000:1000", check=False).returncode == 0
+            report["checks"][profile + "_enrollment_rejected"] = enroll.stderr.strip()
             result = execute("LD_BIND_NOW=1 /tmp/" + profile + " /tmp/local/config.json", "1000:1000", check=False)
-            assert result.returncode != 0 and any(reason in result.stderr for reason in ("filesystem not qualified", "production NFS disabled"))
+            assert result.returncode != 0 and any(reason in result.stderr for reason in nfs_refusal + ("SourceEnrollmentRequired",)), (result.returncode, result.stdout, result.stderr)
             assert execute("test ! -e /tmp/local/state/jobs.sqlite", "1000:1000", check=False).returncode == 0
             report["checks"][profile + "_startup_rejected"] = result.stderr.strip()
         if qualification and not args.startup_only:

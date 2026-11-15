@@ -93,9 +93,15 @@ def run_parallel_shutdown(Case, run, execute, spawn, restore, server, output, cl
             assert stop.returncode == 2 and snapshot["phase"] == "ShutdownIncomplete", snapshot
             assert snapshot["shutdown_remaining_ms"] == 0
             assert sorted(snapshot["workers"]) == sorted(int(p) for p in workers), snapshot
-            # Competing owners are refused while either worker survives.
+            # Competing owners are refused while either worker survives (own
+            # port, so only state ownership can refuse it).
+            competing = dict(case.config, bind="127.0.0.1:0")
+            local = output / (case.label + "-competitor-config.json")
+            local.write_text(json.dumps(competing), encoding="utf-8")
+            next_config = case.base + "/competitor-config.json"
+            run(["cp", str(local), client + ":" + next_config])
             name = case.label + "-competitor"
-            competitor = spawn(f"exec {case.binary} {case.config_path}", name)
+            competitor = spawn(f"exec {case.binary} {next_config}", name)
             case.processes.append(competitor)
             assert competitor.wait(timeout=6) != 0
             diagnostic = (output / (name + ".log")).read_text()
