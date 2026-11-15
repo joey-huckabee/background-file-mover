@@ -70,9 +70,16 @@ pub struct Config {
     pub source_space_admission: source_space::Policy,
     #[serde(default = "shutdown_default")]
     pub shutdown_wait_seconds: u32,
+    /// Jobs delivered at the same time (1-8), each by its own worker thread and
+    /// worker child. Fixed in configuration, never derived from CPU count.
+    #[serde(default = "delivery_concurrency_default")]
+    pub delivery_concurrency: u32,
 }
 fn shutdown_default() -> u32 {
     60
+}
+fn delivery_concurrency_default() -> u32 {
+    1
 }
 fn retained_jobs_default() -> u64 {
     64
@@ -99,6 +106,9 @@ impl Config {
         self.source_space_admission.validate()?;
         if !(1..=3600).contains(&self.shutdown_wait_seconds) {
             return Err("shutdown_wait_seconds must be an integer from 1 through 3600");
+        }
+        if !(1..=8).contains(&self.delivery_concurrency) {
+            return Err("delivery_concurrency must be an integer from 1 through 8");
         }
         self.destination_binding
             .validate()
@@ -283,7 +293,7 @@ type OperatorWork = (Observation, oneshot::Sender<Response>);
 struct Worker {
     sender: Option<mpsc::SyncSender<Work>>,
     thread: Option<std::thread::JoinHandle<()>>,
-    delivery: Option<std::thread::JoinHandle<()>>,
+    deliveries: Vec<std::thread::JoinHandle<()>>,
     stop: Arc<AtomicBool>,
     observer: Option<mpsc::SyncSender<OperatorWork>>,
     observation: Option<std::thread::JoinHandle<()>>,
@@ -412,17 +422,28 @@ impl Worker {
                     let _ = reply.send(response);
                 }
             })?;
+        // Delivery workers: `delivery_concurrency` threads, each delivering one
+        // job at a time through its own worker child. A job is taken through
+        // `ActiveJobs`, so no two workers ever deliver the same job. Worker 0
+        // alone settles cancellations and runs deletion targets (one consumer
+        // per target). Bookkeeping is per job, never per copied chunk.
+        let mut deliveries = Vec::new();
+        for worker in 0..c.delivery_concurrency {
         let delivery_stop = stop.clone();
         let delivery_store = store.clone();
         let delivery_guard = guard.clone();
-        let delivery = std::thread::Builder::new()
-            .name("mover-local-delivery".into())
+        let delivering = delivering.clone();
+        let (settle_claim_active, settle_delivering) =
+            (settle_claim_active.clone(), settle_delivering.clone());
+        let spawned = std::thread::Builder::new()
+            .name(if worker == 0 { "mover-local-delivery".into() } else { format!("mover-local-delivery-{worker}") })
             .spawn(move || {
                 while !delivery_stop.load(Ordering::Relaxed) {
                     if delivery_guard.instance().and_then(|g| g.validate()).is_err() {
                         delivery_stop.store(true, Ordering::Relaxed);
                         break;
                     }
+                    if worker == 0 {
                     // Settle cancellations of jobs no worker is still on.
                     let (active, busy) = (settle_claim_active.clone(), settle_delivering.clone());
                     if let Err(error) = delivery_store.settle_cancellations(
@@ -482,16 +503,38 @@ impl Worker {
                             break;
                         }
                     }
-                    match delivery_store.delivery_candidates(now(), 1) {
+                    }
+                    match delivery_store.delivery_candidates(now(), 64) {
                         Ok(ids) => {
+                            // Take the first ready job no other worker holds. The
+                            // job is marked active before deliver's first
+                            // cancellation check, then rechecked: the list may
+                            // predate another worker finishing it.
+                            let mut picked = None;
                             for id in ids {
                                 if delivery_stop.load(Ordering::Relaxed) {
                                     break;
                                 }
-                                // Marked active before deliver's first cancellation check.
-                                let Some(_working) = delivering.enter(id) else {
+                                let Some(working) = delivering.enter(id) else {
                                     continue; // Another worker is on this job.
                                 };
+                                match delivery_store.is_delivery_candidate(id, now()) {
+                                    Ok(true) => {
+                                        picked = Some((id, working));
+                                        break;
+                                    }
+                                    Ok(false) => continue,
+                                    Err(error) => {
+                                        eprintln!("Delivery discovery failed: {error}");
+                                        delivery_stop.store(true, Ordering::Relaxed);
+                                        break;
+                                    }
+                                }
+                            }
+                            // A loop (not `if let`) so the `continue`s below end this
+                            // job and still reach the idle sleep.
+                            #[allow(for_loops_over_fallibles)]
+                            for (id, _working) in picked {
                                 let mut problem = None;
                                 let result = delivery_worker::deliver(
                                     &delivery_store,
@@ -555,7 +598,18 @@ impl Worker {
                     }
                     std::thread::sleep(Duration::from_millis(100));
                 }
-            })?;
+            });
+        match spawned {
+            Ok(t) => deliveries.push(t),
+            Err(error) => {
+                stop.store(true, Ordering::Relaxed);
+                for t in deliveries {
+                    let _ = t.join();
+                }
+                return Err(error.into());
+            }
+        }
+        }
         let (sender, receiver) = mpsc::sync_channel::<Work>(1);
         let claim_stop = stop.clone();
         let check_expected_sizes = c.check_expected_sizes;
@@ -596,14 +650,16 @@ impl Worker {
             Ok(thread) => thread,
             Err(error) => {
                 stop.store(true, Ordering::Relaxed);
-                let _ = delivery.join();
+                for t in deliveries {
+                    let _ = t.join();
+                }
                 return Err(error.into());
             }
         };
         Ok(Self {
             sender: Some(sender),
             thread: Some(thread),
-            delivery: Some(delivery),
+            deliveries,
             stop,
             observer: Some(observer),
             observation: Some(observation),
@@ -627,7 +683,7 @@ impl Drop for Worker {
         if let Some(t) = self.thread.take() {
             let _ = t.join();
         }
-        if let Some(t) = self.delivery.take() {
+        for t in self.deliveries.drain(..) {
             let _ = t.join();
         }
     }

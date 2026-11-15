@@ -711,8 +711,24 @@ impl Store {
     pub fn delivery_candidates(&self, now: i64, limit: u32) -> Result<Vec<i64>> {
         self.call(move|db| {
             if now<0 || limit==0 || limit>64 {return Err(StoreError::InvalidContext);}
-            let mut s=db.connection.prepare("SELECT j.job_id FROM jobs j LEFT JOIN manifests m ON m.job_id=j.job_id LEFT JOIN delivery_failures d ON d.job_id=j.job_id WHERE NOT EXISTS(SELECT 1 FROM cancellations x WHERE x.job_id=j.job_id) AND j.file_count=(SELECT count(*) FROM claims c WHERE c.job_id=j.job_id AND c.done=1) AND coalesce(m.phase,0)<4 AND coalesce(d.failures,0)<3 AND coalesce(d.retry_after,0)<=?1 ORDER BY j.job_id LIMIT ?2")?;
+            let mut s=db.connection.prepare(&format!("SELECT j.job_id {DELIVERY_CANDIDATES} ORDER BY j.job_id LIMIT ?2"))?;
             Ok(s.query_map(params![now,limit],|r|r.get(0))?.collect::<std::result::Result<Vec<_>,_>>()?)
+        })
+    }
+    /// Whether job `id` is still ready for delivery at `now` (same rule as
+    /// `delivery_candidates`). A delivery worker rechecks after taking a job,
+    /// because its candidate list may predate another worker finishing it.
+    pub fn is_delivery_candidate(&self, id: i64, now: i64) -> Result<bool> {
+        self.call(move |db| {
+            if now < 0 {
+                return Err(StoreError::InvalidContext);
+            }
+            let n: i64 = db.connection.query_row(
+                &format!("SELECT count(*) {DELIVERY_CANDIDATES} AND j.job_id=?2"),
+                params![now, id],
+                |r| r.get(0),
+            )?;
+            Ok(n == 1)
         })
     }
     pub fn delivery_failed(&self, id: i64, now: i64) -> Result<()> {
@@ -1684,6 +1700,9 @@ fn load_manifest(c: &Connection, id: i64) -> Result<Option<ManifestRecord>> {
     })
     .transpose()
 }
+/// Jobs ready for delivery at `?1`: fully claimed, not cancelled or being
+/// cancelled, not committed, under the failure budget and past any retry time.
+const DELIVERY_CANDIDATES: &str = "FROM jobs j LEFT JOIN manifests m ON m.job_id=j.job_id LEFT JOIN delivery_failures d ON d.job_id=j.job_id WHERE NOT EXISTS(SELECT 1 FROM cancellations x WHERE x.job_id=j.job_id) AND j.file_count=(SELECT count(*) FROM claims c WHERE c.job_id=j.job_id AND c.done=1) AND coalesce(m.phase,0)<4 AND coalesce(d.failures,0)<3 AND coalesce(d.retry_after,0)<=?1";
 /// A destination capacity reservation for one attempt (see
 /// `Store::transfer_capacity`). Dropping it releases the reservation unless the
 /// attempt was saved; a newer reservation of the same file is never released

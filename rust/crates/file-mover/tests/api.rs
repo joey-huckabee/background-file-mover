@@ -2399,6 +2399,7 @@ fn unsafe_startup_configuration_is_rejected() {
         max_retained_bytes: 1024 * 1024 * 1024 * 1024,
         source_space_admission: Default::default(),
         shutdown_wait_seconds: 60,
+        delivery_concurrency: 1,
     };
     assert!(c.validate().is_err());
     let mut c = c;
@@ -2406,6 +2407,64 @@ fn unsafe_startup_configuration_is_rejected() {
     assert!(c.validate().is_ok());
     c.state_database = "/source/db".into();
     assert!(c.validate().is_err());
+    c.state_database = "/state/db".into();
+    for (concurrency, ok) in [(0, false), (1, true), (8, true), (9, false)] {
+        c.delivery_concurrency = concurrency;
+        assert_eq!(c.validate().is_ok(), ok, "delivery_concurrency {concurrency}");
+    }
+}
+#[test]
+fn parallel_delivery_commits_every_job_exactly_once() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    let path = f.root.join("config.json");
+    let mut config: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    config["delivery_concurrency"] = json!(4);
+    std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
+    f.start();
+    provision_destination(&f);
+    // Four delivery worker threads (thread names are cut to 15 bytes).
+    let pid = f.child.as_ref().unwrap().id();
+    let workers = std::fs::read_dir(format!("/proc/{pid}/task"))
+        .unwrap()
+        .filter(|t| {
+            let comm = std::fs::read_to_string(t.as_ref().unwrap().path().join("comm")).unwrap();
+            comm.trim_end() == "mover-local-del"
+        })
+        .count();
+    assert_eq!(workers, 4);
+    let mut jobs = Vec::new();
+    for n in 0..6 {
+        let (a, b) = (format!("j{n}-a"), format!("j{n}-b"));
+        f.write(&a, format!("first {n}").as_bytes());
+        f.write(&b, format!("second {n}").as_bytes());
+        let (status, response) = f.post(&f.input(&format!("parallel-{n}"), json!([a, b])));
+        assert_eq!(status, 202, "{response}");
+        jobs.push(response["job_id"].as_str().unwrap().to_owned());
+    }
+    for (n, id) in jobs.iter().enumerate() {
+        let manifest = wait_manifest(&f, id);
+        assert_eq!(manifest["files"].as_array().unwrap().len(), 2);
+        assert_eq!(
+            std::fs::read(f.destination(id, &format!("j{n}-a"))).unwrap(),
+            format!("first {n}").as_bytes()
+        );
+        assert_eq!(
+            std::fs::read(f.destination(id, &format!("j{n}-b"))).unwrap(),
+            format!("second {n}").as_bytes()
+        );
+    }
+    f.stop();
+    let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    for id in &jobs {
+        let id: i64 = id.parse().unwrap();
+        let job = s.status(id).unwrap().unwrap();
+        assert!(job.job.recording.is_committed());
+        // One attempt per file: no job was delivered twice.
+        for t in &job.transfers {
+            assert_eq!(t.as_ref().unwrap().attempt, 1);
+        }
+    }
 }
 
 #[test]
