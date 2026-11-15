@@ -2406,6 +2406,7 @@ fn unsafe_startup_configuration_is_rejected() {
         source_space_admission: Default::default(),
         shutdown_wait_seconds: 60,
         delivery_concurrency: 1,
+        delivery_file_concurrency: 1,
     };
     assert!(c.validate().is_err());
     let mut c = c;
@@ -3546,6 +3547,149 @@ fn replaced_destination_lock_is_a_binding_review_then_custody_is_reacquired() {
         std::fs::read(f.destination(&id, "three")).unwrap(),
         b"third"
     );
+    f.stop();
+}
+fn set_file_concurrency(f: &Fixture, n: u32) {
+    let path = f.root.join("config.json");
+    let mut config: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    config["delivery_file_concurrency"] = json!(n);
+    std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
+}
+/// Submit like a real producer: resubmit the same recording while the
+/// service answers a retryable 503 (for example a slow handoff under load).
+fn post_until_accepted(f: &Fixture, body: &Value) -> Value {
+    let deadline = Instant::now() + Duration::from_secs(60);
+    loop {
+        let (code, reply) = f.post(body);
+        if code == 202 {
+            return reply;
+        }
+        assert!(code == 503 && reply["retryable"] == true, "{code} {reply}");
+        assert!(Instant::now() < deadline, "submission not accepted: {reply}");
+        std::thread::sleep(Duration::from_millis(100));
+    }
+}
+/// Live delivery-worker children of the running service.
+fn delivery_children(f: &Fixture) -> usize {
+    delivery_children_of(f.child.as_ref().unwrap().id())
+}
+fn delivery_children_of(pid: u32) -> usize {
+    let Ok(tasks) = std::fs::read_dir(format!("/proc/{pid}/task")) else {
+        return 0;
+    };
+    let mut children = std::collections::BTreeSet::new();
+    for task in tasks.flatten() {
+        if let Ok(list) = std::fs::read_to_string(task.path().join("children")) {
+            children.extend(list.split_whitespace().map(str::to_owned));
+        }
+    }
+    children
+        .iter()
+        .filter(|c| {
+            std::fs::read(format!("/proc/{c}/cmdline")).is_ok_and(|cmd| {
+                String::from_utf8_lossy(&cmd).contains("--internal-delivery-worker")
+            })
+        })
+        .count()
+}
+#[test]
+fn parallel_files_of_one_job_commit_once_with_concurrent_children() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    set_file_concurrency(&f, 3);
+    provision_destination(&f);
+    f.start();
+    let names: Vec<String> = (0..6).map(|i| format!("part-{i}")).collect();
+    for (i, name) in names.iter().enumerate() {
+        f.write(name, &vec![b'a' + i as u8; 16 << 20]);
+    }
+    let reply = post_until_accepted(&f, &f.input("parallel-files", json!(names)));
+    let id = reply["job_id"].as_str().unwrap().to_owned();
+    // Sample the service's children continuously while it delivers (its own
+    // thread, so slow status requests under load cannot miss the overlap).
+    let pid = f.child.as_ref().unwrap().id();
+    let done = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let sampler = {
+        let done = done.clone();
+        std::thread::spawn(move || {
+            let mut most = 0;
+            while !done.load(std::sync::atomic::Ordering::Relaxed) {
+                most = most.max(delivery_children_of(pid));
+                std::thread::sleep(Duration::from_millis(2));
+            }
+            most
+        })
+    };
+    let deadline = Instant::now() + Duration::from_secs(120);
+    while status(&f, &id).1["state"] != "Committed" {
+        assert!(Instant::now() < deadline, "parallel files not committed in time");
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    done.store(true, std::sync::atomic::Ordering::Relaxed);
+    let most = sampler.join().unwrap();
+    let manifest = wait_manifest(&f, &id);
+    assert_eq!(manifest["files"].as_array().unwrap().len(), 6);
+    assert!(
+        most >= 2,
+        "files never copied concurrently (at most {most} delivery children)"
+    );
+    for (i, name) in names.iter().enumerate() {
+        assert_eq!(
+            std::fs::read(f.destination(&id, name)).unwrap(),
+            vec![b'a' + i as u8; 16 << 20]
+        );
+    }
+    f.stop();
+    let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    let job = s.status(id.parse().unwrap()).unwrap().unwrap();
+    assert!(job.job.recording.is_committed());
+    for t in &job.transfers {
+        assert_eq!(t.as_ref().unwrap().attempt, 1, "every file delivered once");
+    }
+}
+#[test]
+fn parallel_files_stop_together_and_record_the_failing_file() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    set_file_concurrency(&f, 3);
+    f.start();
+    let names: Vec<String> = (0..5).map(|i| format!("part-{i}")).collect();
+    for name in &names {
+        f.write(name, &vec![b'x'; 1 << 20]);
+    }
+    // Destination not provisioned yet: the job is claimed and waits.
+    post_until_accepted(&f, &f.input("parallel-failure", json!(names)));
+    std::thread::sleep(Duration::from_secs(1));
+    f.stop();
+    // File 2's held copy no longer matches its claim.
+    let held = f.root.join("source/.file-mover/1-2/data");
+    let mut bytes = std::fs::read(&held).unwrap();
+    bytes.push(b'!');
+    std::fs::set_permissions(&held, std::fs::Permissions::from_mode(0o600)).unwrap();
+    std::fs::write(&held, bytes).unwrap();
+    provision_destination(&f);
+    f.start();
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let s = loop {
+        let s = status(&f, "1").1;
+        // The problem record precedes the failure count; wait for both.
+        if s["details"]["last_problem"]["file_id"].is_string()
+            && s["details"]["delivery_retry"]["failures"].as_u64() >= Some(1)
+        {
+            break s;
+        }
+        assert!(Instant::now() < deadline, "{s}");
+        std::thread::sleep(Duration::from_millis(50));
+    };
+    assert_eq!(s["details"]["last_problem"]["file_id"], "2", "{s}");
+    assert!(
+        s["details"]["delivery_retry"]["failures"].as_u64().unwrap() >= 1,
+        "{s}"
+    );
+    assert_ne!(s["state"], "Committed");
+    // Every sibling stopped and every child was reaped with the attempt.
+    std::thread::sleep(Duration::from_millis(500));
+    assert_eq!(delivery_children(&f), 0);
     f.stop();
 }
 #[test]

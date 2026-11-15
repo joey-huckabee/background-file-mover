@@ -1657,6 +1657,7 @@ fn settings(
             "missing_file_retry_window_seconds": c.missing_file_retry_window_seconds,
             "shutdown_wait_seconds": c.shutdown_wait_seconds,
             "delivery_concurrency": c.delivery_concurrency,
+            "delivery_file_concurrency": c.delivery_file_concurrency,
         },
         "storage": {
             "max_retained_jobs": c.max_retained_jobs,

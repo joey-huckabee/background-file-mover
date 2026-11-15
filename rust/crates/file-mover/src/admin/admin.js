@@ -118,8 +118,10 @@
     if (!t) { return ""; }
     var total = BigInt(t.bytes_total), done = BigInt(t.bytes_done);
     var pct = total > 0n ? (done * 100n / total).toString() + "%" : "";
-    var parts = [(t.phase === "verifying" ? "Verifying" : "Copying") + " file " +
-      (Number(t.file_id) + 1) + " of " + t.file_count];
+    // Several files of one job at once (delivery_file_concurrency): one summary.
+    var active = Number(t.active_files || "1");
+    var parts = [active > 1 ? active + " of " + t.file_count + " files in progress"
+      : (t.phase === "verifying" ? "Verifying" : "Copying") + " file " + (Number(t.file_id) + 1) + " of " + t.file_count];
     if (pct) { parts.push(pct); }
     parts.push(BigInt(t.bytes_per_second) > 0n ? short(t.bytes_per_second) + "/s" : "waiting for I/O");
     return parts.join(" · ");

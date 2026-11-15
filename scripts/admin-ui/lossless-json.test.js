@@ -213,6 +213,8 @@ console.log('byte formatting ok');
   const stalled = parseJSON('{"job_id":"7","file_id":"0","file_count":"1","phase":"verifying","bytes_done":"0","bytes_total":"0","bytes_per_second":"0"}');
   assert.strictEqual(speedText(stalled), 'Verifying file 1 of 1 · waiting for I/O');
   assert.strictEqual(speedText(undefined), '');
+  const several = parseJSON('{"job_id":"9","file_id":"0","file_count":"6","active_files":"3","phase":"copying","bytes_done":"1610612736","bytes_total":"3221225472","bytes_per_second":"157286400"}');
+  assert.strictEqual(speedText(several), '3 of 6 files in progress · 50% · 150.00 MiB/s');
   assert.strictEqual(totalSpeedText(parseJSON('{"transfers":[],"bytes_per_second":"0"}')), '');
   console.log('live transfer speed text ok');
 }
