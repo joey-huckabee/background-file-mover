@@ -426,6 +426,13 @@ pub(crate) fn deliver(
     result
 }
 
+/// Parallel files: stop here if a sibling has failed (a step boundary).
+fn halt_point(halt: Option<&AtomicBool>) -> Result<()> {
+    if halt.is_some_and(|h| h.load(Ordering::SeqCst)) {
+        return Err(Box::new(Halted));
+    }
+    Ok(())
+}
 /// A sibling file's session failed or the job must stop: this file stops
 /// before its next step. Internal to parallel file delivery; never recorded.
 #[derive(Debug)]
@@ -587,17 +594,14 @@ fn advance_file(
     stop: &AtomicBool,
     halt: Option<&AtomicBool>,
 ) -> Result<()> {
-    let halted = || -> Result<()> {
-        if halt.is_some_and(|h| h.load(Ordering::SeqCst)) {
-            return Err(Box::new(Halted));
-        }
-        Ok(())
-    };
+    let halted = || halt_point(halt);
     for (from, to) in [
         (TransferPhase::Intent, TransferPhase::Copied),
         (TransferPhase::Copied, TransferPhase::Verified),
         (TransferPhase::PublishIntent, TransferPhase::Published),
     ] {
+        // Before any effect or record of this step, PublishIntent included.
+        halted()?;
         if t.phase == TransferPhase::Verified {
             let mut authorized = t.clone();
             authorized.phase = TransferPhase::PublishIntent;
@@ -703,51 +707,69 @@ fn deliver_files_parallel(
         }
     };
     std::thread::scope(|scope| {
-        for _ in 0..concurrency.min(files) {
-            scope.spawn(|| {
-                // Holds before the session: released only after its child exits.
-                let mut holds = Vec::new();
-                let mut session: Option<Session> = None;
-                loop {
-                    if stop.load(Ordering::Relaxed) || halt.load(Ordering::SeqCst) {
-                        return;
-                    }
-                    let index = next.fetch_add(1, Ordering::SeqCst);
-                    if index >= files {
-                        return;
-                    }
-                    let current = match &mut session {
-                        Some(s) => s,
-                        None => match open_session(store, id, job, guard, Some(shared), stop) {
-                            Ok(Some(s)) => session.insert(s),
-                            Ok(None) => return fail(FileFailure::Deferred, None, None),
-                            Err(e) => return fail(FileFailure::of(e.as_ref()), None, Some(index)),
-                        },
-                    };
-                    let result = (|| -> Result<()> {
-                        let prepared = if index == 0 {
-                            first.lock().unwrap_or_else(|e| e.into_inner()).take()
-                        } else {
-                            None
-                        };
-                        let (t, c) = match prepared {
-                            Some(p) => p,
-                            None => setup_file(store, id, index, job, current, &mut holds, stop)?,
-                        };
-                        advance_file(store, t, &c, current, stop, Some(&halt))
-                    })();
-                    if let Err(e) = result {
-                        if !e.is::<Halted>() {
-                            fail(
-                                FileFailure::of(e.as_ref()),
-                                current.diagnostic.take(),
-                                Some(index),
-                            );
+        for worker in 0..concurrency.min(files) {
+            let spawned = std::thread::Builder::new()
+                .name(format!("mover-delivery-file-{worker}"))
+                .spawn_scoped(scope, || {
+                    // Holds before the session: released only after its child exits.
+                    let mut holds = Vec::new();
+                    let mut session: Option<Session> = None;
+                    loop {
+                        if stop.load(Ordering::Relaxed) || halt.load(Ordering::SeqCst) {
+                            return;
                         }
-                        return;
+                        let index = next.fetch_add(1, Ordering::SeqCst);
+                        if index >= files {
+                            return;
+                        }
+                        let current = match &mut session {
+                            Some(s) => s,
+                            None => match open_session(store, id, job, guard, Some(shared), stop) {
+                                Ok(Some(s)) => session.insert(s),
+                                Ok(None) => return fail(FileFailure::Deferred, None, None),
+                                Err(e) => {
+                                    return fail(FileFailure::of(e.as_ref()), None, Some(index));
+                                }
+                            },
+                        };
+                        let result = (|| -> Result<()> {
+                            // Open may have finished after a sibling failed.
+                            halt_point(Some(&halt))?;
+                            let prepared = if index == 0 {
+                                first.lock().unwrap_or_else(|e| e.into_inner()).take()
+                            } else {
+                                None
+                            };
+                            let (t, c) = match prepared {
+                                Some(p) => p,
+                                None => {
+                                    setup_file(store, id, index, job, current, &mut holds, stop)?
+                                }
+                            };
+                            advance_file(store, t, &c, current, stop, Some(&halt))
+                        })();
+                        if let Err(e) = result {
+                            if !e.is::<Halted>() {
+                                fail(
+                                    FileFailure::of(e.as_ref()),
+                                    current.diagnostic.take(),
+                                    Some(index),
+                                );
+                            }
+                            return;
+                        }
                     }
-                }
-            });
+                });
+            if let Err(error) = spawned {
+                // Resource exhaustion: no panic in the dispatcher; the started
+                // siblings halt and are joined when the scope ends.
+                fail(
+                    FileFailure::Other(format!("delivery file thread unavailable: {error}")),
+                    None,
+                    None,
+                );
+                break;
+            }
         }
     });
     *failed = outcome.into_inner().unwrap_or_else(|e| e.into_inner());
@@ -1146,6 +1168,70 @@ pub fn worker() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn a_halted_file_stops_before_recording_its_next_step() {
+        let base = std::env::temp_dir().join(format!("fm-halt-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(&base).unwrap();
+        let store = Store::open(base.join("jobs.sqlite")).unwrap();
+        let id = |inode| ObjectIdentity {
+            device: 1,
+            inode,
+            uid: 1000,
+            size: 0,
+            modified_seconds: 1,
+            modified_nanos: 0,
+            links: 1,
+        };
+        let c = ClaimIntent {
+            job_id: 1,
+            file_index: 0,
+            root_path: "/r".into(),
+            source_name: "a".into(),
+            private_name: "1-0".into(),
+            root: id(1),
+            parent: id(2),
+            area: id(3),
+            source: id(4),
+        };
+        let t = Transfer {
+            job_id: 1,
+            recording_directory: "1".into(),
+            file_index: 0,
+            attempt: 1,
+            destination_root: "/d".into(),
+            relative_name: "a".into(),
+            root: id(5),
+            area: id(6),
+            parent: id(7),
+            staging_directory: id(8),
+            stage: id(9),
+            sha256: Some("a".repeat(64)),
+            phase: TransferPhase::Verified,
+        };
+        // A session whose child is never asked anything.
+        let mut session = Session {
+            child: Supervised(Command::new("sleep").arg("30").spawn().unwrap()),
+            channel: UnixStream::pair().unwrap().0,
+            sequence: 0,
+            source_authorization: None,
+            diagnostic: None,
+            progress: mover_fs::progress_pair().unwrap().0,
+            job: 1,
+            files: 1,
+        };
+        let stop = AtomicBool::new(false);
+        let halt = AtomicBool::new(true);
+        // Verified -> PublishIntent would be persisted first; halted, nothing is.
+        let error = advance_file(&store, t, &c, &mut session, &stop, Some(&halt)).unwrap_err();
+        assert!(error.is::<Halted>());
+        assert_eq!(store.transfer(1, 0).unwrap(), None);
+        assert_eq!(session.sequence, 0, "no step was sent to the child");
+        assert!(halt_point(Some(&halt)).unwrap_err().is::<Halted>());
+        assert!(halt_point(None).is_ok());
+        drop(session);
+        let _ = std::fs::remove_dir_all(&base);
+    }
     #[test]
     fn capacity_hints_reject_receipts_wrong_scope_and_unknown_classes_without_parsing_text() {
         let mut reply = Reply {

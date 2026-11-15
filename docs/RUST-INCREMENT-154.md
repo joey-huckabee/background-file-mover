@@ -36,6 +36,22 @@ large files, so one job's files should copy at the same time.
   dashboard shows e.g. "3 of 6 files in progress · 50% · 150.00 MiB/s".
 - Demo: 4 jobs and 4 files at a time.
 
+## Review fixes
+
+- **Halt at every step boundary.** A file thread checks the halt after its
+  (possibly slow) Open and before setup (allocation or restart), and
+  `advance_file` checks it at the start of every step, before PublishIntent is
+  persisted, as well as before each child step. Unit regression: a verified
+  file with the halt set returns `Halted`, records nothing (no transfer saved)
+  and sends nothing to its child.
+- **Overlap proof excludes the anchor session.** The job's first session stays
+  alive for the manifest while file sessions run, so the concurrency test now
+  requires three delivery children (two file workers at once).
+- **No dispatcher panic on thread exhaustion.** File threads are started with
+  fallible scoped spawning; a failure halts the job, the scope joins the
+  threads already started (their children reaped), and the attempt fails as an
+  ordinary, recorded delivery failure.
+
 ## Measurements (WSL demo, local ext4 virtual disk)
 
 `fm-demo bench --jobs 1 --files 4 --size-mb 256`, page cache dropped before
@@ -54,7 +70,8 @@ scenario of increment 153 can measure it.
 
 - API: one job of six 16 MiB files with three at a time commits once (every
   file attempt 1, contents checked); a sampler thread observes at least two
-  delivery children running at the same time.
+  delivery children running at once besides the anchor session (two file
+  workers overlapping).
 - API: five files with three at a time, file 2's held copy no longer matching
   its claim: the attempt fails with file 2 recorded as the cause and a counted
   failure, the other files stop (no later file starts), and no delivery child

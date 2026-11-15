@@ -3565,7 +3565,10 @@ fn post_until_accepted(f: &Fixture, body: &Value) -> Value {
             return reply;
         }
         assert!(code == 503 && reply["retryable"] == true, "{code} {reply}");
-        assert!(Instant::now() < deadline, "submission not accepted: {reply}");
+        assert!(
+            Instant::now() < deadline,
+            "submission not accepted: {reply}"
+        );
         std::thread::sleep(Duration::from_millis(100));
     }
 }
@@ -3622,16 +3625,21 @@ fn parallel_files_of_one_job_commit_once_with_concurrent_children() {
     };
     let deadline = Instant::now() + Duration::from_secs(120);
     while status(&f, &id).1["state"] != "Committed" {
-        assert!(Instant::now() < deadline, "parallel files not committed in time");
+        assert!(
+            Instant::now() < deadline,
+            "parallel files not committed in time"
+        );
         std::thread::sleep(Duration::from_millis(100));
     }
     done.store(true, std::sync::atomic::Ordering::Relaxed);
     let most = sampler.join().unwrap();
     let manifest = wait_manifest(&f, &id);
     assert_eq!(manifest["files"].as_array().unwrap().len(), 6);
+    // The job's first session (anchor for the manifest) stays alive while the
+    // file sessions run, so overlap of two file workers needs three children.
     assert!(
-        most >= 2,
-        "files never copied concurrently (at most {most} delivery children)"
+        most >= 3,
+        "two file workers never ran at once (at most {most} delivery children, anchor included)"
     );
     for (i, name) in names.iter().enumerate() {
         assert_eq!(
