@@ -41,3 +41,12 @@ already accept 1-256 jobs with one confirmation proof.
 - Visual check on the demo: three jobs selected, of which two delivered jobs
   qualify for Clear; the job waiting for review is left out with an
   explanation.
+
+## CI result
+
+PR59 CI run
+[43654707264](https://github.com/joey-huckabee/background-file-mover/actions/runs/43654707264)
+at `dd515d1` passes both full modes (dashboard assets only; no Rust test count
+change). Independent review found two issues (selection changes could discard a
+frozen request; a batch cleared unsent selections), both fixed; re-review had no
+findings.
