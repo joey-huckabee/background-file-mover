@@ -1286,6 +1286,55 @@ fn session_authorized_reply(
     reply
 }
 #[test]
+fn delivery_session_validates_the_copy_buffer_it_is_given() {
+    let mut f = Fixture::new(300);
+    f.write("data", b"buffer checked");
+    assert_eq!(f.post(&f.input("session-buffer", json!(["data"]))).0, 202);
+    f.stop();
+    provision_destination(&f);
+    let guard = mover_fs::LocalClaimLock::acquire_bound(
+        f.root.join("source").to_str().unwrap(),
+        &binding(),
+    )
+    .unwrap();
+    for (bytes, accepted) in [(Some(65536), true), (None, true), (Some(1000), false), (Some((64 << 20) + 4096), false)] {
+        let (mut child, mut channel) = effect_child(&guard, &guard, "--internal-delivery-worker");
+        let opened = session_authorized_reply(
+            &mut channel,
+            1,
+            json!({"operation":"open","job_id":1,"recording_directory":f.recording_directory("1"),"source_root":f.root.join("source"),"destination_root":f.root.join("destination"),"destination_binding":destination_binding(),"copy_buffer_bytes":bytes}),
+            guard.source_authorization(),
+        );
+        assert_eq!(opened["error"].is_null(), accepted, "{bytes:?}: {opened}");
+        if !accepted {
+            // A refused Open ends the session.
+            assert!(child.wait().unwrap().success());
+        } else {
+            channel.shutdown(std::net::Shutdown::Write).unwrap();
+            assert!(child.wait().unwrap().success());
+        }
+    }
+}
+#[test]
+fn small_copy_buffer_delivers_identical_files() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    let path = f.root.join("config.json");
+    let mut config: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    config["copy_buffer_bytes"] = json!(65536);
+    std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
+    provision_destination(&f);
+    f.start();
+    // Not a multiple of the buffer: the last chunk is partial.
+    let data: Vec<u8> = (0..(3 << 20) + 12345).map(|i| (i % 251) as u8).collect();
+    f.write("data", &data);
+    let reply = post_until_accepted(&f, &f.input("small-buffer", json!(["data"])));
+    let id = reply["job_id"].as_str().unwrap().to_owned();
+    wait_manifest(&f, &id);
+    assert_eq!(std::fs::read(f.destination(&id, "data")).unwrap(), data);
+    f.stop();
+}
+#[test]
 fn delivery_session_checks_source_binding_and_rejects_authorization_downgrade() {
     let mut f = Fixture::new(300);
     f.write("data", b"source retained");
@@ -2407,6 +2456,7 @@ fn unsafe_startup_configuration_is_rejected() {
         shutdown_wait_seconds: 60,
         delivery_concurrency: 1,
         delivery_file_concurrency: 1,
+        copy_buffer_bytes: 1024 * 1024,
     };
     assert!(c.validate().is_err());
     let mut c = c;
@@ -2417,11 +2467,25 @@ fn unsafe_startup_configuration_is_rejected() {
     c.state_database = "/state/db".into();
     for (concurrency, ok) in [(0, false), (1, true), (8, true), (9, false)] {
         c.delivery_concurrency = concurrency;
-        assert_eq!(
-            c.validate().is_ok(),
-            ok,
-            "delivery_concurrency {concurrency}"
-        );
+        assert_eq!(c.validate().is_ok(), ok, "delivery_concurrency {concurrency}");
+    }
+    c.delivery_concurrency = 1;
+    for (concurrency, ok) in [(0, false), (1, true), (8, true), (9, false)] {
+        c.delivery_file_concurrency = concurrency;
+        assert_eq!(c.validate().is_ok(), ok, "delivery_file_concurrency {concurrency}");
+    }
+    c.delivery_file_concurrency = 1;
+    for (bytes, ok) in [
+        (0, false),
+        (60 * 1024, false),
+        (64 * 1024, true),
+        (64 * 1024 + 512, false),
+        (1 << 20, true),
+        (64 << 20, true),
+        ((64 << 20) + 4096, false),
+    ] {
+        c.copy_buffer_bytes = bytes;
+        assert_eq!(c.validate().is_ok(), ok, "copy_buffer_bytes {bytes}");
     }
 }
 #[test]

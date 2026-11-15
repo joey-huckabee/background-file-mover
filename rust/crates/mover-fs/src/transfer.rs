@@ -250,14 +250,27 @@ pub fn copy_stage(store: &Store, t: &Transfer) -> TransferResult<Transfer> {
 }
 /// Filesystem-only payload operation. Caller must hold custody locks and match
 /// this assignment to a durable intent; this function never accesses SQLite.
+/// Default copy and verification buffer (L2-COPY-002).
+pub const DEFAULT_COPY_BUFFER: usize = 1024 * 1024;
+/// A valid buffer size: 64 KiB to 64 MiB in whole 4 KiB pages.
+pub fn valid_copy_buffer(bytes: u64) -> bool {
+    (64 * 1024..=64 * 1024 * 1024).contains(&bytes) && bytes.is_multiple_of(4096)
+}
+fn checked_buffer(bytes: usize) -> TransferResult<Vec<u8>> {
+    if !valid_copy_buffer(bytes as u64) {
+        return Err("invalid copy buffer size".into());
+    }
+    Ok(vec![0; bytes])
+}
 pub fn copy_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfer> {
-    copy_effect_observed(t, intent, &mut |_| {})
+    copy_effect_observed(t, intent, DEFAULT_COPY_BUFFER, &mut |_| {})
 }
 /// `copy_effect`, reporting bytes copied so far after each chunk. `observe`
 /// must be cheap and must never wait (see `ProgressSender`).
 pub fn copy_effect_observed(
     t: &Transfer,
     intent: &ClaimIntent,
+    buffer_bytes: usize,
     observe: &mut dyn FnMut(u64),
 ) -> TransferResult<Transfer> {
     if t.phase != TransferPhase::Intent
@@ -282,7 +295,7 @@ pub fn copy_effect_observed(
     let mut output = File::from(fd);
     let mut hash = Sha256::new();
     let mut total = 0_u64;
-    let mut buffer = vec![0; 1024 * 1024];
+    let mut buffer = checked_buffer(buffer_bytes)?;
     let mut read_fixture = super::qualification::before_read(&input, "source_read")?;
     loop {
         let n = payload_io::read(&mut input, &mut buffer, Operation::SourceRead)?;
@@ -318,12 +331,13 @@ pub fn copy_effect_observed(
     Ok(next)
 }
 fn digest(fd: OwnedFd, expected: &ObjectIdentity) -> TransferResult<String> {
-    digest_with_fixture(fd, expected, false, &mut |_| {})
+    digest_with_fixture(fd, expected, false, DEFAULT_COPY_BUFFER, &mut |_| {})
 }
 fn digest_with_fixture(
     fd: OwnedFd,
     expected: &ObjectIdentity,
     verification: bool,
+    buffer_bytes: usize,
     observe: &mut dyn FnMut(u64),
 ) -> TransferResult<String> {
     let mut file = File::from(fd);
@@ -332,7 +346,7 @@ fn digest_with_fixture(
     }
     let mut hash = Sha256::new();
     let mut count = 0_u64;
-    let mut buffer = vec![0; 1024 * 1024];
+    let mut buffer = checked_buffer(buffer_bytes)?;
     let read_fixture = verification && super::qualification::before_read(&file, "verify_read")?;
     loop {
         let n = payload_io::read(&mut file, &mut buffer, Operation::VerificationRead)?;
@@ -363,12 +377,13 @@ pub fn verify_stage(store: &Store, t: &Transfer) -> TransferResult<Transfer> {
 }
 /// Independent destination reread; no database access or publication.
 pub fn verify_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfer> {
-    verify_effect_observed(t, intent, &mut |_| {})
+    verify_effect_observed(t, intent, DEFAULT_COPY_BUFFER, &mut |_| {})
 }
 /// `verify_effect`, reporting bytes re-read so far after each chunk.
 pub fn verify_effect_observed(
     t: &Transfer,
     intent: &ClaimIntent,
+    buffer_bytes: usize,
     observe: &mut dyn FnMut(u64),
 ) -> TransferResult<Transfer> {
     if t.phase != TransferPhase::Copied
@@ -380,7 +395,7 @@ pub fn verify_effect_observed(
     claimed_intent(intent)?;
     let (_, _, staging, _, _) = directories(t)?;
     let fd = fs::openat(&staging, format!("{}.part", t.attempt), FILE, Mode::empty())?;
-    if Some(digest_with_fixture(fd, &t.stage, true, observe)?) != t.sha256 {
+    if Some(digest_with_fixture(fd, &t.stage, true, buffer_bytes, observe)?) != t.sha256 {
         return Err("destination digest mismatch".into());
     }
     let mut next = t.clone();

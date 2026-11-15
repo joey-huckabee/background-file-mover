@@ -99,6 +99,9 @@ enum Operation {
         /// delivery), adopted instead of acquiring a new lock.
         #[serde(default)]
         shared_destination: bool,
+        /// Copy/verification buffer for this session (validated by the child).
+        #[serde(default)]
+        copy_buffer_bytes: Option<u64>,
     },
     Prepare {
         assignment: Assignment,
@@ -381,7 +384,7 @@ pub(crate) fn deliver(
     stop: &AtomicBool,
     problem: &mut Option<Problem>,
     shared: Option<&LocalClaimLock>,
-    file_concurrency: usize,
+    tuning: Tuning,
 ) -> Result<bool> {
     // The job's live progress entry ends with this attempt.
     let _tracked = super::progress::Tracked(id);
@@ -401,7 +404,7 @@ pub(crate) fn deliver(
         &mut file,
         &mut holds,
         shared,
-        file_concurrency,
+        tuning,
         &mut parallel_diagnostic,
     );
     if let Err(error) = &result
@@ -433,6 +436,14 @@ fn halt_point(halt: Option<&AtomicBool>) -> Result<()> {
     }
     Ok(())
 }
+/// Per-delivery settings from the configuration.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Tuning {
+    /// Files of one job copied at the same time (`delivery_file_concurrency`).
+    pub(crate) files: usize,
+    /// Copy and verification buffer bytes (`copy_buffer_bytes`).
+    pub(crate) copy_buffer: usize,
+}
 /// A sibling file's session failed or the job must stop: this file stops
 /// before its next step. Internal to parallel file delivery; never recorded.
 #[derive(Debug)]
@@ -452,6 +463,7 @@ fn open_session(
     job: &mover_store::Accepted,
     guard: &LocalClaimLock,
     shared: Option<&LocalClaimLock>,
+    copy_buffer: usize,
     stop: &AtomicBool,
 ) -> Result<Option<Session>> {
     let mut session = Session::start(guard, shared, id, job.recording.submission().files().len())?;
@@ -469,6 +481,7 @@ fn open_session(
                 .transpose()?,
             destination_observation: store.destination_observation(id)?,
             shared_destination: shared.is_some(),
+            copy_buffer_bytes: Some(copy_buffer as u64),
         },
         stop,
     )?;
@@ -690,7 +703,7 @@ fn deliver_files_parallel(
     guard: &LocalClaimLock,
     shared: &LocalClaimLock,
     stop: &AtomicBool,
-    concurrency: usize,
+    tuning: Tuning,
     first: (Transfer, ClaimIntent),
     failed: &mut Option<(FileFailure, Option<String>, Option<usize>)>,
 ) {
@@ -707,7 +720,7 @@ fn deliver_files_parallel(
         }
     };
     std::thread::scope(|scope| {
-        for worker in 0..concurrency.min(files) {
+        for worker in 0..tuning.files.min(files) {
             let spawned = std::thread::Builder::new()
                 .name(format!("mover-delivery-file-{worker}"))
                 .spawn_scoped(scope, || {
@@ -724,7 +737,15 @@ fn deliver_files_parallel(
                         }
                         let current = match &mut session {
                             Some(s) => s,
-                            None => match open_session(store, id, job, guard, Some(shared), stop) {
+                            None => match open_session(
+                            store,
+                            id,
+                            job,
+                            guard,
+                            Some(shared),
+                            tuning.copy_buffer,
+                            stop,
+                        ) {
                                 Ok(Some(s)) => session.insert(s),
                                 Ok(None) => return fail(FileFailure::Deferred, None, None),
                                 Err(e) => {
@@ -785,7 +806,7 @@ fn deliver_steps<'a>(
     file: &mut Option<usize>,
     holds: &mut Vec<mover_store::CapacityHold<'a>>,
     shared: Option<&LocalClaimLock>,
-    file_concurrency: usize,
+    tuning: Tuning,
     parallel_diagnostic: &mut Option<String>,
 ) -> Result<bool> {
     let job = store.get(id)?.ok_or("unknown job")?;
@@ -801,14 +822,14 @@ fn deliver_steps<'a>(
     {
         return Err("invalid delivery context".into());
     }
-    let Some(opened) = open_session(store, id, &job, guard, shared, stop)? else {
+    let Some(opened) = open_session(store, id, &job, guard, shared, tuning.copy_buffer, stop)? else {
         return Ok(false);
     };
     let session = slot.insert(opened);
     let files = job.recording.submission().files().len();
     match shared {
         // Several files at once: needs shared custody (every child adopts it).
-        Some(shared) if file_concurrency > 1 && files > 1 => {
+        Some(shared) if tuning.files > 1 && files > 1 => {
             *file = Some(0);
             let first = setup_file(store, id, 0, &job, session, holds, stop)?;
             let mut failed = None;
@@ -819,7 +840,7 @@ fn deliver_steps<'a>(
                 guard,
                 shared,
                 stop,
-                file_concurrency,
+                tuning,
                 first,
                 &mut failed,
             );
@@ -918,7 +939,9 @@ pub fn worker() -> Result<()> {
     channel.set_read_timeout(None)?; // Preserve the existing session assignment wait.
     channel.set_write_timeout(Some(Duration::from_secs(3)))?;
     // (job, recording directory, source root, destination custody, shared).
-    let mut context: Option<(i64, String, String, LocalClaimLock, bool)> = None;
+    // (job, recording directory, source root, destination custody, shared,
+    // copy buffer bytes).
+    let mut context: Option<(i64, String, String, LocalClaimLock, bool, usize)> = None;
     let mut source_authorization: Option<Option<mover_fs::SourceAuthorization>> = None;
     let mut sequence = 0;
     while let Some(bytes) = child_frame(&mut channel)? {
@@ -958,10 +981,16 @@ pub fn worker() -> Result<()> {
                     destination_binding,
                     destination_observation,
                     shared_destination,
+                    copy_buffer_bytes,
                 } => {
                     if context.is_some() || job_id <= 0 {
                         return Err("invalid open assignment".into());
                     }
+                    let copy_buffer = match copy_buffer_bytes {
+                        None => mover_fs::DEFAULT_COPY_BUFFER,
+                        Some(bytes) if mover_fs::valid_copy_buffer(bytes) => bytes as usize,
+                        Some(_) => return Err("invalid copy buffer size".into()),
+                    };
                     let component = recording_directory.unwrap_or_else(|| job_id.to_string());
                     if !mover_core::valid_recording_directory(job_id, &component) {
                         return Err("invalid recording scope".into());
@@ -1029,12 +1058,14 @@ pub fn worker() -> Result<()> {
                         source_root,
                         destination,
                         shared_destination,
+                        copy_buffer,
                     ));
                     source_authorization = Some(request.source_authorization.clone());
                 }
                 command => {
-                    let (id, component, source, destination, shared) =
+                    let (id, component, source, destination, shared, copy_buffer) =
                         context.as_ref().ok_or("delivery not opened")?;
+                    let copy_buffer = *copy_buffer;
                     // The descriptors this session was started with: stdout is
                     // the destination custody in shared mode (checked inside the
                     // binding-refusal boundary), the source otherwise.
@@ -1095,7 +1126,7 @@ pub fn worker() -> Result<()> {
                                     let file_index =
                                         u32::try_from(t.file_index).unwrap_or(u32::MAX);
                                     let total = c.source.size;
-                                    mover_fs::copy_effect_observed(&t, &c, &mut |done| {
+                                    mover_fs::copy_effect_observed(&t, &c, copy_buffer, &mut |done| {
                                         progress.report(mover_fs::ProgressUpdate {
                                             file_index,
                                             phase: mover_fs::ProgressPhase::Copying,
@@ -1108,7 +1139,7 @@ pub fn worker() -> Result<()> {
                                     let file_index =
                                         u32::try_from(t.file_index).unwrap_or(u32::MAX);
                                     let total = t.stage.size;
-                                    mover_fs::verify_effect_observed(&t, &c, &mut |done| {
+                                    mover_fs::verify_effect_observed(&t, &c, copy_buffer, &mut |done| {
                                         progress.report(mover_fs::ProgressUpdate {
                                             file_index,
                                             phase: mover_fs::ProgressPhase::Verifying,

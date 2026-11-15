@@ -79,6 +79,13 @@ pub struct Config {
     /// child on shared destination custody. Never derived from CPU count.
     #[serde(default = "delivery_concurrency_default")]
     pub delivery_file_concurrency: u32,
+    /// Copy and verification buffer bytes: 64 KiB to 64 MiB in 4 KiB pages
+    /// (L2-COPY-002). Default 1 MiB.
+    #[serde(default = "copy_buffer_default")]
+    pub copy_buffer_bytes: u64,
+}
+fn copy_buffer_default() -> u64 {
+    mover_fs::DEFAULT_COPY_BUFFER as u64
 }
 fn shutdown_default() -> u32 {
     60
@@ -117,6 +124,9 @@ impl Config {
         }
         if !(1..=8).contains(&self.delivery_file_concurrency) {
             return Err("delivery_file_concurrency must be an integer from 1 through 8");
+        }
+        if !mover_fs::valid_copy_buffer(self.copy_buffer_bytes) {
+            return Err("copy_buffer_bytes must be 64 KiB to 64 MiB in whole 4 KiB pages");
         }
         self.destination_binding
             .validate()
@@ -440,7 +450,10 @@ impl Worker {
         // Shared destination custody whenever more than one delivery child can
         // run at once: several jobs, or several files of one job.
         let parallel = c.delivery_concurrency > 1 || c.delivery_file_concurrency > 1;
-        let file_concurrency = c.delivery_file_concurrency as usize;
+        let tuning = delivery_worker::Tuning {
+            files: c.delivery_file_concurrency as usize,
+            copy_buffer: c.copy_buffer_bytes as usize,
+        };
         for worker in 0..c.delivery_concurrency {
             let custody = custody.clone();
             let delivery_stop = stop.clone();
@@ -571,7 +584,7 @@ impl Worker {
                                     &delivery_stop,
                                     &mut problem,
                                     shared.as_deref(),
-                                    file_concurrency,
+                                    tuning,
                                 );
                                 // A failed shared delivery may mean stale custody
                                 // (for example a remounted destination): the next

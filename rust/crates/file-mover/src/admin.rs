@@ -1658,6 +1658,7 @@ fn settings(
             "shutdown_wait_seconds": c.shutdown_wait_seconds,
             "delivery_concurrency": c.delivery_concurrency,
             "delivery_file_concurrency": c.delivery_file_concurrency,
+            "copy_buffer_bytes": c.copy_buffer_bytes,
         },
         "storage": {
             "max_retained_jobs": c.max_retained_jobs,

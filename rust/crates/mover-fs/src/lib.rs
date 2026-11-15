@@ -167,7 +167,9 @@ pub use transfer::{
     transfer_one, verify_stage,
 };
 pub use transfer::{copy_effect, deliver_recording_with_payload, verify_effect};
-pub use transfer::{copy_effect_observed, verify_effect_observed};
+pub use transfer::{
+    DEFAULT_COPY_BUFFER, copy_effect_observed, valid_copy_buffer, verify_effect_observed,
+};
 pub use transfer::{deliver_recording, deliver_recording_with_guard, prepare_transfer_file};
 pub use transfer::{deliver_recording_with_workers, publish_effect};
 pub use transfer::{prepare_transfer_effect, published_custody_effect, restart_transfer_effect};

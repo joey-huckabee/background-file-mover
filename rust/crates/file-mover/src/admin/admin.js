@@ -1411,6 +1411,11 @@
     fact(dl, "Check expected sizes", yesNo(t.check_expected_sizes), "check_expected_sizes");
     fact(dl, "Missing-file retry window", t.missing_file_retry_window_seconds.toString() + " s", "missing_file_retry_window_seconds");
     fact(dl, "Shutdown wait", t.shutdown_wait_seconds.toString() + " s", "shutdown_wait_seconds");
+    if (t.delivery_concurrency !== undefined) {
+      fact(dl, "Jobs delivered at once", t.delivery_concurrency.toString(), "delivery_concurrency");
+      fact(dl, "Files per job at once", t.delivery_file_concurrency.toString(), "delivery_file_concurrency");
+      fact(dl, "Copy buffer", short(t.copy_buffer_bytes), "copy_buffer_bytes");
+    }
     var st = s.storage;
     dl = card(grid, "Storage limits");
     fact(dl, "Maximum total jobs", st.max_retained_jobs.toString(), "max_retained_jobs");
