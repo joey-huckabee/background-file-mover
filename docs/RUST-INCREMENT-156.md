@@ -11,8 +11,11 @@ service change.
   `copy_buffer_bytes`), their ranges and defaults, a ready-to-paste table of
   buffer sizes, and the memory rule (up to jobs x files x buffer at once).
 - **`fm-demo bench`:** stops with a clear message when the service refuses
-  submissions for capacity (`retention_capacity`, `source_space_unavailable`)
-  instead of retrying until its timeout; a busy status reply (503 from the
+  submissions for capacity instead of retrying until its timeout, with separate
+  guidance: `retention_capacity` (the configured job/byte accounting limits:
+  clearing history frees slots but deletes no files) versus
+  `source_space_unavailable` (physical source free space low or not
+  observable: free disk space; `fm-demo setup` removes all demo data); a busy status reply (503 from the
   bounded status queue under load) is polled again instead of failing the run.
 - **Demo README:** each benchmark keeps about twice its size on the WSL disk
   and four jobs of history; `fm-demo setup` starts over.
@@ -40,8 +43,10 @@ measurable cost (increment 152).
 ### Disk exhaustion observed during the benchmarks
 
 Repeated runs filled the WSL disk (the demo keeps every delivered and held
-copy). Behavior matched the design: copies failing with `ENOSPC` were
-scheduled as destination capacity backoff (no review, no data change); once
+copy). Observed: copies failing with `ENOSPC` were scheduled as destination
+capacity backoff (their initial, retryable classification; partial staging
+writes may remain, and by policy the third persisted delivery failure requires
+review). Source custody and existing delivered output were preserved. Once
 SQLite itself could not write, the service stopped; restart and demo reset
 were refused because the worker lifetime record could not be written or
 verified ("worker lifetime evidence unavailable"). After confirming no mover

@@ -517,10 +517,16 @@ def cmd_bench(a):
                 break
             if status != 503 or not body.get("retryable"):
                 fail(f"submission refused: {status} {body}")
-            if body.get("error") in ("retention_capacity", "source_space_unavailable"):
-                # Retryable for a producer, but it will not clear during a benchmark.
-                fail(f"submission refused for capacity ({body['error']}); clear demo history "
-                     f"(Job history > Clear history) or run: fm-demo setup")
+            # Retryable for a producer, but neither clears during a benchmark.
+            if body.get("error") == "retention_capacity":
+                # The configured job/byte limits (accounting): clearing history
+                # frees accounting slots only; it deletes no files.
+                fail("submission refused: the demo's retention limits are reached; "
+                     "clear history (Job history > Clear history) or run: fm-demo setup")
+            if body.get("error") == "source_space_unavailable":
+                # Physical free space on the source disk, or its observation failed.
+                fail("submission refused: source free space is low or could not be observed; "
+                     "free disk space in WSL (fm-demo setup removes all demo data)")
             if time.monotonic() - start > a.timeout:
                 fail("timed out waiting for submissions to be accepted")
             time.sleep(0.25)

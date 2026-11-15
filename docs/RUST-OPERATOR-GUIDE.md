@@ -677,9 +677,12 @@ bytes, not "1M").
 | `"copy_buffer_bytes": 16777216` | 16 MiB | Not recommended: slower on the local test disk |
 | `"copy_buffer_bytes": 67108864` | 64 MiB (maximum) | Not recommended |
 
-Memory: each active copy or verification holds one buffer, so the copy
-buffers use up to `delivery_concurrency` x `delivery_file_concurrency` x
-`copy_buffer_bytes` at once (for example 4 x 4 x 1 MiB = 16 MiB).
+Memory: each active copy or verification holds one buffer, so the configured
+copy and verification buffers use up to `delivery_concurrency` x
+`delivery_file_concurrency` x `copy_buffer_bytes` at once (for example
+4 x 4 x 1 MiB = 16 MiB). This excludes fixed 1 MiB buffers used for recovery
+checks (for example digest rechecks during publication recovery) and all other
+process memory.
 
 Measure a change before keeping it: on the WSL demo, `fm-demo bench` reports
 MiB/s (see [scripts/demo/README.md](../scripts/demo/README.md)); results for
