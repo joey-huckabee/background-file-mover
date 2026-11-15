@@ -60,14 +60,23 @@ created". Parallel runs below therefore omit `--isolated-startup`. Follow-up.
 | `nfs-20261115T101345Z-07f92425` shutdown matrix SC-093 | 2 | 12/12 cases pass |
 | `nfs-20261115T134704Z-a41de036` SC-199 parallel shutdown | 4 | debug pass; release interrupted by a lab Podman connection reset during recovery polling (both copies staged and both sessions in `D` before that) |
 | `nfs-20261115T095646Z-5f9101eb` SC-199, earlier driver (no staged-copy evidence) | 4 | 2/2 pass |
-| SC-199 release re-run | 4 | in progress; result to be added |
+| `nfs-20261115T135846Z-3fe38063` SC-199 parallel shutdown (re-run) | 4 | **PASSED**: debug and release |
 | `nfs-20261115T121758Z-8e686fe0` coordinator death SC-092 | 2 | 18/18 cases pass; coverage rule not met (below) |
 | `nfs-20261115T114721Z-492a3abf` coordinator death SC-092 (control) | 1 | 18/18 cases pass; same coverage gap |
 
-SC-199: two delivery sessions with partial staged copies (debug run: 61 MiB
-and 53 MiB staged) held in `D`; `ShutdownIncomplete` after about 2.8 s with
-both PIDs; competitor refused; both workers gone after restoration; restart
-committed both jobs (attempt 2 each) with matching digests.
+SC-199 in the PASSED re-run `nfs-20261115T135846Z-3fe38063`, for each build:
+
+| Build | Staged before outage | Sessions in `D` | `ShutdownIncomplete` after | Recovery |
+| --- | --- | --- | --- | --- |
+| debug | 59 MiB and 51 MiB | 2 | 2.83 s, both PIDs listed | both committed, attempt 2, digests match |
+| release | 338 MiB and 310 MiB | 2 | 2.78 s, both PIDs listed | both committed, attempt 2, digests match |
+
+In both builds a competing service (own port) was refused by state ownership,
+both workers were gone after restoration and `--status` showed no owner before
+the restart. In run `...134704Z-a41de036` only the debug case completed; its
+release case reached the outage (both copies staged, both sessions in `D`) and
+was then interrupted by the lab's Podman connection reset, so it shows no
+recovery result.
 
 Coordinator death: every case passes in both runs, with identical outcome
 counts at 1 and 2 workers (6 blocked orphans, 2 terminating orphans and 10
@@ -79,9 +88,13 @@ parallel delivery; its cause is not established by these runs. Matrices that ear
 runs' reports qualified are not re-qualified by these local runs; they show no
 regression with parallel delivery.
 
-The shutdown and parallel runs end with a status of FAILED only through the
-outage-startup drift check fixed afterwards (their matrices passed); the
-runtime run includes the fix and is PASSED end to end.
+Run status: `...101345Z-07f92425` (shutdown) and `...095646Z-5f9101eb`
+(first parallel run) ended FAILED only through the outage-startup drift check
+fixed afterwards; their cases passed. `...134704Z-a41de036` ended FAILED
+because of the Podman connection reset above. `...124908Z-4981df55`
+(runtime), `...133640Z-10286af3` (throughput, one worker) and
+`...135846Z-3fe38063` (SC-199 re-run) include the fix and are PASSED end to
+end.
 
 ## Throughput to NFS (SC-200, release, 4 x 256 MiB)
 
