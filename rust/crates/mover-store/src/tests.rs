@@ -3581,17 +3581,17 @@ fn admin_cancel_outcomes_settlement_and_stopped_work() {
         RetryOutcome::Failed
     );
     // Settlement waits while a claim is in flight, then confirms the stop.
-    assert_eq!(s.settle_cancellations(130, || true).unwrap(), 0);
+    assert_eq!(s.settle_cancellations(130, || true, |_| false).unwrap(), 0);
     assert_eq!(
         cancel_state(&s, j.job_id),
         Some((CancelState::Pending, None))
     );
-    assert_eq!(s.settle_cancellations(130, || false).unwrap(), 1);
+    assert_eq!(s.settle_cancellations(130, || false, |_| false).unwrap(), 1);
     assert_eq!(
         cancel_state(&s, j.job_id),
         Some((CancelState::Cancelled, Some(130)))
     );
-    assert_eq!(s.settle_cancellations(140, || false).unwrap(), 0);
+    assert_eq!(s.settle_cancellations(140, || false, |_| false).unwrap(), 0);
     // Once cancelled, a repeat skips (lost-response replay is harmless).
     assert_eq!(
         s.cancel_job_for_test(j.job_id, &principal, 150),
@@ -3658,6 +3658,45 @@ fn admin_cancel_refuses_new_claims_and_reset_missing() {
 }
 
 #[test]
+fn settlement_waits_only_for_jobs_still_being_delivered() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt")
+        .unwrap();
+    let busy = history_job(&s, "settle-busy", 0);
+    let idle = history_job(&s, "settle-idle", 0);
+    for id in [busy.job_id, idle.job_id] {
+        assert_eq!(
+            s.admin_cancel(id, "operator", 100).unwrap(),
+            CancelOutcome::Accepted
+        );
+    }
+    // A worker is still on `busy`: only `idle` is confirmed stopped.
+    let b = busy.job_id;
+    assert_eq!(
+        s.settle_cancellations(110, || false, move |id| id == b)
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        cancel_state(&s, busy.job_id),
+        Some((CancelState::Pending, None))
+    );
+    assert_eq!(
+        cancel_state(&s, idle.job_id),
+        Some((CancelState::Cancelled, Some(110)))
+    );
+    // A claim in flight still defers everything.
+    assert_eq!(s.settle_cancellations(115, || true, |_| false).unwrap(), 0);
+    // Once the worker has stopped, the remaining job settles.
+    assert_eq!(s.settle_cancellations(120, || false, |_| false).unwrap(), 1);
+    assert_eq!(
+        cancel_state(&s, busy.job_id),
+        Some((CancelState::Cancelled, Some(120)))
+    );
+}
+
+#[test]
 fn delivery_that_committed_first_drops_the_pending_request() {
     let f = Fixture::new();
     let s = Store::open(f.db()).unwrap();
@@ -3679,7 +3718,7 @@ fn delivery_that_committed_first_drops_the_pending_request() {
     .unwrap();
     drop(c);
     let s = Store::open(f.db()).unwrap();
-    assert_eq!(s.settle_cancellations(200, || false).unwrap(), 1);
+    assert_eq!(s.settle_cancellations(200, || false, |_| false).unwrap(), 1);
     assert_eq!(
         cancel_state(&s, done.job_id),
         None,
@@ -3805,7 +3844,7 @@ fn admin_clear_forgets_only_delivered_or_cancelled_jobs_and_waits_for_workers() 
         CancelOutcome::Skipped
     );
     // Once its cancellation is settled, the cancelled job can be cleared too.
-    s.settle_cancellations(150, || false).unwrap();
+    s.settle_cancellations(150, || false, |_| false).unwrap();
     assert_eq!(
         s.admin_clear(cancelled.job_id, |_| false).unwrap(),
         ClearOutcome::Cleared
@@ -3848,7 +3887,7 @@ fn offline_clear_now_includes_completed_cancellations() {
     assert_eq!(s.clear_completed_history(&[j.job_id]).unwrap(), 0);
     drop(s);
     let s = Store::open(f.db()).unwrap();
-    s.settle_cancellations(120, || false).unwrap();
+    s.settle_cancellations(120, || false, |_| false).unwrap();
     drop(s);
     let s = Store::open_for_history_clear(f.db()).unwrap();
     assert_eq!(s.clear_completed_history(&[j.job_id]).unwrap(), 1);
@@ -3968,7 +4007,7 @@ fn failed_targets_are_retried_only_by_a_fresh_confirmation() {
     s.admin_cancel(j.job_id, "op", 100).unwrap();
     // Pending cancellation: not stopped yet.
     assert!(s.deletion_preview(j.job_id).unwrap().is_none());
-    s.settle_cancellations(110, || false).unwrap();
+    s.settle_cancellations(110, || false, |_| false).unwrap();
     let (targets, digest) = s.deletion_preview(j.job_id).unwrap().unwrap();
     assert_eq!(targets.len(), 2);
     s.start_deletion(j.job_id, "op", &"a".repeat(64), &digest, 120)
@@ -4022,7 +4061,7 @@ fn schema_fifteen_requires_the_guarded_deletion_upgrade_and_snapshots_cover_it()
     let s = Store::open(f.db()).unwrap();
     let j = ready_job(&s);
     s.admin_cancel(j.job_id, "op", 100).unwrap();
-    s.settle_cancellations(110, || false).unwrap();
+    s.settle_cancellations(110, || false, |_| false).unwrap();
     let digest = digest_of(&s, j.job_id);
     s.start_deletion(j.job_id, "op", &"a".repeat(64), &digest, 120)
         .unwrap();
@@ -4074,7 +4113,7 @@ fn an_older_confirmation_never_starts_a_later_pass() {
     let s = Store::open(f.db()).unwrap();
     let j = ready_job(&s);
     s.admin_cancel(j.job_id, "op", 100).unwrap();
-    s.settle_cancellations(110, || false).unwrap();
+    s.settle_cancellations(110, || false, |_| false).unwrap();
     assert!(!s.retained_copy_released(j.job_id, 0).unwrap());
     // Confirmation A starts pass 1; custody is released as soon as targeted.
     let a = digest_of(&s, j.job_id);

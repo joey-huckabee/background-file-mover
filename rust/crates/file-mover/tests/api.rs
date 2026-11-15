@@ -5763,7 +5763,7 @@ fn confirmed_deletion_removes_only_retained_copies_and_keeps_replay() {
             s.admin_cancel(3, "dashboard-account", 200).unwrap(),
             mover_store::CancelOutcome::Accepted
         );
-        s.settle_cancellations(201, || false).unwrap();
+        s.settle_cancellations(201, || false, |_| false).unwrap();
         let (_, digest) = s.deletion_preview(3).unwrap().unwrap();
         s.start_deletion(3, "dashboard-account", &"b".repeat(64), &digest, 202)
             .unwrap();

@@ -108,16 +108,19 @@ impl Store {
         self.call(move |db| requested(&db.connection, job_id))
     }
 
-    /// Settle pending cancellations. Call only from the delivery thread between
-    /// jobs (so no delivery is in progress); `claim_active` is evaluated inside
-    /// the transaction, which is serialized with every claim's own cancellation
-    /// check, so a claim in flight defers settlement until it stops.
+    /// Settle pending cancellations. `claim_active` and `delivering` are
+    /// evaluated inside the transaction, which is serialized with every claim's
+    /// and delivery's own cancellation checks: a claim in flight defers all
+    /// settlement until it stops, and a job a delivery worker is still working
+    /// on stays pending until that worker has stopped (it marks the job active
+    /// before its first cancellation check and clears it after its last step).
     /// Uncommitted jobs become Cancelled; jobs whose delivery committed first
     /// drop the request. Returns rows changed.
     pub fn settle_cancellations(
         &self,
         now: i64,
         claim_active: impl Fn() -> bool + Send + 'static,
+        delivering: impl Fn(i64) -> bool + Send + 'static,
     ) -> Result<usize> {
         if now < 0 {
             return Err(StoreError::InvalidContext);
@@ -135,6 +138,9 @@ impl Store {
                 .collect::<std::result::Result<_, _>>()?;
             let mut changed = 0;
             for id in pending {
+                if delivering(id) {
+                    continue;
+                }
                 let job = load(&tx, id)?.ok_or(StoreError::CorruptState)?;
                 changed += if job.recording.is_committed() {
                     tx.execute("DELETE FROM cancellations WHERE job_id=?1", [id])?
