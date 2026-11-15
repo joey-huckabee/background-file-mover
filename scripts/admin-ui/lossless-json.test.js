@@ -201,3 +201,35 @@ console.log('byte formatting ok');
   assert.ok(left.has('257') && left.has('300') && left.has('review-job') && !left.has('1'));
   console.log('bulk lock and partial deselection ok');
 }
+
+// Bulk replies that arrive after sign-out (or a newer round) are ignored, so a
+// late preview cannot reopen the confirmation over the sign-in page.
+(async () => {
+  const sSrc = src.slice(src.indexOf('  function startBulk('), src.indexOf('  // Bulk confirmations open'));
+  const replies = [];
+  const harness = new Function('fetch', 'readReply', 'renderSelection', 'show', 'bulkPlan', 'bulkOutcome', 'afterBatch', 'refreshVisible', 'selected', 'csrf',
+    'var bulk = { action: null, ids: [], proof: null, expires_at: 0, sending: false, message: "" };' + sSrc +
+    '; return { startBulk: startBulk, sendBulk: sendBulk, get: function () { return bulk; },' +
+    ' logout: function () { bulk = { action: null, ids: [], proof: null, expires_at: 0, sending: false, message: "" }; } };');
+  const fakeFetch = () => new Promise(resolve => replies.push(resolve));
+  const h = harness(fakeFetch, r => r, () => {}, () => {}, null, () => 'done', () => {}, () => {}, new Set(), 'csrf');
+  const plan = { ids: ['2', '3'], all: true, note: '' };
+  h.startBulk('clear-history', plan);
+  assert.strictEqual(h.get().sending, true);
+  h.logout();
+  replies.shift()({ status: 200, body: { confirmation: { action: 'clear-history', token: 'c1.late', expires_at: '9999999999' } } });
+  await new Promise(r => setTimeout(r, 0));
+  assert.strictEqual(h.get().proof, null, 'late preview after logout is ignored');
+  assert.strictEqual(h.get().action, null);
+  // A current preview still lands; a mutation reply after logout is ignored too.
+  h.startBulk('clear-history', plan);
+  replies.shift()({ status: 200, body: { confirmation: { action: 'clear-history', token: 'c1.ok', expires_at: '9999999999' } } });
+  await new Promise(r => setTimeout(r, 0));
+  assert.strictEqual(h.get().proof, 'c1.ok');
+  h.sendBulk();
+  h.logout();
+  replies.shift()({ status: 200, body: { cleared_count: 2 } });
+  await new Promise(r => setTimeout(r, 0));
+  assert.strictEqual(h.get().message, '', 'late outcome after logout is ignored');
+  console.log('stale bulk replies ignored ok');
+})().catch(e => { console.error(e); process.exit(1); });

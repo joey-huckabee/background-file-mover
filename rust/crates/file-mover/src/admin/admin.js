@@ -1122,12 +1122,14 @@
       renderSelection(); return;
     }
     bulk = { action: action, ids: plan.ids, proof: null, expires_at: 0, sending: true, message: "Preparing confirmation…",
-      note: plan.note, all: !!plan.all };
+      note: plan.note, all: !!plan.all, incomplete: !!plan.incomplete };
+    var mine = bulk;
     renderSelection();
     fetch("/api/v2/admin/jobs?confirm_action=" + action + "&job_ids=" + plan.ids.join(","), {
       credentials: "same-origin", cache: "no-store",
       headers: { "Mover-Admin-Activity": "interaction", "Mover-CSRF-Token": csrf || "" }
     }).then(readReply).then(function (r) {
+      if (bulk !== mine) { return; } // Signed out or replaced meanwhile.
       bulk.sending = false;
       if (r.status === 401) { show(false); return; }
       var c = r.body && r.body.confirmation;
@@ -1135,19 +1137,23 @@
         bulk.message = "Could not prepare the confirmation (" + ((r.body && r.body.error) || r.status) + ").";
       } else { bulk.proof = c.token; bulk.expires_at = Number(c.expires_at); bulk.message = ""; }
       renderSelection();
-    }).catch(function () { bulk.sending = false; bulk.message = "The service could not be reached."; renderSelection(); });
+    }).catch(function () {
+      if (bulk !== mine) { return; }
+      bulk.sending = false; bulk.message = "The service could not be reached."; renderSelection();
+    });
   }
   function sendBulk() {
     if (!bulk.proof || bulk.sending) { return; }
     if (Date.now() / 1000 >= bulk.expires_at) { bulk.proof = null; bulk.message = "The confirmation expired. Start again."; renderSelection(); return; }
     bulk.sending = true; bulk.message = "Sending…";
     renderSelection();
-    var action = bulk.action;
+    var action = bulk.action, mine = bulk;
     fetch(action === "cancel" ? "/api/v2/admin/jobs/cancel" : "/api/v2/admin/jobs/clear-history", {
       method: "POST", credentials: "same-origin", cache: "no-store",
       headers: { "Content-Type": "application/json", "Mover-CSRF-Token": csrf || "", "Mover-Confirmation": bulk.proof },
       body: '{"job_ids":[' + bulk.ids.join(",") + "]}"
     }).then(readReply).then(function (r) {
+      if (bulk !== mine) { return; }
       bulk.sending = false;
       if (r.status === 401) { show(false); return; }
       var ok = (r.status === 202 && r.body && r.body.accepted_count !== undefined) || (r.status === 200 && r.body && r.body.cleared_count !== undefined);
@@ -1161,6 +1167,7 @@
       renderSelection();
       refreshVisible();
     }).catch(function () {
+      if (bulk !== mine) { return; }
       bulk.sending = false;
       bulk.message = "No reply from the service. Click Confirm again to resend the same request.";
       renderSelection();
@@ -1177,7 +1184,8 @@
     if (!confirming()) { if (d.open) { d.close(); } return; }
     $("confirm-title").textContent = bulk.action === "cancel" ? "Cancel " + bulk.ids.length + " job(s)?"
       : bulk.all ? "Clear history?" : "Clear " + bulk.ids.length + " job(s) from history?";
-    $("confirm-text").textContent = (bulk.all ? "This clears every delivered and cancelled job. Jobs that are still active or need review stay. " : "") +
+    $("confirm-text").textContent = (bulk.all ? "This clears the delivered and cancelled jobs loaded in this dashboard. Jobs that are still active or need review stay. " +
+      (bulk.incomplete ? "Older jobs that are not loaded are not included; use Load older jobs to include them. " : "") : "") +
       bulkQuestion(bulk.action, bulk.ids) + (bulk.note || "");
     $("confirm-status").textContent = bulk.message;
     $("confirm-status").hidden = !bulk.message;
@@ -1556,7 +1564,9 @@
   });
   $("clear-all").addEventListener("click", function () {
     if (selectionLocked(bulk) || bulk.sending) { return; }
-    startBulk("clear-history", clearAllPlan(allItems));
+    var plan = clearAllPlan(allItems);
+    plan.incomplete = olderCursor !== null;
+    startBulk("clear-history", plan);
   });
   $("confirm-yes").addEventListener("click", sendBulk);
   $("confirm-back").addEventListener("click", bulkBack);

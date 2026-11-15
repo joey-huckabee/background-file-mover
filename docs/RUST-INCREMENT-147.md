@@ -33,6 +33,16 @@ or behavior change on the service side.
 - **Refresh:** verified on the demo: it reloads the jobs list and storage
   reservations, disables itself while loading and re-enables afterwards.
 
+## Review fixes
+
+- **Stale replies:** a confirmation preview or bulk result that arrives after
+  sign-out (or after a newer bulk round started) is ignored, so it cannot
+  reopen the dialog over the sign-in page. Regression test with a delayed
+  preview and a delayed result, each followed by sign-out.
+- **Exact scope:** the Clear history dialog says it clears the delivered and
+  cancelled jobs loaded in this dashboard, and when older jobs are not loaded
+  it says they are not included.
+
 ## Tests
 
 - Admin UI node tests: new `clearAllPlan` cases (eligibility, ordering, the
