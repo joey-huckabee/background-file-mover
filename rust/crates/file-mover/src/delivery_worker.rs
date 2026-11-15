@@ -217,6 +217,10 @@ struct Session {
     source_authorization: Option<mover_fs::SourceAuthorization>,
     /// Last validated child diagnostic (bounded, path-free).
     diagnostic: Option<String>,
+    /// Coordinator end of the child's advisory progress channel.
+    progress: std::os::fd::OwnedFd,
+    job: i64,
+    files: usize,
 }
 
 /// What went wrong in a failed delivery, for the job's problem record.
@@ -228,7 +232,12 @@ impl Session {
     /// `shared`: the coordinator's destination custody, passed as the child's
     /// stdout; otherwise stdout is the source custody again (legacy mode, where
     /// the child acquires the destination itself).
-    fn start(guard: &LocalClaimLock, shared: Option<&LocalClaimLock>) -> Result<Self> {
+    fn start(
+        guard: &LocalClaimLock,
+        shared: Option<&LocalClaimLock>,
+        job: i64,
+        files: usize,
+    ) -> Result<Self> {
         let (mut channel, worker) = UnixStream::pair()?;
         channel.set_read_timeout(Some(Duration::from_millis(100)))?;
         channel.set_write_timeout(Some(Duration::from_secs(3)))?;
@@ -243,6 +252,9 @@ impl Session {
         );
         channel.set_read_timeout(Some(Duration::from_secs(3)))?;
         guard.instance()?.send(&mut channel)?;
+        let (progress, child_end) = mover_fs::progress_pair()?;
+        mover_fs::send_progress_channel(&channel, &child_end)?;
+        drop(child_end);
         channel.set_read_timeout(Some(Duration::from_millis(100)))?;
         Ok(Self {
             child,
@@ -250,13 +262,24 @@ impl Session {
             sequence: 0,
             source_authorization: guard.source_authorization().cloned(),
             diagnostic: None,
+            progress,
+            job,
+            files,
         })
+    }
+    /// Live speed for the dashboard: take whatever progress the child sent
+    /// while this coordinator waits for the step's reply.
+    fn observe_progress(&self) {
+        for update in mover_fs::drain_progress(&self.progress) {
+            super::progress::BOARD.update(self.job, self.files, update);
+        }
     }
     fn read(&mut self, mut output: &mut [u8], stop: &AtomicBool) -> Result<()> {
         while !output.is_empty() {
             if stop.load(Ordering::Relaxed) {
                 return Err("delivery dispatch stopped".into());
             }
+            self.observe_progress();
             match self.channel.read(output) {
                 Ok(0) => return Err("delivery worker exited without receipt".into()),
                 Ok(n) => {
@@ -359,6 +382,8 @@ pub(crate) fn deliver(
     problem: &mut Option<Problem>,
     shared: Option<&LocalClaimLock>,
 ) -> Result<bool> {
+    // The job's live progress entry ends with this attempt.
+    let _tracked = super::progress::Tracked(id);
     // Declared before the session so they drop after it: an unsaved attempt's
     // capacity stays reserved until its worker child has been killed and
     // reaped, not merely until the step that allocated it failed.
@@ -418,7 +443,12 @@ fn deliver_steps<'a>(
     {
         return Err("invalid delivery context".into());
     }
-    let session = slot.insert(Session::start(guard, shared)?);
+    let session = slot.insert(Session::start(
+        guard,
+        shared,
+        id,
+        job.recording.submission().files().len(),
+    )?);
     let opened = session.call(
         Operation::Open {
             job_id: id,
@@ -648,6 +678,8 @@ pub fn worker() -> Result<()> {
     let mut channel = UnixStream::from(std::io::stderr().as_fd().try_clone_to_owned()?);
     channel.set_read_timeout(Some(Duration::from_secs(3)))?;
     let _instance = mover_fs::InstanceGuard::receive(&mut channel)?;
+    // Advisory; reporting never waits or fails a step (see ProgressSender).
+    let mut progress = mover_fs::receive_progress_channel(&channel)?;
     channel.set_read_timeout(None)?; // Preserve the existing session assignment wait.
     channel.set_write_timeout(Some(Duration::from_secs(3)))?;
     // (job, recording directory, source root, destination custody, shared).
@@ -825,9 +857,31 @@ pub fn worker() -> Result<()> {
                             2 => match t.phase {
                                 TransferPhase::Intent => {
                                     copying_payload = true;
-                                    mover_fs::copy_effect(&t, &c)?
+                                    let file_index =
+                                        u32::try_from(t.file_index).unwrap_or(u32::MAX);
+                                    let total = c.source.size;
+                                    mover_fs::copy_effect_observed(&t, &c, &mut |done| {
+                                        progress.report(mover_fs::ProgressUpdate {
+                                            file_index,
+                                            phase: mover_fs::ProgressPhase::Copying,
+                                            done,
+                                            total,
+                                        })
+                                    })?
                                 }
-                                TransferPhase::Copied => mover_fs::verify_effect(&t, &c)?,
+                                TransferPhase::Copied => {
+                                    let file_index =
+                                        u32::try_from(t.file_index).unwrap_or(u32::MAX);
+                                    let total = t.stage.size;
+                                    mover_fs::verify_effect_observed(&t, &c, &mut |done| {
+                                        progress.report(mover_fs::ProgressUpdate {
+                                            file_index,
+                                            phase: mover_fs::ProgressPhase::Verifying,
+                                            done,
+                                            total,
+                                        })
+                                    })?
+                                }
                                 TransferPhase::PublishIntent => mover_fs::publish_effect(&t, &c)?,
                                 _ => return Err("invalid payload phase".into()),
                             },

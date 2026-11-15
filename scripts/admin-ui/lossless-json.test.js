@@ -202,6 +202,21 @@ console.log('byte formatting ok');
   console.log('bulk lock and partial deselection ok');
 }
 
+// Live transfer speed text from the progress event (lossless numbers).
+{
+  const bytesSrc3 = src.slice(src.indexOf('  function bytes(value)'), src.indexOf('  function time('));
+  const sSrc = src.slice(src.indexOf('  function speedText('), src.indexOf('  var liveTransfers ='));
+  const { speedText, totalSpeedText } = new Function(bytesSrc3 + sSrc + '; return { speedText: speedText, totalSpeedText: totalSpeedText };')();
+  const body = parseJSON('{"transfers":[{"job_id":"7","file_id":"1","file_count":"4","phase":"copying","bytes_done":"471859200","bytes_total":"1048576000","bytes_per_second":"54630400"}],"bytes_per_second":"54630400"}');
+  assert.strictEqual(speedText(body.transfers[0]), 'Copying file 2 of 4 · 45% · 52.09 MiB/s');
+  assert.strictEqual(totalSpeedText(body), '1 transfer · 52.09 MiB/s');
+  const stalled = parseJSON('{"job_id":"7","file_id":"0","file_count":"1","phase":"verifying","bytes_done":"0","bytes_total":"0","bytes_per_second":"0"}');
+  assert.strictEqual(speedText(stalled), 'Verifying file 1 of 1 · waiting for I/O');
+  assert.strictEqual(speedText(undefined), '');
+  assert.strictEqual(totalSpeedText(parseJSON('{"transfers":[],"bytes_per_second":"0"}')), '');
+  console.log('live transfer speed text ok');
+}
+
 // Bulk replies that arrive after sign-out (or a newer round) are ignored, so a
 // late preview cannot reopen the confirmation over the sign-in page.
 (async () => {

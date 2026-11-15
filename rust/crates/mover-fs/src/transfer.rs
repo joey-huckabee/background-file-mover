@@ -251,6 +251,15 @@ pub fn copy_stage(store: &Store, t: &Transfer) -> TransferResult<Transfer> {
 /// Filesystem-only payload operation. Caller must hold custody locks and match
 /// this assignment to a durable intent; this function never accesses SQLite.
 pub fn copy_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfer> {
+    copy_effect_observed(t, intent, &mut |_| {})
+}
+/// `copy_effect`, reporting bytes copied so far after each chunk. `observe`
+/// must be cheap and must never wait (see `ProgressSender`).
+pub fn copy_effect_observed(
+    t: &Transfer,
+    intent: &ClaimIntent,
+    observe: &mut dyn FnMut(u64),
+) -> TransferResult<Transfer> {
     if t.phase != TransferPhase::Intent
         || t.job_id != intent.job_id
         || t.file_index != intent.file_index
@@ -286,6 +295,7 @@ pub fn copy_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfe
         }
         hash.update(&buffer[..n]);
         payload_io::write(&mut output, &buffer[..n])?;
+        observe(total);
         if total == n as u64 {
             read_fixture |= super::qualification::before_read(&input, "source_copy")?;
             super::qualification_pause("copy_chunk")?;
@@ -308,12 +318,13 @@ pub fn copy_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfe
     Ok(next)
 }
 fn digest(fd: OwnedFd, expected: &ObjectIdentity) -> TransferResult<String> {
-    digest_with_fixture(fd, expected, false)
+    digest_with_fixture(fd, expected, false, &mut |_| {})
 }
 fn digest_with_fixture(
     fd: OwnedFd,
     expected: &ObjectIdentity,
     verification: bool,
+    observe: &mut dyn FnMut(u64),
 ) -> TransferResult<String> {
     let mut file = File::from(fd);
     if source(&file)? != *expected {
@@ -330,6 +341,7 @@ fn digest_with_fixture(
         }
         count = count.checked_add(n as u64).ok_or("byte count overflow")?;
         hash.update(&buffer[..n]);
+        observe(count);
     }
     super::qualification::after_read(read_fixture)?;
     if count != expected.size || source(&file)? != *expected {
@@ -351,6 +363,14 @@ pub fn verify_stage(store: &Store, t: &Transfer) -> TransferResult<Transfer> {
 }
 /// Independent destination reread; no database access or publication.
 pub fn verify_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Transfer> {
+    verify_effect_observed(t, intent, &mut |_| {})
+}
+/// `verify_effect`, reporting bytes re-read so far after each chunk.
+pub fn verify_effect_observed(
+    t: &Transfer,
+    intent: &ClaimIntent,
+    observe: &mut dyn FnMut(u64),
+) -> TransferResult<Transfer> {
     if t.phase != TransferPhase::Copied
         || t.job_id != intent.job_id
         || t.file_index != intent.file_index
@@ -360,7 +380,7 @@ pub fn verify_effect(t: &Transfer, intent: &ClaimIntent) -> TransferResult<Trans
     claimed_intent(intent)?;
     let (_, _, staging, _, _) = directories(t)?;
     let fd = fs::openat(&staging, format!("{}.part", t.attempt), FILE, Mode::empty())?;
-    if Some(digest_with_fixture(fd, &t.stage, true)?) != t.sha256 {
+    if Some(digest_with_fixture(fd, &t.stage, true, observe)?) != t.sha256 {
         return Err("destination digest mismatch".into());
     }
     let mut next = t.clone();

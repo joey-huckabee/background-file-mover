@@ -141,6 +141,7 @@ mod qualification;
 mod relocate;
 pub use qualification::pause as qualification_pause;
 pub use qualification::tls_cpu_hold as qualification_tls_cpu_hold;
+mod progress;
 mod transfer;
 pub use bootstrap::{
     BootstrapReceiver, send_bootstrap_lock, send_bound_bootstrap_lock,
@@ -148,6 +149,10 @@ pub use bootstrap::{
 };
 pub use manifest::commit_manifest;
 pub use manifest::commit_manifest_with_checkpoints;
+pub use progress::{
+    PROGRESS_INTERVAL, ProgressPhase, ProgressSender, ProgressUpdate, drain_progress,
+    progress_pair, receive_progress_channel, send_progress_channel,
+};
 pub fn destination_unavailable(path: &str) -> bool {
     matches!(
         root(path).and_then(|r| namespace(&r).map(|_| ())),
@@ -162,6 +167,7 @@ pub use transfer::{
     transfer_one, verify_stage,
 };
 pub use transfer::{copy_effect, deliver_recording_with_payload, verify_effect};
+pub use transfer::{copy_effect_observed, verify_effect_observed};
 pub use transfer::{deliver_recording, deliver_recording_with_guard, prepare_transfer_file};
 pub use transfer::{deliver_recording_with_workers, publish_effect};
 pub use transfer::{prepare_transfer_effect, published_custody_effect, restart_transfer_effect};
