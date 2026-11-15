@@ -151,7 +151,7 @@ console.log('byte formatting ok');
   assert.match(cancelled, /never delivered\. These are the only copies of the recording and will be permanently destroyed/);
   assert.strictEqual(del.blocked({ targets: [] }), true);
   assert.match(del.question('7', { state: 'Committed' }, { targets: [] }), /Nothing to delete/);
-  assert.match(deleteOutcome(parseJSON('{"deleted_count":0,"failed_count":0,"completion_pending":true}')), /Deleting held copies/);
+  assert.match(deleteOutcome(parseJSON('{"deleted_count":0,"failed_count":0,"completion_pending":true}')), /Deleting source files/);
   assert.match(deleteOutcome(parseJSON('{"deleted_count":2,"failed_count":1,"completion_pending":false}')), /2 deleted, 1 could not be deleted/);
   console.log('delete confirmation wording ok');
 }
@@ -159,7 +159,7 @@ console.log('byte formatting ok');
 // Bulk selection: eligibility, wording and outcomes.
 {
   const bSrc = src.slice(src.indexOf('  function bulkEligible('), src.indexOf('  function startBulk('));
-  const { bulkEligible, bulkQuestion, bulkOutcome } = new Function(bSrc + '; return { bulkEligible: bulkEligible, bulkQuestion: bulkQuestion, bulkOutcome: bulkOutcome };')();
+  const { bulkEligible, bulkQuestion, bulkOutcome, clearAllPlan } = new Function(bSrc + '; return { bulkEligible: bulkEligible, bulkQuestion: bulkQuestion, bulkOutcome: bulkOutcome, clearAllPlan: clearAllPlan };')();
   const delivered = { state: 'Committed', condition: 'Committed' };
   const review = { state: 'Claimed', condition: 'ReviewRequired' };
   const pending = { state: 'Claimed', condition: 'CancellationPending' };
@@ -172,6 +172,17 @@ console.log('byte formatting ok');
   assert.match(bulkQuestion('clear-history', ids), /15 job\(s\).*#12 and 3 more\?.*recording IDs.*treated as a new recording/);
   assert.match(bulkOutcome('cancel', parseJSON('{"accepted_count":2,"failed_count":0,"skipped_count":1}')), /2 cancelling, 1 skipped/);
   assert.match(bulkOutcome('clear-history', parseJSON('{"cleared_count":3}')), /3 job\(s\) removed/);
+  // Clear history button: only delivered or cancelled jobs, oldest first, 256 per request.
+  const items = [{ job_id: '10', ...delivered }, { job_id: '9', ...review }, { job_id: '2', ...cancelled }, { job_id: '5', ...pending }];
+  assert.deepStrictEqual(clearAllPlan(items).ids, ['2', '10']);
+  assert.strictEqual(clearAllPlan(items).note, '');
+  assert.strictEqual(clearAllPlan([review]).ids.length, 0);
+  const many = Array.from({ length: 300 }, (_, i) => ({ job_id: String(300 - i), ...delivered }));
+  const plan = clearAllPlan(many);
+  assert.strictEqual(plan.ids.length, 256);
+  assert.strictEqual(plan.ids[0], '1');
+  assert.strictEqual(plan.ids[255], '256');
+  assert.match(plan.note, /click Clear history again for the other 44/);
   console.log('bulk selection ok');
 }
 
@@ -190,3 +201,35 @@ console.log('byte formatting ok');
   assert.ok(left.has('257') && left.has('300') && left.has('review-job') && !left.has('1'));
   console.log('bulk lock and partial deselection ok');
 }
+
+// Bulk replies that arrive after sign-out (or a newer round) are ignored, so a
+// late preview cannot reopen the confirmation over the sign-in page.
+(async () => {
+  const sSrc = src.slice(src.indexOf('  function startBulk('), src.indexOf('  // Bulk confirmations open'));
+  const replies = [];
+  const harness = new Function('fetch', 'readReply', 'renderSelection', 'show', 'bulkPlan', 'bulkOutcome', 'afterBatch', 'refreshVisible', 'selected', 'csrf',
+    'var bulk = { action: null, ids: [], proof: null, expires_at: 0, sending: false, message: "" };' + sSrc +
+    '; return { startBulk: startBulk, sendBulk: sendBulk, get: function () { return bulk; },' +
+    ' logout: function () { bulk = { action: null, ids: [], proof: null, expires_at: 0, sending: false, message: "" }; } };');
+  const fakeFetch = () => new Promise(resolve => replies.push(resolve));
+  const h = harness(fakeFetch, r => r, () => {}, () => {}, null, () => 'done', () => {}, () => {}, new Set(), 'csrf');
+  const plan = { ids: ['2', '3'], all: true, note: '' };
+  h.startBulk('clear-history', plan);
+  assert.strictEqual(h.get().sending, true);
+  h.logout();
+  replies.shift()({ status: 200, body: { confirmation: { action: 'clear-history', token: 'c1.late', expires_at: '9999999999' } } });
+  await new Promise(r => setTimeout(r, 0));
+  assert.strictEqual(h.get().proof, null, 'late preview after logout is ignored');
+  assert.strictEqual(h.get().action, null);
+  // A current preview still lands; a mutation reply after logout is ignored too.
+  h.startBulk('clear-history', plan);
+  replies.shift()({ status: 200, body: { confirmation: { action: 'clear-history', token: 'c1.ok', expires_at: '9999999999' } } });
+  await new Promise(r => setTimeout(r, 0));
+  assert.strictEqual(h.get().proof, 'c1.ok');
+  h.sendBulk();
+  h.logout();
+  replies.shift()({ status: 200, body: { cleared_count: 2 } });
+  await new Promise(r => setTimeout(r, 0));
+  assert.strictEqual(h.get().message, '', 'late outcome after logout is ignored');
+  console.log('stale bulk replies ignored ok');
+})().catch(e => { console.error(e); process.exit(1); });

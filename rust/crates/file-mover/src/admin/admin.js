@@ -171,7 +171,7 @@
 
   // ---- Views ----
   var VIEWS = {
-    overview: ["THE BIG PICTURE", "Every file. Accounted for.", "A clear view of custody, delivery and the jobs that need you."],
+    overview: ["", "The big picture", "A clear view of custody, delivery and the jobs that need you."],
     history: ["YOUR RECORDINGS", "Job history", "Detailed history stays here until you explicitly clear it."],
     attention: ["NEEDS YOU", "Needs attention", "Jobs waiting for a review. Open one to see the cause and what to do."],
     storage: ["RETENTION", "Storage", "Space the mover has reserved for the jobs it keeps."],
@@ -185,6 +185,8 @@
       if (link) { link.classList.toggle("active", name === next); if (name === next) { link.setAttribute("aria-current", "page"); } else { link.removeAttribute("aria-current"); } }
     });
     $("view-eyebrow").textContent = VIEWS[next][0];
+    $("view-eyebrow").hidden = !VIEWS[next][0];
+    $("clear-all").hidden = next !== "history";
     $("view-title").textContent = VIEWS[next][1];
     $("view-sub").textContent = VIEWS[next][2];
     $("crumb").textContent = { overview: "Overview" }[next] || VIEWS[next][1];
@@ -325,7 +327,6 @@
     $("flow-delivering").textContent = String(delivering);
     $("flow-delivered").textContent = String(delivered);
     var notes = [];
-    if (review) { notes.push(review + " stopped for review"); }
     if (cancelling) { notes.push(cancelling + " cancelling"); }
     if (cancelled) { notes.push(cancelled + " cancelled"); }
     $("flow-foot").textContent = "Taking over the files confirms custody. A verified manifest confirms delivery." +
@@ -892,9 +893,9 @@
     return "Nothing to cancel: the job is already delivered, cancelled or no longer tracked.";
   }
   function deleteOutcome(body) {
-    if (body.completion_pending === true) { return "Deleting held copies…"; }
-    if (String(body.deleted_count) === "0" && String(body.failed_count) === "0") { return "Nothing was deleted: no held copies remain."; }
-    return "Held copies: " + body.deleted_count + " deleted" +
+    if (body.completion_pending === true) { return "Deleting source files…"; }
+    if (String(body.deleted_count) === "0" && String(body.failed_count) === "0") { return "Nothing was deleted: no source files remain."; }
+    return "Source files: " + body.deleted_count + " deleted" +
       (String(body.failed_count) !== "0" ? ", " + body.failed_count + " could not be deleted (see the service log)" : "") + ".";
   }
   function clearOutcome(body) {
@@ -913,7 +914,7 @@
       done: function (b) { return b && b.accepted_count !== undefined; }, outcome: cancelOutcome
     },
     "delete-data": {
-      route: "/api/v2/admin/jobs/delete-data", ask: "Delete held copies…", confirm: "Delete held copies", keep: "Keep them",
+      route: "/api/v2/admin/jobs/delete-data", ask: "Delete source files…", confirm: "Delete source files", keep: "Keep them",
       hover: "Permanently delete the original files the mover holds on the source disk for this job. Delivered copies are not touched. You will be asked to confirm.",
       question: function (jobId, job, st) {
         var targets = (st && st.targets) || [];
@@ -1072,12 +1073,24 @@
     if (action === "cancel") { return item.state !== "Committed" && item.condition !== "Cancelled" && item.condition !== "CancellationPending"; }
     return item.state === "Committed" || item.condition === "Cancelled";
   }
+  // "Clear history" button: every loaded delivered or cancelled job, oldest
+  // first, at most 256 per confirmed request.
+  function clearAllPlan(items) {
+    var ids = items.filter(function (i) { return bulkEligible("clear-history", i); })
+      .map(function (i) { return i.job_id; }).sort(function (a, b) { return BigInt(a) < BigInt(b) ? -1 : 1; });
+    var over = Math.max(0, ids.length - 256);
+    return { ids: ids.slice(0, 256), all: true, skipped: 0, over: over,
+      note: over ? " Only the oldest 256 are included; click Clear history again for the other " + over + "." : "" };
+  }
   function bulkPlan(action) {
     var ids = [], skipped = 0;
     Array.from(selected).sort(function (a, b) { return BigInt(a) < BigInt(b) ? -1 : 1; }).forEach(function (id) {
       if (bulkEligible(action, itemById(id))) { ids.push(id); } else { skipped++; }
     });
-    return { ids: ids.slice(0, 256), skipped: skipped, over: Math.max(0, ids.length - 256) };
+    var over = Math.max(0, ids.length - 256);
+    return { ids: ids.slice(0, 256), skipped: skipped, over: over,
+      note: (skipped ? " " + skipped + " other selected job(s) do not qualify and are left out." : "") +
+        (over ? " Only the first 256 are included; the other " + over + " stay selected for another round." : "") };
   }
   function bulkQuestion(action, ids) {
     var list = ids.slice(0, 12).map(function (id) { return "#" + id; }).join(", ") + (ids.length > 12 ? " and " + (ids.length - 12) + " more" : "");
@@ -1101,16 +1114,22 @@
     }
     return String(body.cleared_count) + " job(s) removed from history.";
   }
-  function startBulk(action) {
-    var plan = bulkPlan(action);
-    if (!plan.ids.length) { bulk.message = "None of the selected jobs can be " + (action === "cancel" ? "cancelled." : "cleared from history."); renderSelection(); return; }
+  function startBulk(action, given) {
+    var plan = given || bulkPlan(action);
+    if (!plan.ids.length) {
+      bulk.message = plan.all ? "Nothing to clear: no delivered or cancelled jobs."
+        : "None of the selected jobs can be " + (action === "cancel" ? "cancelled." : "cleared from history.");
+      renderSelection(); return;
+    }
     bulk = { action: action, ids: plan.ids, proof: null, expires_at: 0, sending: true, message: "Preparing confirmation…",
-      skipped: plan.skipped, over: plan.over };
+      note: plan.note, all: !!plan.all, incomplete: !!plan.incomplete };
+    var mine = bulk;
     renderSelection();
     fetch("/api/v2/admin/jobs?confirm_action=" + action + "&job_ids=" + plan.ids.join(","), {
       credentials: "same-origin", cache: "no-store",
       headers: { "Mover-Admin-Activity": "interaction", "Mover-CSRF-Token": csrf || "" }
     }).then(readReply).then(function (r) {
+      if (bulk !== mine) { return; } // Signed out or replaced meanwhile.
       bulk.sending = false;
       if (r.status === 401) { show(false); return; }
       var c = r.body && r.body.confirmation;
@@ -1118,19 +1137,23 @@
         bulk.message = "Could not prepare the confirmation (" + ((r.body && r.body.error) || r.status) + ").";
       } else { bulk.proof = c.token; bulk.expires_at = Number(c.expires_at); bulk.message = ""; }
       renderSelection();
-    }).catch(function () { bulk.sending = false; bulk.message = "The service could not be reached."; renderSelection(); });
+    }).catch(function () {
+      if (bulk !== mine) { return; }
+      bulk.sending = false; bulk.message = "The service could not be reached."; renderSelection();
+    });
   }
   function sendBulk() {
     if (!bulk.proof || bulk.sending) { return; }
     if (Date.now() / 1000 >= bulk.expires_at) { bulk.proof = null; bulk.message = "The confirmation expired. Start again."; renderSelection(); return; }
     bulk.sending = true; bulk.message = "Sending…";
     renderSelection();
-    var action = bulk.action;
+    var action = bulk.action, mine = bulk;
     fetch(action === "cancel" ? "/api/v2/admin/jobs/cancel" : "/api/v2/admin/jobs/clear-history", {
       method: "POST", credentials: "same-origin", cache: "no-store",
       headers: { "Content-Type": "application/json", "Mover-CSRF-Token": csrf || "", "Mover-Confirmation": bulk.proof },
       body: '{"job_ids":[' + bulk.ids.join(",") + "]}"
     }).then(readReply).then(function (r) {
+      if (bulk !== mine) { return; }
       bulk.sending = false;
       if (r.status === 401) { show(false); return; }
       var ok = (r.status === 202 && r.body && r.body.accepted_count !== undefined) || (r.status === 200 && r.body && r.body.cleared_count !== undefined);
@@ -1144,10 +1167,34 @@
       renderSelection();
       refreshVisible();
     }).catch(function () {
+      if (bulk !== mine) { return; }
       bulk.sending = false;
       bulk.message = "No reply from the service. Click Confirm again to resend the same request.";
       renderSelection();
     });
+  }
+  // Bulk confirmations open as a modal dialog over the page.
+  function confirming() { return !!(bulk.proof || (bulk.sending && bulk.action)); }
+  function bulkBack() {
+    if (bulk.sending) { return; }
+    bulk.proof = null; bulk.action = null; bulk.message = ""; renderSelection();
+  }
+  function renderConfirm() {
+    var d = $("confirm-dialog");
+    if (!confirming()) { if (d.open) { d.close(); } return; }
+    $("confirm-title").textContent = bulk.action === "cancel" ? "Cancel " + bulk.ids.length + " job(s)?"
+      : bulk.all ? "Clear history?" : "Clear " + bulk.ids.length + " job(s) from history?";
+    $("confirm-text").textContent = (bulk.all ? "This clears the delivered and cancelled jobs loaded in this dashboard. Jobs that are still active or need review stay. " +
+      (bulk.incomplete ? "Older jobs that are not loaded are not included; use Load older jobs to include them. " : "") : "") +
+      bulkQuestion(bulk.action, bulk.ids) + (bulk.note || "");
+    $("confirm-status").textContent = bulk.message;
+    $("confirm-status").hidden = !bulk.message;
+    var yes = $("confirm-yes");
+    yes.textContent = bulk.sending ? (bulk.proof ? "Sending…" : "Preparing…")
+      : bulk.action === "cancel" ? "Cancel jobs" : "Clear from history";
+    yes.disabled = bulk.sending || !bulk.proof;
+    $("confirm-back").disabled = bulk.sending;
+    if (!d.open) { d.showModal(); $("confirm-back").focus(); }
   }
   function renderSelection() {
     var bar = $("selection");
@@ -1159,20 +1206,14 @@
     all.disabled = locked;
     document.querySelectorAll("#history-rows td.pick input").forEach(function (b) { b.disabled = locked; });
     all.indeterminate = onPage > 0 && onPage < pageIds.length;
-    if (!selected.size && !bulk.message) { bar.hidden = true; return; }
+    $("clear-all").disabled = locked || !clearAllPlan(allItems).ids.length;
+    renderConfirm();
+    if (!selected.size && !bulk.message && !confirming()) { bar.hidden = true; return; }
     bar.hidden = false;
-    if (bulk.proof || (bulk.sending && bulk.action)) {
-      bar.appendChild(el("p", bulkQuestion(bulk.action, bulk.ids) +
-        (bulk.skipped ? " " + bulk.skipped + " other selected job(s) do not qualify and are left out." : "") +
-        (bulk.over ? " Only the first 256 are included; the other " + bulk.over + " stay selected for another round." : "") +
-        " The selection is locked until you confirm or go back.", "notice"));
-      var yes = el("button", bulk.sending ? "Sending…" : "Confirm", "button danger");
-      yes.type = "button"; yes.disabled = bulk.sending || !bulk.proof;
-      yes.addEventListener("click", sendBulk);
-      var no = el("button", "Back", "button");
-      no.type = "button"; no.disabled = bulk.sending;
-      no.addEventListener("click", function () { bulk.proof = null; bulk.message = ""; renderSelection(); });
-      bar.appendChild(yes); bar.appendChild(no);
+    if (confirming()) {
+      bar.appendChild(el("strong", selected.size ? selected.size + " selected" : "Clear history"));
+      bar.appendChild(el("p", "Waiting for your confirmation…", "muted"));
+      return;
     } else if (selected.size) {
       bar.appendChild(el("strong", selected.size + " selected"));
       var cancel = el("button", "Cancel jobs…", "button danger", "Stop all work on the selected jobs that are not finished");
@@ -1203,7 +1244,7 @@
       " · Publishing " + a.PublishIntent + " · Delivered " + a.Published, "destination_attempts_by_phase");
     target.appendChild(facts);
     target.appendChild(el("p", "When a job is accepted the mover takes over the sender's original files and holds them " +
-      "on the source disk. It then delivers copies to the destination folder. Deleting the held copies never touches the " +
+      "on the source disk. It then delivers copies to the destination folder. Deleting the source files never touches the " +
       "delivered copies. The figures above are space reservations, not measured disk use.", "muted small"));
   }
 
@@ -1242,8 +1283,8 @@
       "Held copies: the original files the mover took over and keeps on the source disk");
     var dst = stat(grid, "Reserved at destination", short(d.destination_reserved_bytes), BigInt(d.destination_reserved_bytes).toString() + " bytes",
       "Space reserved at the destination, including every kept delivery attempt");
-    var jobs = stat(grid, "Jobs kept", d.retained_jobs.toString(), d.committed_jobs.toString() + " delivered",
-      "Jobs the mover still tracks; history is kept until explicitly cleared");
+    var jobs = stat(grid, "Total jobs", d.retained_jobs.toString(), d.committed_jobs.toString() + " delivered",
+      "Every job in the history: active, delivered, needing review or cancelled. Kept until you clear it");
     if (limits) {
       meter(src, d.source_reserved_bytes, limits.max_reserved_bytes);
       meter(dst, d.destination_reserved_bytes, limits.max_reserved_bytes);
@@ -1337,7 +1378,7 @@
     fact(dl, "Shutdown wait", t.shutdown_wait_seconds.toString() + " s", "shutdown_wait_seconds");
     var st = s.storage;
     dl = card(grid, "Storage limits");
-    fact(dl, "Maximum jobs kept", st.max_retained_jobs.toString(), "max_retained_jobs");
+    fact(dl, "Maximum total jobs", st.max_retained_jobs.toString(), "max_retained_jobs");
     fact(dl, "Maximum reserved bytes", bytes(st.max_retained_bytes), "max_retained_bytes, per side");
     var sp = st.source_space_admission;
     fact(dl, "Source free-space check", sp.enabled ? "On" : "Off", "source_space_admission.enabled");
@@ -1362,7 +1403,7 @@
     fact(dl, "Listening on", db.bind, "admin_ingress.bind");
     fact(dl, "Address", location.protocol + "//" + db.authority + "/", "admin_ingress.authority");
     fact(dl, "Sign out after inactivity", Math.round(Number(db.inactivity_timeout_seconds) / 60) + " minutes", "inactivity_timeout_seconds");
-    fact(dl, "Delete held copies", db.allow_data_deletion ? "Allowed" : "Off (default)", "admin_ingress.allow_data_deletion");
+    fact(dl, "Delete source files", db.allow_data_deletion ? "Allowed" : "Off (default)", "admin_ingress.allow_data_deletion");
     fact(dl, "Account directory", db.account_directory, "admin_ingress.account_directory");
     dl = card(grid, "Certificates and keys");
     if (s.producer && s.producer.certificates.length) {
@@ -1453,6 +1494,7 @@
       csrf = null; allItems = []; page = 0; openJob = null; descending = false;
       pageBudget = 40; olderCursor = null; filter = "all"; query = "";
       selected.clear(); bulk = { action: null, ids: [], proof: null, expires_at: 0, sending: false, message: "" };
+      if ($("confirm-dialog").open) { $("confirm-dialog").close(); }
       setView("overview");
       $("password").value = "";
       $("username").focus();
@@ -1520,6 +1562,16 @@
     if (view === "overview") { loadOverviewStorage(); }
     work.then(done, done);
   });
+  $("clear-all").addEventListener("click", function () {
+    if (selectionLocked(bulk) || bulk.sending) { return; }
+    var plan = clearAllPlan(allItems);
+    plan.incomplete = olderCursor !== null;
+    startBulk("clear-history", plan);
+  });
+  $("confirm-yes").addEventListener("click", sendBulk);
+  $("confirm-back").addEventListener("click", bulkBack);
+  // Escape acts as Back, but never while a request is in flight.
+  $("confirm-dialog").addEventListener("cancel", function (e) { e.preventDefault(); bulkBack(); });
   $("sort").addEventListener("click", function () {
     descending = !descending;
     $("sort").textContent = descending ? "Job ▼" : "Job ▲";
