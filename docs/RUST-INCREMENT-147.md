@@ -61,3 +61,8 @@ test count change, dashboard assets only), plus admin-ui and line-endings.
 Independent review raised two findings (a late confirmation reply after
 sign-out could reopen the dialog; the Clear history dialog overstated its
 scope), both fixed; re-review had no findings.
+
+## Follow-up: title capitals (user request)
+
+The Overview title is shown in capitals, "THE BIG PICTURE", as the user asked
+(the earlier eyebrow text, now at title size).
