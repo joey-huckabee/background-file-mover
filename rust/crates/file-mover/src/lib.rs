@@ -325,10 +325,10 @@ impl Worker {
         // settlement reads it inside its store transaction (see Store docs).
         let claim_active = Arc::new(AtomicBool::new(false));
         let settle_claim_active = claim_active.clone();
-        // Job the delivery thread is working on (0 = none), for online clear.
-        let delivery_job = Arc::new(std::sync::atomic::AtomicI64::new(0));
-        let delivering = delivery_job.clone();
-        let (clear_claim_active, clear_delivery_job) = (claim_active.clone(), delivery_job.clone());
+        // Jobs delivery workers are working on, for online clear and settlement.
+        let delivering = ActiveJobs::default();
+        let settle_delivering = delivering.clone();
+        let (clear_claim_active, clear_delivery_job) = (claim_active.clone(), delivering.clone());
         let (observer, observations) = mpsc::sync_channel::<OperatorWork>(8);
         let observation_store = store.clone();
         let observation_instance = instance.clone();
@@ -383,7 +383,7 @@ impl Worker {
                         Observation::Clear(id, gate) => {
                             let (claim, delivery) = (clear_claim_active.clone(), clear_delivery_job.clone());
                             let busy = move |job: i64| {
-                                claim.load(Ordering::SeqCst) || delivery.load(Ordering::SeqCst) == job
+                                claim.load(Ordering::SeqCst) || delivery.contains(job)
                             };
                             let mut decided = None;
                             if gate(&mut || decided = Some(clear_response(&observation_store, id, busy.clone()))) {
@@ -423,10 +423,13 @@ impl Worker {
                         delivery_stop.store(true, Ordering::Relaxed);
                         break;
                     }
-                    // Between jobs no delivery is in progress: settle cancellations.
-                    let active = settle_claim_active.clone();
-                    if let Err(error) = delivery_store
-                        .settle_cancellations(now(), move || active.load(Ordering::SeqCst))
+                    // Settle cancellations of jobs no worker is still on.
+                    let (active, busy) = (settle_claim_active.clone(), settle_delivering.clone());
+                    if let Err(error) = delivery_store.settle_cancellations(
+                        now(),
+                        move || active.load(Ordering::SeqCst),
+                        move |job| busy.contains(job),
+                    )
                     {
                         eprintln!("Cancellation settlement failed: {error}");
                         delivery_stop.store(true, Ordering::Relaxed);
@@ -446,8 +449,10 @@ impl Worker {
                                 break;
                             }
                         };
-                        delivering.store(job, Ordering::SeqCst);
-                        let _working = Working(&delivering);
+                        // Marked active before the worker's first step.
+                        let Some(_working) = delivering.enter(job) else {
+                            break; // Another worker is on this job; next tick.
+                        };
                         let outcome = claim_worker::discard(
                             &delivery_store,
                             &delivery_guard,
@@ -483,8 +488,10 @@ impl Worker {
                                 if delivery_stop.load(Ordering::Relaxed) {
                                     break;
                                 }
-                                delivering.store(id, Ordering::SeqCst);
-                                let _working = Working(&delivering);
+                                // Marked active before deliver's first cancellation check.
+                                let Some(_working) = delivering.enter(id) else {
+                                    continue; // Another worker is on this job.
+                                };
                                 let mut problem = None;
                                 let result = delivery_worker::deliver(
                                     &delivery_store,
@@ -1066,12 +1073,31 @@ fn retry_scope_response(store: &Store) -> Response {
         Err(_) => error(503, "storage_unavailable", true, None),
     }
 }
-/// Clears the delivery thread's "working on" marker when the job's block ends,
-/// including every early `continue`.
-struct Working<'a>(&'a std::sync::atomic::AtomicI64);
-impl Drop for Working<'_> {
+/// Jobs that delivery workers are working on (delivery or deletion). Online
+/// clear and cancellation settlement read it inside their store transactions;
+/// a worker enters a job before its first store check of that job and leaves
+/// when its block ends, including every early `continue`.
+#[derive(Clone, Default)]
+pub(crate) struct ActiveJobs(Arc<std::sync::Mutex<std::collections::BTreeSet<i64>>>);
+impl ActiveJobs {
+    fn set(&self) -> std::sync::MutexGuard<'_, std::collections::BTreeSet<i64>> {
+        // The set stays consistent even if a holder panicked: inserts and
+        // removes are single operations.
+        self.0.lock().unwrap_or_else(|e| e.into_inner())
+    }
+    /// Marks `job` active; `None` if a worker is already on it.
+    pub(crate) fn enter(&self, job: i64) -> Option<Working> {
+        self.set().insert(job).then(|| Working(self.clone(), job))
+    }
+    pub(crate) fn contains(&self, job: i64) -> bool {
+        self.set().contains(&job)
+    }
+}
+/// A worker's hold on one active job; dropping it leaves the job.
+pub(crate) struct Working(ActiveJobs, i64);
+impl Drop for Working {
     fn drop(&mut self) {
-        self.0.store(0, Ordering::SeqCst);
+        self.0.set().remove(&self.1);
     }
 }
 fn clear_response(store: &Store, id: i64, busy: impl Fn(i64) -> bool + Send + 'static) -> Response {
@@ -2107,5 +2133,18 @@ mod history_tests {
     fn history_cursor_encodes_order() {
         assert_eq!(super::history_cursor("ab12", false, 7), "c1.ab12.a.7");
         assert_eq!(super::history_cursor("ab12", true, 7), "c1.ab12.d.7");
+    }
+    #[test]
+    fn active_jobs_track_each_worker_hold() {
+        let jobs = super::ActiveJobs::default();
+        let a = jobs.enter(7).expect("first worker enters");
+        assert!(jobs.enter(7).is_none(), "one worker per job");
+        let b = jobs.enter(8).expect("another job is independent");
+        assert!(jobs.contains(7) && jobs.contains(8));
+        drop(a);
+        assert!(!jobs.contains(7) && jobs.contains(8));
+        assert!(jobs.enter(7).is_some(), "free again after the hold ends");
+        drop(b);
+        assert!(!jobs.contains(8));
     }
 }
