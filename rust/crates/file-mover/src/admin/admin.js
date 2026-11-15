@@ -171,7 +171,7 @@
 
   // ---- Views ----
   var VIEWS = {
-    overview: ["", "The big picture", "A clear view of custody, delivery and the jobs that need you."],
+    overview: ["", "THE BIG PICTURE", "A clear view of custody, delivery and the jobs that need you."],
     history: ["YOUR RECORDINGS", "Job history", "Detailed history stays here until you explicitly clear it."],
     attention: ["NEEDS YOU", "Needs attention", "Jobs waiting for a review. Open one to see the cause and what to do."],
     storage: ["RETENTION", "Storage", "Space the mover has reserved for the jobs it keeps."],
