@@ -51,3 +51,13 @@ or behavior change on the service side.
   locally (the 5 known local-only reload tests need CI fixtures).
 - Visual check on the WSL demo with headless Edge: Overview, Job history,
   the Clear history dialog (opened and closed with Back), Storage.
+
+## CI result
+
+PR61 CI run
+[43669645253](https://github.com/joey-huckabee/background-file-mover/actions/runs/43669645253)
+at `29b6e5d` passes both full modes (production and nfs-qualification; no Rust
+test count change, dashboard assets only), plus admin-ui and line-endings.
+Independent review raised two findings (a late confirmation reply after
+sign-out could reopen the dialog; the Clear history dialog overstated its
+scope), both fixed; re-review had no findings.
