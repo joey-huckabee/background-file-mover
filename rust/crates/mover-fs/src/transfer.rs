@@ -89,7 +89,8 @@ pub fn prepare_transfer_file(store: &Store, id: i64, index: usize) -> TransferRe
         return Err("first transfer requires one fully claimed ungrouped file".into());
     }
     claimed(store, id, index)?;
-    store.transfer_capacity(id, index)?;
+    // Held to the end: released on every error path, consumed by the save.
+    let _capacity = store.transfer_capacity(id, index)?;
     let first = if index > 0 {
         store
             .transfer(id, 0)?
@@ -213,7 +214,7 @@ pub fn restart_transfer(store: &Store, t: &Transfer) -> TransferResult<Transfer>
         return Err("attempt budget exhausted; operator review required".into());
     }
     claimed(store, t.job_id, t.file_index)?;
-    store.transfer_capacity(t.job_id, t.file_index)?;
+    let _capacity = store.transfer_capacity(t.job_id, t.file_index)?;
     let next = restart_transfer_effect(t, &job_claim(store, t.job_id, t.file_index)?)?;
     store.save_transfer(&next)?;
     Ok(next)

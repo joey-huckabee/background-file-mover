@@ -487,6 +487,19 @@ fn child_transfer() {
 }
 
 #[test]
+fn failed_preparation_releases_its_capacity_reservation() {
+    let f = Fixture::new(false);
+    f.accept_multi();
+    let s = f.store();
+    // Room for file 0 (3 bytes) but not for file 0 plus file 1 (5 bytes).
+    s.configure_limits(64, 7).unwrap();
+    // File 1 before file 0 reserves, then fails: no recording directory yet.
+    assert!(mover_fs::prepare_transfer_file(&s, 1, 1).is_err());
+    // The failed attempt's reservation is gone, so file 0 still fits.
+    let t = prepare_transfer(&s, 1).unwrap();
+    assert_eq!(t.file_index, 0);
+}
+#[test]
 fn multi_file_delivery_commits_exact_manifest_and_retains_every_claim() {
     let f = Fixture::new(false);
     f.accept_multi();

@@ -351,9 +351,13 @@ pub(crate) fn deliver(
     stop: &AtomicBool,
     problem: &mut Option<Problem>,
 ) -> Result<bool> {
+    // Declared before the session so they drop after it: an unsaved attempt's
+    // capacity stays reserved until its worker child has been killed and
+    // reaped, not merely until the step that allocated it failed.
+    let mut holds = Vec::new();
     let mut session = None;
     let mut file = None;
-    let result = deliver_steps(store, id, guard, stop, &mut session, &mut file);
+    let result = deliver_steps(store, id, guard, stop, &mut session, &mut file, &mut holds);
     if let Err(error) = &result
         && !stop.load(Ordering::Relaxed)
         && !error.is::<DeliveryCancelled>()
@@ -373,13 +377,14 @@ pub(crate) fn deliver(
     result
 }
 
-fn deliver_steps(
-    store: &Store,
+fn deliver_steps<'a>(
+    store: &'a Store,
     id: i64,
     guard: &LocalClaimLock,
     stop: &AtomicBool,
     slot: &mut Option<Session>,
     file: &mut Option<usize>,
+    holds: &mut Vec<mover_store::CapacityHold<'a>>,
 ) -> Result<bool> {
     let job = store.get(id)?.ok_or("unknown job")?;
     stop_if_cancelled(store, id)?;
@@ -433,7 +438,7 @@ fn deliver_steps(
         let existing = store.transfer(id, index)?;
         let mut t = match existing {
             Some(t) if t.phase == TransferPhase::Intent => {
-                store.transfer_capacity(id, index)?;
+                holds.push(store.transfer_capacity(id, index)?);
                 let next = session.transfer(
                     Operation::Restart {
                         assignment: Assignment::new(&t, &c),
@@ -452,7 +457,7 @@ fn deliver_steps(
             }
             Some(t) => t,
             None => {
-                store.transfer_capacity(id, index)?;
+                holds.push(store.transfer_capacity(id, index)?);
                 let mut template = if index > 0 {
                     store.transfer(id, 0)?.ok_or("missing recording anchor")?
                 } else {
