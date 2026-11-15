@@ -381,6 +381,7 @@ pub(crate) fn deliver(
     stop: &AtomicBool,
     problem: &mut Option<Problem>,
     shared: Option<&LocalClaimLock>,
+    file_concurrency: usize,
 ) -> Result<bool> {
     // The job's live progress entry ends with this attempt.
     let _tracked = super::progress::Tracked(id);
@@ -390,6 +391,7 @@ pub(crate) fn deliver(
     let mut holds = Vec::new();
     let mut session = None;
     let mut file = None;
+    let mut parallel_diagnostic = None;
     let result = deliver_steps(
         store,
         id,
@@ -399,14 +401,19 @@ pub(crate) fn deliver(
         &mut file,
         &mut holds,
         shared,
+        file_concurrency,
+        &mut parallel_diagnostic,
     );
     if let Err(error) = &result
         && !stop.load(Ordering::Relaxed)
         && !error.is::<DeliveryCancelled>()
     {
-        let diagnostic = session
-            .as_mut()
-            .and_then(|s: &mut Session| s.diagnostic.take())
+        let diagnostic = parallel_diagnostic
+            .or_else(|| {
+                session
+                    .as_mut()
+                    .and_then(|s: &mut Session| s.diagnostic.take())
+            })
             .unwrap_or_else(|| {
                 if error.is::<DestinationBindingRefused>() {
                     "destination_binding_refused".into()
@@ -419,36 +426,35 @@ pub(crate) fn deliver(
     result
 }
 
-#[allow(clippy::too_many_arguments)]
-fn deliver_steps<'a>(
-    store: &'a Store,
+/// Parallel files: stop here if a sibling has failed (a step boundary).
+fn halt_point(halt: Option<&AtomicBool>) -> Result<()> {
+    if halt.is_some_and(|h| h.load(Ordering::SeqCst)) {
+        return Err(Box::new(Halted));
+    }
+    Ok(())
+}
+/// A sibling file's session failed or the job must stop: this file stops
+/// before its next step. Internal to parallel file delivery; never recorded.
+#[derive(Debug)]
+struct Halted;
+impl std::fmt::Display for Halted {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("parallel file delivery halted")
+    }
+}
+impl std::error::Error for Halted {}
+
+/// Starts a session and opens the job's destination. `None` means the
+/// destination is confirmed unavailable (a deferral, nothing allocated).
+fn open_session(
+    store: &Store,
     id: i64,
+    job: &mover_store::Accepted,
     guard: &LocalClaimLock,
-    stop: &AtomicBool,
-    slot: &mut Option<Session>,
-    file: &mut Option<usize>,
-    holds: &mut Vec<mover_store::CapacityHold<'a>>,
     shared: Option<&LocalClaimLock>,
-) -> Result<bool> {
-    let job = store.get(id)?.ok_or("unknown job")?;
-    if shared.is_some_and(|s| {
-        !s.matches_path(&job.context.destination_path) || job.context.destination_binding.is_none()
-    }) {
-        return Err("shared destination custody scope mismatch".into());
-    }
-    stop_if_cancelled(store, id)?;
-    if job.recording.handoff() != Handoff::Ready202
-        || job.context.policy.group_by_generator
-        || !guard.matches_path(&job.context.source_root_path)
-    {
-        return Err("invalid delivery context".into());
-    }
-    let session = slot.insert(Session::start(
-        guard,
-        shared,
-        id,
-        job.recording.submission().files().len(),
-    )?);
+    stop: &AtomicBool,
+) -> Result<Option<Session>> {
+    let mut session = Session::start(guard, shared, id, job.recording.submission().files().len())?;
     let opened = session.call(
         Operation::Open {
             job_id: id,
@@ -470,7 +476,7 @@ fn deliver_steps<'a>(
         return Err(Box::new(DestinationBindingRefused));
     }
     if opened.error.as_deref() == Some("destination_unavailable") {
-        return Ok(false);
+        return Ok(None);
     }
     if opened.error.is_some() || opened.transfer.is_some() || opened.manifest.is_some() {
         return Err("destination custody unavailable".into());
@@ -486,123 +492,352 @@ fn deliver_steps<'a>(
     } else if guard.source_authorization().is_some() {
         return Err("destination policy required".into());
     }
-    for index in 0..job.recording.submission().files().len() {
-        *file = Some(index);
-        stop_if_cancelled(store, id)?;
-        let c = claim(store, id, index)?;
-        let existing = store.transfer(id, index)?;
-        let mut t = match existing {
-            Some(t) if t.phase == TransferPhase::Intent => {
-                holds.push(store.transfer_capacity(id, index)?);
-                let next = session.transfer(
-                    Operation::Restart {
-                        assignment: Assignment::new(&t, &c),
-                    },
-                    &c,
-                    stop,
-                )?;
-                let mut expected = t.clone();
-                expected.attempt += 1;
+    Ok(Some(session))
+}
+
+/// The file's current attempt: the existing transfer, a restarted attempt
+/// (new staging) for an unfinished one, or a first allocation. Files after the
+/// first take their recording directory from file 0's transfer.
+fn setup_file<'a>(
+    store: &'a Store,
+    id: i64,
+    index: usize,
+    job: &mover_store::Accepted,
+    session: &mut Session,
+    holds: &mut Vec<mover_store::CapacityHold<'a>>,
+    stop: &AtomicBool,
+) -> Result<(Transfer, ClaimIntent)> {
+    stop_if_cancelled(store, id)?;
+    let c = claim(store, id, index)?;
+    let existing = store.transfer(id, index)?;
+    let t = match existing {
+        Some(t) if t.phase == TransferPhase::Intent => {
+            holds.push(store.transfer_capacity(id, index)?);
+            let next = session.transfer(
+                Operation::Restart {
+                    assignment: Assignment::new(&t, &c),
+                },
+                &c,
+                stop,
+            )?;
+            let mut expected = t.clone();
+            expected.attempt += 1;
+            expected.stage = next.stage.clone();
+            if next != expected {
+                return Err("restart receipt mismatch".into());
+            }
+            store.save_transfer(&next)?;
+            next
+        }
+        Some(t) => t,
+        None => {
+            holds.push(store.transfer_capacity(id, index)?);
+            let mut template = if index > 0 {
+                store.transfer(id, 0)?.ok_or("missing recording anchor")?
+            } else {
+                Transfer {
+                    job_id: id,
+                    recording_directory: job.recording.submission().destination_component(id),
+                    file_index: index,
+                    attempt: 1,
+                    destination_root: job.context.destination_path.clone(),
+                    relative_name: String::new(),
+                    root: c.root.clone(),
+                    area: c.root.clone(),
+                    parent: c.root.clone(),
+                    staging_directory: c.root.clone(),
+                    stage: c.root.clone(),
+                    sha256: None,
+                    phase: TransferPhase::Intent,
+                }
+            };
+            template.file_index = index;
+            template.relative_name = job.recording.submission().files()[index]
+                .relative_path()
+                .into();
+            template.attempt = 1;
+            template.phase = TransferPhase::Intent;
+            template.sha256 = None;
+            let next = session.transfer(
+                Operation::Prepare {
+                    assignment: Assignment::new(&template, &c),
+                },
+                &c,
+                stop,
+            )?;
+            if next.job_id != id
+                || next.file_index != index
+                || next.attempt != 1
+                || next.destination_root != template.destination_root
+                || next.recording_directory != template.recording_directory
+                || next.relative_name != template.relative_name
+                || next.phase != TransferPhase::Intent
+                || next.sha256.is_some()
+                || next.stage.size != 0
+            {
+                return Err("allocation receipt mismatch".into());
+            }
+            store.save_transfer(&next)?;
+            next
+        }
+    };
+    Ok((t, c))
+}
+
+/// Copy, verify and publish one file, then recheck its custody. `halt` (parallel
+/// files only) stops before the next step once a sibling has failed.
+fn advance_file(
+    store: &Store,
+    mut t: Transfer,
+    c: &ClaimIntent,
+    session: &mut Session,
+    stop: &AtomicBool,
+    halt: Option<&AtomicBool>,
+) -> Result<()> {
+    let halted = || halt_point(halt);
+    for (from, to) in [
+        (TransferPhase::Intent, TransferPhase::Copied),
+        (TransferPhase::Copied, TransferPhase::Verified),
+        (TransferPhase::PublishIntent, TransferPhase::Published),
+    ] {
+        // Before any effect or record of this step, PublishIntent included.
+        halted()?;
+        if t.phase == TransferPhase::Verified {
+            let mut authorized = t.clone();
+            authorized.phase = TransferPhase::PublishIntent;
+            store.save_transfer(&authorized)?;
+            t = authorized;
+        }
+        if t.phase == from {
+            halted()?;
+            let next = session.transfer(
+                Operation::Payload {
+                    assignment: Assignment::new(&t, c),
+                },
+                c,
+                stop,
+            )?;
+            let mut expected = t.clone();
+            expected.phase = to;
+            if from == TransferPhase::Intent {
                 expected.stage = next.stage.clone();
-                if next != expected {
-                    return Err("restart receipt mismatch".into());
-                }
-                store.save_transfer(&next)?;
-                next
+                expected.sha256 = next.sha256.clone();
             }
-            Some(t) => t,
-            None => {
-                holds.push(store.transfer_capacity(id, index)?);
-                let mut template = if index > 0 {
-                    store.transfer(id, 0)?.ok_or("missing recording anchor")?
-                } else {
-                    Transfer {
-                        job_id: id,
-                        recording_directory: job.recording.submission().destination_component(id),
-                        file_index: index,
-                        attempt: 1,
-                        destination_root: job.context.destination_path.clone(),
-                        relative_name: String::new(),
-                        root: c.root.clone(),
-                        area: c.root.clone(),
-                        parent: c.root.clone(),
-                        staging_directory: c.root.clone(),
-                        stage: c.root.clone(),
-                        sha256: None,
-                        phase: TransferPhase::Intent,
+            if next != expected {
+                return Err("payload receipt mismatch".into());
+            }
+            store.save_transfer(&next)?;
+            t = next;
+        }
+    }
+    halted()?;
+    let checked = session.transfer(
+        Operation::Custody {
+            assignment: Assignment::new(&t, c),
+        },
+        c,
+        stop,
+    )?;
+    if checked != t {
+        return Err("custody receipt mismatch".into());
+    }
+    Ok(())
+}
+
+/// Why parallel file delivery stopped, carried out of a file thread (errors
+/// themselves are not `Send`) and rebuilt with the same classification.
+enum FileFailure {
+    Deferred,
+    Cancelled,
+    BindingRefused,
+    Capacity,
+    Other(String),
+}
+impl FileFailure {
+    fn of(error: &(dyn std::error::Error + 'static)) -> Self {
+        if error.is::<DeliveryCancelled>() {
+            Self::Cancelled
+        } else if error.is::<DestinationBindingRefused>() {
+            Self::BindingRefused
+        } else if error.is::<DestinationCapacity>() {
+            Self::Capacity
+        } else {
+            Self::Other(error.to_string())
+        }
+    }
+    fn into_result(self) -> Result<bool> {
+        match self {
+            Self::Deferred => Ok(false),
+            Self::Cancelled => Err(Box::new(DeliveryCancelled)),
+            Self::BindingRefused => Err(Box::new(DestinationBindingRefused)),
+            Self::Capacity => Err(Box::new(DestinationCapacity)),
+            Self::Other(message) => Err(message.into()),
+        }
+    }
+}
+
+/// Files 0..n of one job, up to `concurrency` at a time, each thread with its
+/// own session (child) on the shared destination custody. File 0's attempt is
+/// set up first (it creates the recording directory) and handed over. The
+/// first failure halts the other files before their next step; every thread,
+/// its child and its capacity holds are finished before this returns (the
+/// all-files barrier precedes any manifest step).
+#[allow(clippy::too_many_arguments)]
+fn deliver_files_parallel(
+    store: &Store,
+    id: i64,
+    job: &mover_store::Accepted,
+    guard: &LocalClaimLock,
+    shared: &LocalClaimLock,
+    stop: &AtomicBool,
+    concurrency: usize,
+    first: (Transfer, ClaimIntent),
+    failed: &mut Option<(FileFailure, Option<String>, Option<usize>)>,
+) {
+    let files = job.recording.submission().files().len();
+    let next = std::sync::atomic::AtomicUsize::new(0);
+    let first = std::sync::Mutex::new(Some(first));
+    let halt = AtomicBool::new(false);
+    let outcome = std::sync::Mutex::new(None);
+    let fail = |failure: FileFailure, diagnostic: Option<String>, index: Option<usize>| {
+        halt.store(true, Ordering::SeqCst);
+        let mut slot = outcome.lock().unwrap_or_else(|e| e.into_inner());
+        if slot.is_none() {
+            *slot = Some((failure, diagnostic, index));
+        }
+    };
+    std::thread::scope(|scope| {
+        for worker in 0..concurrency.min(files) {
+            let spawned = std::thread::Builder::new()
+                .name(format!("mover-delivery-file-{worker}"))
+                .spawn_scoped(scope, || {
+                    // Holds before the session: released only after its child exits.
+                    let mut holds = Vec::new();
+                    let mut session: Option<Session> = None;
+                    loop {
+                        if stop.load(Ordering::Relaxed) || halt.load(Ordering::SeqCst) {
+                            return;
+                        }
+                        let index = next.fetch_add(1, Ordering::SeqCst);
+                        if index >= files {
+                            return;
+                        }
+                        let current = match &mut session {
+                            Some(s) => s,
+                            None => match open_session(store, id, job, guard, Some(shared), stop) {
+                                Ok(Some(s)) => session.insert(s),
+                                Ok(None) => return fail(FileFailure::Deferred, None, None),
+                                Err(e) => {
+                                    return fail(FileFailure::of(e.as_ref()), None, Some(index));
+                                }
+                            },
+                        };
+                        let result = (|| -> Result<()> {
+                            // Open may have finished after a sibling failed.
+                            halt_point(Some(&halt))?;
+                            let prepared = if index == 0 {
+                                first.lock().unwrap_or_else(|e| e.into_inner()).take()
+                            } else {
+                                None
+                            };
+                            let (t, c) = match prepared {
+                                Some(p) => p,
+                                None => {
+                                    setup_file(store, id, index, job, current, &mut holds, stop)?
+                                }
+                            };
+                            advance_file(store, t, &c, current, stop, Some(&halt))
+                        })();
+                        if let Err(e) = result {
+                            if !e.is::<Halted>() {
+                                fail(
+                                    FileFailure::of(e.as_ref()),
+                                    current.diagnostic.take(),
+                                    Some(index),
+                                );
+                            }
+                            return;
+                        }
                     }
-                };
-                template.file_index = index;
-                template.relative_name = job.recording.submission().files()[index]
-                    .relative_path()
-                    .into();
-                template.attempt = 1;
-                template.phase = TransferPhase::Intent;
-                template.sha256 = None;
-                let next = session.transfer(
-                    Operation::Prepare {
-                        assignment: Assignment::new(&template, &c),
-                    },
-                    &c,
-                    stop,
-                )?;
-                if next.job_id != id
-                    || next.file_index != index
-                    || next.attempt != 1
-                    || next.destination_root != template.destination_root
-                    || next.recording_directory != template.recording_directory
-                    || next.relative_name != template.relative_name
-                    || next.phase != TransferPhase::Intent
-                    || next.sha256.is_some()
-                    || next.stage.size != 0
-                {
-                    return Err("allocation receipt mismatch".into());
-                }
-                store.save_transfer(&next)?;
-                next
-            }
-        };
-        for (from, to) in [
-            (TransferPhase::Intent, TransferPhase::Copied),
-            (TransferPhase::Copied, TransferPhase::Verified),
-            (TransferPhase::PublishIntent, TransferPhase::Published),
-        ] {
-            if t.phase == TransferPhase::Verified {
-                let mut authorized = t.clone();
-                authorized.phase = TransferPhase::PublishIntent;
-                store.save_transfer(&authorized)?;
-                t = authorized;
-            }
-            if t.phase == from {
-                let next = session.transfer(
-                    Operation::Payload {
-                        assignment: Assignment::new(&t, &c),
-                    },
-                    &c,
-                    stop,
-                )?;
-                let mut expected = t.clone();
-                expected.phase = to;
-                if from == TransferPhase::Intent {
-                    expected.stage = next.stage.clone();
-                    expected.sha256 = next.sha256.clone();
-                }
-                if next != expected {
-                    return Err("payload receipt mismatch".into());
-                }
-                store.save_transfer(&next)?;
-                t = next;
+                });
+            if let Err(error) = spawned {
+                // Resource exhaustion: no panic in the dispatcher; the started
+                // siblings halt and are joined when the scope ends.
+                fail(
+                    FileFailure::Other(format!("delivery file thread unavailable: {error}")),
+                    None,
+                    None,
+                );
+                break;
             }
         }
-        let checked = session.transfer(
-            Operation::Custody {
-                assignment: Assignment::new(&t, &c),
-            },
-            &c,
-            stop,
-        )?;
-        if checked != t {
-            return Err("custody receipt mismatch".into());
+    });
+    *failed = outcome.into_inner().unwrap_or_else(|e| e.into_inner());
+}
+
+#[allow(clippy::too_many_arguments)]
+fn deliver_steps<'a>(
+    store: &'a Store,
+    id: i64,
+    guard: &LocalClaimLock,
+    stop: &AtomicBool,
+    slot: &mut Option<Session>,
+    file: &mut Option<usize>,
+    holds: &mut Vec<mover_store::CapacityHold<'a>>,
+    shared: Option<&LocalClaimLock>,
+    file_concurrency: usize,
+    parallel_diagnostic: &mut Option<String>,
+) -> Result<bool> {
+    let job = store.get(id)?.ok_or("unknown job")?;
+    if shared.is_some_and(|s| {
+        !s.matches_path(&job.context.destination_path) || job.context.destination_binding.is_none()
+    }) {
+        return Err("shared destination custody scope mismatch".into());
+    }
+    stop_if_cancelled(store, id)?;
+    if job.recording.handoff() != Handoff::Ready202
+        || job.context.policy.group_by_generator
+        || !guard.matches_path(&job.context.source_root_path)
+    {
+        return Err("invalid delivery context".into());
+    }
+    let Some(opened) = open_session(store, id, &job, guard, shared, stop)? else {
+        return Ok(false);
+    };
+    let session = slot.insert(opened);
+    let files = job.recording.submission().files().len();
+    match shared {
+        // Several files at once: needs shared custody (every child adopts it).
+        Some(shared) if file_concurrency > 1 && files > 1 => {
+            *file = Some(0);
+            let first = setup_file(store, id, 0, &job, session, holds, stop)?;
+            let mut failed = None;
+            deliver_files_parallel(
+                store,
+                id,
+                &job,
+                guard,
+                shared,
+                stop,
+                file_concurrency,
+                first,
+                &mut failed,
+            );
+            if let Some((failure, diagnostic, index)) = failed {
+                *file = index;
+                *parallel_diagnostic = diagnostic;
+                return failure.into_result();
+            }
+            if stop.load(Ordering::Relaxed) {
+                return Err("delivery dispatch stopped".into());
+            }
+        }
+        _ => {
+            for index in 0..files {
+                *file = Some(index);
+                let (t, c) = setup_file(store, id, index, &job, session, holds, stop)?;
+                advance_file(store, t, &c, session, stop, None)?;
+            }
         }
     }
     // Recheck every published file before constructing the recording commitment.
@@ -933,6 +1168,70 @@ pub fn worker() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn a_halted_file_stops_before_recording_its_next_step() {
+        let base = std::env::temp_dir().join(format!("fm-halt-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(&base).unwrap();
+        let store = Store::open(base.join("jobs.sqlite")).unwrap();
+        let id = |inode| ObjectIdentity {
+            device: 1,
+            inode,
+            uid: 1000,
+            size: 0,
+            modified_seconds: 1,
+            modified_nanos: 0,
+            links: 1,
+        };
+        let c = ClaimIntent {
+            job_id: 1,
+            file_index: 0,
+            root_path: "/r".into(),
+            source_name: "a".into(),
+            private_name: "1-0".into(),
+            root: id(1),
+            parent: id(2),
+            area: id(3),
+            source: id(4),
+        };
+        let t = Transfer {
+            job_id: 1,
+            recording_directory: "1".into(),
+            file_index: 0,
+            attempt: 1,
+            destination_root: "/d".into(),
+            relative_name: "a".into(),
+            root: id(5),
+            area: id(6),
+            parent: id(7),
+            staging_directory: id(8),
+            stage: id(9),
+            sha256: Some("a".repeat(64)),
+            phase: TransferPhase::Verified,
+        };
+        // A session whose child is never asked anything.
+        let mut session = Session {
+            child: Supervised(Command::new("sleep").arg("30").spawn().unwrap()),
+            channel: UnixStream::pair().unwrap().0,
+            sequence: 0,
+            source_authorization: None,
+            diagnostic: None,
+            progress: mover_fs::progress_pair().unwrap().0,
+            job: 1,
+            files: 1,
+        };
+        let stop = AtomicBool::new(false);
+        let halt = AtomicBool::new(true);
+        // Verified -> PublishIntent would be persisted first; halted, nothing is.
+        let error = advance_file(&store, t, &c, &mut session, &stop, Some(&halt)).unwrap_err();
+        assert!(error.is::<Halted>());
+        assert_eq!(store.transfer(1, 0).unwrap(), None);
+        assert_eq!(session.sequence, 0, "no step was sent to the child");
+        assert!(halt_point(Some(&halt)).unwrap_err().is::<Halted>());
+        assert!(halt_point(None).is_ok());
+        drop(session);
+        let _ = std::fs::remove_dir_all(&base);
+    }
     #[test]
     fn capacity_hints_reject_receipts_wrong_scope_and_unknown_classes_without_parsing_text() {
         let mut reply = Reply {
