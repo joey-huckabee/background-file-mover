@@ -14,8 +14,10 @@ service change.
   submissions for capacity instead of retrying until its timeout, with separate
   guidance: `retention_capacity` (the configured job/byte accounting limits:
   clearing history frees slots but deletes no files) versus
-  `source_space_unavailable` (physical source free space low or not
-  observable: free disk space; `fm-demo setup` removes all demo data); a busy status reply (503 from the
+  `source_space_low` (confirmed low physical source free space: free disk
+  space; `fm-demo setup` removes all demo data) versus
+  `source_space_unavailable` (the free-space observation is unusable:
+  diagnose it); a busy status reply (503 from the
   bounded status queue under load) is polled again instead of failing the run.
 - **Demo README:** each benchmark keeps about twice its size on the WSL disk
   and four jobs of history; `fm-demo setup` starts over.
