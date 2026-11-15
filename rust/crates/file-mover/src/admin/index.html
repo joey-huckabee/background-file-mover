@@ -40,6 +40,7 @@
 </section>
 </main>
 <div id="shell" class="shell" hidden>
+<button id="skip" class="skip-link" type="button">Skip to content</button>
 <aside class="sidebar">
 <a class="brand" href="#overview" aria-label="File Mover overview"><span class="brand-mark">f<span>m</span><b>&#8599;</b></span><span>FILE MOVER<small>OPERATIONS CONSOLE</small></span></a>
 <div class="instance"><span class="live-dot"></span><div id="instance-name">File Mover<small id="instance-detail">Connected</small></div></div>
@@ -55,8 +56,8 @@
 <div class="sidebar-bottom"><div class="avatar">A</div><div><strong>Administrator</strong><small>Host-managed account</small></div><button id="signout" type="button" aria-label="Sign out" title="Signs out every open dashboard session. Transfers keep running."><svg><use href="#i-out"/></svg></button></div>
 </aside>
 <div class="main-shell">
-<header class="topbar"><div class="breadcrumb">Workspace <span>/</span> <strong id="crumb">Overview</strong></div><div class="top-right"><span id="live" class="live wait" role="status"></span><span class="top-divider"></span><span class="secure"><svg><use href="#i-shield"/></svg>Private admin interface</span></div></header>
-<main id="main" class="content">
+<header class="topbar"><div class="breadcrumb">Workspace <span aria-hidden="true">/</span> <strong id="crumb">Overview</strong></div><div class="top-right"><span id="live" class="live wait" role="status"></span><span class="top-divider"></span><span class="secure"><svg><use href="#i-shield"/></svg>Private admin interface</span></div></header>
+<main id="main" class="content" tabindex="-1">
 <div class="page-heading"><div><div id="view-eyebrow" class="eyebrow">THE BIG PICTURE</div><h1 id="view-title">Overview</h1><p id="view-sub" class="subhead"></p></div>
 <div class="actions"><button id="clear-all" class="button" type="button" hidden title="Forget the delivered or cancelled jobs loaded in this dashboard. Files are not touched. You will be asked to confirm.">Clear history</button><button id="refresh" class="button" type="button"><svg><use href="#i-refresh"/></svg>Refresh</button></div></div>
 <div id="shell-error" class="error" role="alert"></div>

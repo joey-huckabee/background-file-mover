@@ -189,7 +189,11 @@
       // Each reached step is a colored pill; unreached steps are outlined grey.
       wrap.appendChild(el("span", label, "step step-" + i + (done[i] ? " done" : ""),
         (done[i] ? "" : "Not yet: ") + tips[i]));
-      if (i < 2) { wrap.appendChild(el("span", "›", "arrow")); }
+      if (i < 2) {
+        var arrow = el("span", "›", "arrow");
+        arrow.setAttribute("aria-hidden", "true"); // Decorative separator.
+        wrap.appendChild(arrow);
+      }
     });
     var attention = ATTENTION[item.condition];
     if (attention) {
@@ -437,7 +441,7 @@
     rowsById = {};
     var items = body.items;
     $("history-status").textContent = body.total === 0
-      ? (allItems.length === 0 ? "No jobs are kept." : "No jobs match these filters. Try a different search.")
+      ? "0 jobs"
       : body.total + " job" + (body.total === 1 ? "" : "s") + (body.pages > 1 ? " · page " + (page + 1) + " of " + body.pages : "");
     items.forEach(function (item) {
       rowsById[item.job_id] = item;
@@ -1261,6 +1265,8 @@
     yes.disabled = bulk.sending || !bulk.proof;
     $("confirm-back").disabled = bulk.sending;
     if (!d.open) { d.showModal(); $("confirm-back").focus(); }
+    // Back is disabled while the confirmation loads; take focus once it is not.
+    if (document.activeElement === d && !$("confirm-back").disabled) { $("confirm-back").focus(); }
   }
   function renderSelection() {
     var bar = $("selection");
@@ -1648,6 +1654,8 @@
     startBulk("clear-history", plan);
   });
   $("confirm-yes").addEventListener("click", sendBulk);
+  // Keyboard users skip the sidebar (the hash is the view, so no #main link).
+  $("skip").addEventListener("click", function () { $("main").focus(); });
   $("confirm-back").addEventListener("click", bulkBack);
   // Escape acts as Back, but never while a request is in flight.
   $("confirm-dialog").addEventListener("cancel", function (e) { e.preventDefault(); bulkBack(); });

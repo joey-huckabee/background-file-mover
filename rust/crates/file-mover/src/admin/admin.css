@@ -130,6 +130,7 @@ nav a.active .nav-count.amber{background:#f8efd9;color:#7d5a1d}
 .step{color:#5a665f}.pill{color:#3c5a44}
 .attention-strip p,.stat.attention .stat-bottom{color:#7a5414}
 nav a.active .nav-count{color:#3c5a44}.nav-label{color:#9fb5a6}
+th .sort,#storage-body small{color:#5a665f}
 /* Expanded job detail: the width of the visible card, not of the (wider,
    horizontally scrolling) table, so every panel is readable without scrolling. */
 .table-scroll{container-type:inline-size}
@@ -156,3 +157,6 @@ td.empty-results .button{margin-top:12px}
   .folder-cell{max-width:none;overflow-wrap:anywhere;white-space:normal}
   tr.detail-row .detail{position:static;width:auto}
 }
+.skip-link{position:absolute;left:12px;top:-60px;z-index:10;background:#fff;color:#1c302a;border:2px solid #2f6b45;border-radius:6px;padding:8px 14px;font-size:13px}
+.skip-link:focus{top:12px}
+main:focus{outline:none}
