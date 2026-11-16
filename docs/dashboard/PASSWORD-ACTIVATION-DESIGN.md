@@ -31,17 +31,35 @@ running service.
   `--status`/`--stop` on `control.sock` stay responsive and account work never
   runs on the lifecycle thread or the async executor.
 - Bounded frames: request at most 2048 bytes, reply at most 1024 bytes,
-  100 ms socket timeouts for reading the request; strict JSON with
-  `deny_unknown_fields`.
+  strict JSON with `deny_unknown_fields`. Each connection has an **absolute
+  deadline** of 1 s to deliver the whole request (per-read timeouts are taken
+  from the remaining deadline, so trickling bytes cannot hold the thread), and
+  reply writes have their own 1 s bound. A connection that misses either is
+  closed with no effect if the request was incomplete.
+- The account thread holds the instance guard (`Arc<InstanceGuard>`) and is
+  joined before the service releases instance/epoch ownership. It stops
+  accepting at the first stop request; a request already admitted finishes.
+  A publication blocked in local storage at shutdown is waited for under the
+  existing lifecycle rule (one original deadline, `ShutdownIncomplete` while it
+  remains, ownership kept until the thread has actually exited).
 
 ## Protocol (version 1)
 
-1. **Status** `{"version":1,"command":"account-status","instance_id":ID}` ->
-   `{"version":1,"instance_id":ID,"username":U,"active_revision":"N"}`.
-   The CLI uses it as preflight (service running, instance unchanged, account
-   active) before prompting.
+1. **Status** `{"version":1,"command":"account-status","instance_id":ID,
+   "change_id":C?}` -> `{"version":1,"instance_id":ID,"username":U,
+   "active_revision":"N","published_revision":"M"|null,"change":OUTCOME|null}`.
+   - `published_revision` is read back from the account file on the account
+     thread (custody-checked, under `account.lock`); `null` if it cannot be
+     read safely. `M != N` means disk and memory differ (see Reconciliation).
+   - With a `change_id`, `change` is the service's recorded outcome for that
+     change (the last 16 changes are kept in memory, cleared by restart):
+     `activated`, `unchanged`, `uncertain`, or `null` if never received.
+   - The CLI uses status as preflight (service running, instance unchanged,
+     consistent account) before prompting, and to resolve a lost reply.
 2. **Replace** `{"version":1,"command":"password-replace","instance_id":ID,
-   "base_revision":"N","verifier":PHC}`.
+   "change_id":C,"base_revision":"N","verifier":PHC}`. `change_id` is 32
+   random bytes (hex) chosen by the CLI; a repeated `change_id` is refused, so
+   a resend can never apply a change twice.
    - The CLI derives the verifier itself (`Verifier::create`, the fixed
      Argon2id profile m=19456,t=2,p=1, 16-byte salt, 32-byte tag). **The
      password never leaves the CLI process**; only the verifier crosses the
@@ -56,12 +74,24 @@ running service.
      active one (same principal, username, revision, verifier); build
      `revision + 1` with the same principal and username; publish with the
      existing exclusive atomic replacement and file/parent sync; release.
-   - Activation: `Sessions::activate(record)` under the admission lock (no
-     I/O or hashing there): every session and CSRF token is revoked and the
-     generation advances before the reply; a login whose hashing began
-     earlier cannot mint a session afterwards (existing ticket recheck).
+   - Activation: a new **serialized activation**, modelled on
+     `logout_all_serialized`: under the session state lock (no I/O or
+     hashing there) recheck the active record is still the base, install the
+     new record, revoke every session and CSRF token and advance the
+     generation, so no later login, read or action can use old authority; then
+     wait for the admission write guard, i.e. until every action admitted
+     before the revocation has finished, bounded by the existing logout settle
+     time. Login tickets captured before the revocation fail their
+     revision/generation recheck before minting (existing behavior, now
+     tested for this path).
+   - Success is acknowledged only after that wait. If the bound elapses the
+     new password is still active and every session revoked, and the reply is
+     `activated` with `"settled":false` ("earlier admitted actions are still
+     finishing"), never a plain success.
 3. **Replies** (exactly one; `outcome` field):
-   - `activated` (`revision`): published and active; all sessions signed out.
+   - `activated` (`revision`, `settled`): published and active; all
+     sessions signed out; `settled` says whether earlier admitted actions had
+     finished.
    - `unchanged` (`code`: `revision_conflict`, `invalid_verifier`,
      `instance_changed`, `account_changed`, `refused`): nothing published or
      activated; the old password stays active.
@@ -71,12 +101,27 @@ running service.
      restart loads whatever was published. The CLI says so and points to
      status.
 
+## Reconciliation
+
+| Status after an uncertain or lost reply | Meaning | Guidance |
+| --- | --- | --- |
+| `change` = `activated` | Your change is active | Done; sign in with the new password |
+| `change` = `unchanged` | Your change had no effect | The old password is active; retry if needed |
+| `change` = `uncertain`, or `published_revision` != `active_revision` | Disk and memory may differ | Do not retry (a new change is refused while they differ); restart the service: it loads the published record and ends all sessions; then check which password works |
+| `change` = `null`, revisions equal and above your base | Another change won, or yours was applied but its record was lost with a restart | Not attributable: sign in to check, or change the password again |
+| `change` = `null`, revisions equal your base | Your request never arrived | Nothing changed; retry |
+
+A new `password-replace` is refused (`account_changed`) while the published and
+active revisions differ, so a mismatch is never silently overwritten.
+
 ## CLI behavior
 
 - Stopped service (instance free): today's offline flow, unchanged.
-- Running service: preflight `account-status`, prompt, derive verifier, send
-  `password-replace`, print the outcome. A lost reply or interrupt after sending
-  reports "outcome uncertain; run --admin-account-status".
+- Running service: preflight `account-status` (refused if published and
+  active differ), prompt, derive verifier, send `password-replace`, print the
+  outcome. A lost reply or interrupt after sending queries status with the
+  same `change_id` once; if that fails too it prints the change id and
+  "outcome uncertain; run --admin-account-status --change-id ID".
 - `--admin-account-status` while running uses `account-status` (active
   revision); offline it reads the file as today.
 - Owner unavailable or shutting down: refused ("service is stopping; retry
@@ -94,6 +139,22 @@ running service.
 - Diagnostics never include passwords or verifiers.
 
 ## Proof (maps to ADMIN-SESSION-DESIGN A10-A11, A14, A16)
+
+Additional cases from review:
+- Serialized activation with an admitted action blocked in its storage
+  decision: activation revokes immediately (new requests refused), the reply
+  waits for the action, `settled` reflects whether it finished within the
+  bound.
+- A login whose hashing started before activation cannot mint a session after
+  it.
+- Trickled request bytes are cut off at the absolute deadline; the account
+  thread then serves the next request.
+- Post-rename / post-sync publication failure (existing account-file fault
+  controls): reply `uncertain`; status shows the published and active
+  revisions; a further replace is refused until restart.
+- Lost reply: the reply is dropped after activation; status with the change id
+  reports `activated`. Concurrent changes: the second gets
+  `revision_conflict`. A repeated change id is refused.
 
 - Unit: request/reply bounds and decoding; base-revision conflict; weak and
   non-canonical verifiers refused; activation revokes sessions (existing).
