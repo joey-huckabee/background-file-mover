@@ -300,6 +300,15 @@ pub fn source_space_statistics(
     })
 }
 
+/// Effective uid of the process on the other end of a connected Unix socket
+/// (SO_PEERCRED), for local control endpoints that admit only the owner.
+pub fn socket_peer_uid(socket: &impl rustix::fd::AsFd) -> std::io::Result<u32> {
+    Ok(rustix::net::sockopt::socket_peercred(socket)?.uid.as_raw())
+}
+/// This process's effective uid.
+pub fn effective_uid() -> u32 {
+    rustix::process::geteuid().as_raw()
+}
 pub fn validate_payload_locks(source_path: &str, destination_path: &str) -> Result<()> {
     validate_source_lock(source_path)?;
     validate_destination_lock(destination_path)

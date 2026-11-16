@@ -176,6 +176,29 @@ impl Record {
             verifier,
         })
     }
+    /// The next revision of this account with an already validated verifier
+    /// (derived by the host-local command; the password never reaches here).
+    pub fn with_verifier(&self, verifier: Verifier) -> Result<Self, &'static str> {
+        let revision = self
+            .revision
+            .checked_add(1)
+            .ok_or("account revision exhausted")?;
+        Ok(Self {
+            instance_id: self.instance_id.clone(),
+            account_id: self.account_id.clone(),
+            username: self.username.clone(),
+            revision,
+            verifier,
+        })
+    }
+    /// Exactly the same record (identity, revision and verifier).
+    pub fn same_record(&self, other: &Self) -> bool {
+        self.instance_id == other.instance_id
+            && self.account_id == other.account_id
+            && self.username == other.username
+            && self.revision == other.revision
+            && self.verifier.encoded() == other.verifier.encoded()
+    }
     /// Expensive fixed-profile verification; run only on an owned worker thread.
     pub(crate) fn verify(&self, password: &Password) -> Result<bool, crate::password::Error> {
         self.verifier.verify(password)

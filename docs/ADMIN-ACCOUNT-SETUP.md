@@ -17,8 +17,10 @@ These commands refuse missing, uninitialized, incompatible or foreign state;
 they do not initialize a source, create replacement state or migrate a database.
 They inspect local state without traversing source/destination payload storage.
 
-Stop the mover through its normal local controller and wait for actual coordinator
-and surviving-worker exit before any account command, including account status:
+Account initialization needs a stopped service (password change and status also
+work while it runs with the dashboard configured; see below). Stop the mover through
+its normal local controller and wait for actual coordinator and surviving-worker
+exit before an offline account command:
 
 ```sh
 /path/to/file-mover --stop /etc/file-mover/config.json
@@ -99,7 +101,7 @@ an unsuccessful exit after submission is not proof that publication did not occu
 
 ## Change the password and inspect status
 
-With the service stopped and its original state available:
+The same command works with the service stopped or running:
 
 ```sh
 /path/to/file-mover --admin-password-change /etc/file-mover/config.json --account-dir /var/lib/file-mover-account
@@ -111,6 +113,50 @@ It requires an existing valid account for this instance. It preserves username,
 account identity and instance linkage, and advances revision by one. Revision
 exhaustion refuses rather than wrapping. Successful output has the same public
 fields as init, with `"revision":"2"` after the first change.
+
+### While the service is running (dashboard configured)
+
+The running service owns the account, so the command hands the change to it
+over a private local socket (`account.sock` in the state directory, owner
+only). The password never leaves the command: it derives the Argon2id verifier
+itself and sends only that. The service publishes the new record and switches
+to it at once. **Every dashboard session is signed out**, the old password stops
+working and the new one works immediately; no restart. Transfers keep running.
+
+Successful output is one JSON object:
+
+```json
+{"version":1,"outcome":"activated","revision":"2","settled":true,"change_id":"<64 hex>"}
+```
+
+`settled` is `false` when dashboard actions started before the change were still
+finishing after 10 seconds; the change is still active. Other outcomes exit
+nonzero:
+
+| Outcome | Meaning | What to do |
+|---|---|---|
+| `unchanged` (`code`) | Nothing changed; the old password still works. `revision_conflict`: someone else changed it first. `account_changed`: the saved account differs from the running one | Check status; for `account_changed`, restart the service first |
+| `uncertain` | The new record may be saved but is not active | Do not retry. Restart the service (it loads the saved record and ends all sessions), then check which password works |
+| No reply | The command prints the change ID | Run status with `--change-id ID` (below) |
+
+Status while running reads the live service and adds the active and saved
+revisions:
+
+```sh
+/path/to/file-mover --admin-account-status /etc/file-mover/config.json --account-dir /var/lib/file-mover-account [--change-id ID]
+```
+
+It returns `instance_id`, `username`, `active_revision`, `published_revision`
+(the saved record; `null` if unreadable) and `change`: for a known change ID its
+outcome and, for an activated one, `standing` (`active`, `superseded` by a
+later change, or `unverified` when the saved record differs). The service keeps
+the last 16 changes until it restarts; `null` means not retained, not "never
+happened". Full rules: [design](dashboard/PASSWORD-ACTIVATION-DESIGN.md).
+
+Without `admin_ingress` there is no socket; stop the service and use the offline
+command.
+
+### Offline status
 
 Inspect the account without password input:
 

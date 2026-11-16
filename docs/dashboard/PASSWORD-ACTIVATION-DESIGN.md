@@ -1,13 +1,12 @@
-# Live admin password activation: IPC design (proposal)
+# Live admin password activation: IPC design
 
-Status: proposal for review before implementation (required by
-[ADMIN-SESSION-DESIGN](ADMIN-SESSION-DESIGN.md) section 4). Today a password
-change needs a stopped service ([increment 128](../RUST-INCREMENT-128.md)); the
+Status: approved and implemented ([increment 159](../RUST-INCREMENT-159.md)),
+reviewed before implementation as required by
+[ADMIN-SESSION-DESIGN](ADMIN-SESSION-DESIGN.md) section 4. Before it, a password
+change needed a stopped service ([increment 128](../RUST-INCREMENT-128.md)); the
 running service loads the account once at startup
-(`account_cli::load_record`) and `Sessions::activate` (increment 129) already
-switches an in-memory record and revokes every session under the admission
-lock. This proposal adds only the path from the host-local command to a
-running service.
+(`account_cli::load_record`). This design adds only the path from the
+host-local command to a running service.
 
 ## Goals and non-goals
 
@@ -69,10 +68,13 @@ running service.
 2. **Replace** `{"version":1,"command":"password-replace","instance_id":ID,
    "change_id":C,"base_revision":"N","verifier":PHC}`. `change_id` is 32
    random bytes (hex) chosen by the CLI. A `change_id` still in the retained
-   history is refused. After eviction or restart an exact old request is
-   still refused by the base-revision check: its `base_revision` is no longer
-   the active revision once it (or anything later) was applied, so a resend
-   can never apply a change twice.
+   history is refused. After eviction an exact old request is still refused by
+   the base-revision check: its `base_revision` is no longer the active
+   revision once it (or anything later) was applied, so a resend can never
+   apply a change twice. After a restart it is refused earlier still:
+   `instance_id` is the service process identity (`pid:start`, as in
+   `--status`), so it is `instance_changed`; re-aimed at the new instance it
+   is refused by the base revision.
    - The CLI derives the verifier itself (`Verifier::create`, the fixed
      Argon2id profile m=19456,t=2,p=1, 16-byte salt, 32-byte tag). **The
      password never leaves the CLI process**; only the verifier crosses the

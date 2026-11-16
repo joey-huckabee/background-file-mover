@@ -62,8 +62,9 @@ Open `https://AUTHORITY/` and sign in with the account username and password.
 - The page updates itself when jobs change (indicator "Live" next to Sign out);
   no reload needed. Up to two open pages get live updates at once; others show
   "Live updates unavailable" and still work with Refresh.
-- To change the password: stop the mover, run `--admin-password-change`
-  ([guide](ADMIN-ACCOUNT-SETUP.md)), then start it. All sessions end.
+- To change the password, run `--admin-password-change`
+  ([guide](ADMIN-ACCOUNT-SETUP.md)); no restart needed. The new password works
+  at once and all sessions end.
 
 Up to four admin connections are served at once, inside the service's global
 limit of eight, with one slot always kept for the local operator. Extra

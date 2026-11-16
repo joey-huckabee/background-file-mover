@@ -211,6 +211,10 @@ impl Prepared {
             listener,
         })
     }
+    /// The admin state (sessions) shared with the local account control.
+    pub(crate) fn admin(&self) -> Arc<Admin> {
+        self.admin.clone()
+    }
     /// Sender the store worker uses to signal "state may have changed".
     pub(crate) fn changes(&self) -> tokio::sync::watch::Sender<u64> {
         self.admin.changes.clone()
