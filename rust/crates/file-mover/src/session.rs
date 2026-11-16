@@ -456,6 +456,57 @@ impl Sessions {
         result
     }
 
+    /// The active account record.
+    pub fn account(&self) -> Arc<Record> {
+        self.lock().account.clone()
+    }
+
+    /// Live password activation, ordered like [`Self::logout_all_serialized`]:
+    /// under the state lock (no I/O or hashing) recheck that `base` is still the
+    /// active revision, install the newer record of the same principal and
+    /// revoke every session, so no later login, read or action uses old
+    /// authority (login tickets fail their revision/generation recheck). Then
+    /// wait, at most `settle`, until every action admitted before the
+    /// revocation has finished. Returns whether they finished in time. Runs on
+    /// a plain thread, never the async executor.
+    pub fn activate_serialized(
+        &self,
+        base: u64,
+        record: Record,
+        settle: Duration,
+    ) -> Result<bool, ActivationError> {
+        let result = {
+            let mut state = self.lock();
+            if state.closed {
+                return Err(ActivationError::Closed);
+            }
+            let current = &state.account;
+            if current.revision != base
+                || record.instance_id != current.instance_id
+                || record.account_id != current.account_id
+                || record.username != current.username
+                || record.revision <= current.revision
+            {
+                return Err(ActivationError::Rejected);
+            }
+            state.account = Arc::new(record);
+            Self::revoke(&mut state)
+        };
+        self.announce_revocation();
+        result?;
+        let deadline = Instant::now() + settle;
+        loop {
+            if let Ok(guard) = self.admission.try_write() {
+                drop(guard);
+                return Ok(true);
+            }
+            if Instant::now() >= deadline {
+                return Ok(false);
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+
     /// Refuse all further work and hand back the verifier thread, if any. The
     /// owner must join it (off the async runtime) before releasing instance
     /// ownership; a timed-out verifier may still be running.
@@ -812,6 +863,60 @@ mod tests {
         .unwrap();
         assert_eq!(s.activate(other), Err(ActivationError::Rejected));
         assert_eq!(s.activate(record(6)), Ok(1));
+    }
+
+    #[test]
+    fn serialized_activation_revokes_at_once_and_settles_with_admitted_work() {
+        let s = Arc::new(Sessions::new(record(1), DEFAULT_IDLE));
+        let a = mint(&s, Instant::now());
+        // A login whose verification started before activation.
+        let early = admit(&s, Instant::now()).unwrap();
+        wait_idle(&s);
+        let (release_tx, release_rx) = std::sync::mpsc::channel::<()>();
+        let (entered_tx, entered_rx) = std::sync::mpsc::channel::<()>();
+        let worker = {
+            let s = Arc::clone(&s);
+            let session = a.session.clone();
+            std::thread::spawn(move || {
+                s.while_authorized(&session, || {
+                    entered_tx.send(()).unwrap();
+                    release_rx.recv().unwrap();
+                })
+            })
+        };
+        entered_rx.recv().unwrap();
+        // Stale base: refused with no effect.
+        assert_eq!(
+            s.activate_serialized(0, record(2), Duration::ZERO),
+            Err(ActivationError::Rejected)
+        );
+        assert_eq!(s.account().revision, 1);
+        // Admitted work still running: activation happens now, settle times out.
+        assert_eq!(
+            s.activate_serialized(1, record(2), Duration::from_millis(50)),
+            Ok(false)
+        );
+        assert_eq!(s.account().revision, 2);
+        assert!(
+            s.authorize(&a.session, None, Activity::Background, Instant::now())
+                .is_err()
+        );
+        assert!(s.finish(early, true, Instant::now()).is_err());
+        // The next activation waits for the admitted work and reports settled.
+        let next = {
+            let s = Arc::clone(&s);
+            std::thread::spawn(move || s.activate_serialized(2, record(3), Duration::from_secs(10)))
+        };
+        std::thread::sleep(Duration::from_millis(100));
+        assert!(!next.is_finished(), "settled before admitted work finished");
+        release_tx.send(()).unwrap();
+        assert_eq!(worker.join().unwrap(), Ok(()));
+        assert_eq!(next.join().unwrap(), Ok(true));
+        assert_eq!(s.account().revision, 3);
+        // Later work is refused; a fresh login on the new revision works.
+        assert!(s.while_authorized(&a.session, || ()).is_err());
+        let b = mint(&s, Instant::now());
+        assert!(s.while_authorized(&b.session, || ()).is_ok());
     }
 
     #[test]

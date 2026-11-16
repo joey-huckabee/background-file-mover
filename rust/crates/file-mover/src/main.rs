@@ -33,7 +33,8 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
     if let Some(action) = file_mover::account_cli::Action::from_flag(&path) {
         let config_path = args.next().ok_or("configuration path required")?;
-        return file_mover::account_cli::run(config_path, action, args.collect());
+        let config = read_config(&config_path)?;
+        return file_mover::account_cli::run(config_path, config, action, args.collect());
     }
     if path == "--internal-source-space-worker" {
         if args.next().is_some() {

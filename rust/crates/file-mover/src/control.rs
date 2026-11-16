@@ -124,7 +124,7 @@ fn socket_path(database: &str) -> Result<PathBuf> {
         .ok_or("local state parent required")?
         .join(SOCKET))
 }
-fn socket_identity(path: &Path) -> Result<(u64, u64)> {
+pub(crate) fn socket_identity(path: &Path) -> Result<(u64, u64)> {
     let m = std::fs::symlink_metadata(path)?;
     if !m.file_type().is_socket() || m.mode() & 0o7777 != 0o600 || m.nlink() != 1 {
         return Err("unsafe local control endpoint; preserve state".into());
@@ -134,6 +134,10 @@ fn socket_identity(path: &Path) -> Result<(u64, u64)> {
         return Err("foreign local control endpoint".into());
     }
     Ok((m.dev(), m.ino()))
+}
+/// This process's local instance identity (`pid:start`), as reported by status.
+pub(crate) fn local_identity() -> Option<String> {
+    process_stamp(std::process::id()).map(|s| s.0)
 }
 fn process_stamp(pid: u32) -> Option<(String, bool)> {
     let text = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;

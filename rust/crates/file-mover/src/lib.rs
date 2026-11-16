@@ -1,6 +1,7 @@
 //! Bounded loopback handoff and durable local recording delivery. No deletion.
 pub mod account;
 pub mod account_cli;
+mod account_ipc;
 pub mod admin;
 pub mod bootstrap;
 mod cert_info;
@@ -2016,29 +2017,61 @@ async fn serve_inner(
                     })
                     .transpose()
                     .map_err(|e| e.to_string())?;
+                // Live password activation: host-local account control, only
+                // with the dashboard (design: PASSWORD-ACTIVATION-DESIGN).
+                let account_control = match (&admin_ingress, &startup_config.admin_ingress) {
+                    (Some(prepared), Some(a)) => {
+                        let (instance_id, excluded) =
+                            account_cli::account_scope(&startup_config, &instance)
+                                .map_err(|e| e.to_string())?;
+                        Some(
+                            account_ipc::Server::start(
+                                instance.clone(),
+                                prepared.admin(),
+                                account_ipc::AccountScope {
+                                    directory: a.account_directory.clone(),
+                                    excluded,
+                                    instance_id,
+                                },
+                                startup_stop.clone(),
+                            )
+                            .map_err(|e| format!("admin account control: {e}"))?,
+                        )
+                    }
+                    _ => None,
+                };
                 let guard = bootstrap::acquire(
                     &startup_config.source_root,
                     &startup_config.source_binding,
                     &startup_stop,
                     &instance,
                 )?;
-                Ok((guard, control, endpoints, native, admin_ingress))
-            })()
-            .and_then(|(guard, control, endpoints, native, admin_ingress)| {
-                if startup_stop.load(Ordering::Relaxed) {
-                    return Err("startup stopped".into());
-                }
-                let changes = admin_ingress.as_ref().map(admin::Prepared::changes);
-                Worker::start(
-                    &startup_config,
+                Ok((
                     guard,
-                    startup_stop.clone(),
                     control,
-                    changes,
-                )
-                .map(|worker| (worker, endpoints, native, admin_ingress))
-                .map_err(|e| e.to_string())
-            });
+                    endpoints,
+                    native,
+                    admin_ingress,
+                    account_control,
+                ))
+            })()
+            .and_then(
+                |(guard, control, endpoints, native, admin_ingress, account_control)| {
+                    if startup_stop.load(Ordering::Relaxed) {
+                        return Err("startup stopped".into());
+                    }
+                    let changes = admin_ingress.as_ref().map(admin::Prepared::changes);
+                    Worker::start(
+                        &startup_config,
+                        guard,
+                        startup_stop.clone(),
+                        control,
+                        changes,
+                    )
+                    .map(|worker| (worker, endpoints, native, admin_ingress, account_control))
+                    .map_err(|e| e.to_string())
+                },
+            );
             let _ = ready.send(result);
         })?;
     let result = startup.await;
@@ -2046,15 +2079,16 @@ async fn serve_inner(
         .join()
         .map_err(|_| "source startup supervisor panicked")?;
     if stop.load(Ordering::Relaxed) {
-        if let Ok(Ok((worker, _endpoints, native, admin_ingress))) = result {
+        if let Ok(Ok((worker, _endpoints, native, admin_ingress, account_control))) = result {
             drop(_endpoints);
             drop(native);
+            drop(account_control); // Joined before the guard goes.
             drop(admin_ingress); // Verifier never started; nothing to join.
             drop(worker);
         }
         return Ok(());
     }
-    let (worker, prepared, native, admin_ingress) =
+    let (worker, prepared, native, admin_ingress, account_control) =
         result.map_err(|_| "source startup supervisor disconnected")??;
     let admin_ingress = admin_ingress.map(admin::Prepared::activate).transpose()?;
     let endpoints = prepared.map(ingress::Prepared::activate).transpose()?;
@@ -2341,6 +2375,9 @@ async fn serve_inner(
     {
         let _ = verifier.join();
     }
+    // The account thread (a publication may be in progress) is joined while the
+    // instance guard is still owned.
+    drop(account_control);
     drop(admin_ingress);
     drop(endpoints);
     drop(native);

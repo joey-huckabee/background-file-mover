@@ -42,8 +42,9 @@ dashboard remain unfinished. Packaging is not the next dashboard milestone.
   read-only job history and detail; [increment132](RUST-INCREMENT-132.md) the
   retention view; [increment134](RUST-INCREMENT-134.md) applies the first live UI
   review (inline detail, progress steps, new columns, sort, Storage, Settings).
-  Actions remain; live password
-  activation over IPC remains unfinished.
+  Actions remain. [Increment 159](RUST-INCREMENT-159.md) adds live password
+  activation over a host-local socket
+  ([design](dashboard/PASSWORD-ACTIVATION-DESIGN.md)).
   Account setup alone does not complete this dashboard milestone.
 - [ ] Add reviewed-state retry, then safe cancellation, confirmed history clear
   and separately confirmed owned-data deletion in bounded increments. Preserve

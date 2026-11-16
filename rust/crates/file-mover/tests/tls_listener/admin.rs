@@ -1786,3 +1786,232 @@ fn admin_delete_data_is_off_by_default_and_removes_only_retained_copies() {
     );
     f.stop();
 }
+
+/// Host-local account command against the running service (live path).
+fn account_command(
+    f: &Fixture,
+    action: &str,
+    extra: &[&str],
+    input: Option<Value>,
+) -> std::process::Output {
+    let mut c = f.command();
+    c.arg(action)
+        .arg(f.root.join("config.json"))
+        .arg("--account-dir")
+        .arg(f.root.join("accounts"))
+        .args(extra)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    if input.is_some() {
+        c.arg("--stdin");
+    }
+    let mut child = c.spawn().unwrap();
+    if let Some(input) = input {
+        child
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(&serde_json::to_vec(&input).unwrap())
+            .unwrap();
+    } else {
+        drop(child.stdin.take());
+    }
+    child.wait_with_output().unwrap()
+}
+
+/// One raw request on the account socket; None when closed without a reply.
+fn account_socket(socket: &std::path::Path, request: &[u8]) -> Option<Value> {
+    let mut stream = std::os::unix::net::UnixStream::connect(socket).unwrap();
+    stream
+        .set_read_timeout(Some(Duration::from_secs(20)))
+        .unwrap();
+    let _ = stream.write_all(request);
+    let _ = stream.shutdown(std::net::Shutdown::Write);
+    let mut out = Vec::new();
+    let _ = stream.read_to_end(&mut out);
+    (!out.is_empty()).then(|| serde_json::from_slice(&out).unwrap())
+}
+
+#[test]
+fn live_password_change_activates_without_restart() {
+    // Without the dashboard there is no account control endpoint.
+    let mut plain = Fixture::new(true);
+    plain.initialize();
+    plain.start();
+    assert!(!plain.root.join("state/account.sock").exists());
+    plain.stop();
+
+    let (mut f, a) = admin_fixture();
+    let socket = f.root.join("state/account.sock");
+    let meta = fs::symlink_metadata(&socket).unwrap();
+    assert!(std::os::unix::fs::FileTypeExt::is_socket(&meta.file_type()));
+    assert_eq!(meta.permissions().mode() & 0o7777, 0o600);
+    let first = a.login("admin", PASSWORD);
+    assert_eq!(first.status, 200);
+    let cookie = first.cookie();
+
+    let status = account_command(&f, "--admin-account-status", &[], None);
+    assert!(status.status.success(), "{status:?}");
+    let s: Value = serde_json::from_slice(&status.stdout).unwrap();
+    assert_eq!(s["active_revision"], "1");
+    assert_eq!(s["published_revision"], "1");
+    assert_eq!(s["username"], "admin");
+    assert!(s.get("verifier").is_none());
+    let instance = s["instance_id"].as_str().unwrap().to_owned();
+
+    // Live change through the CLI: published and active before it returns.
+    const NEW: &str = "disposable replacement";
+    let out = account_command(
+        &f,
+        "--admin-password-change",
+        &[],
+        Some(json!({"password":NEW,"confirm_password":NEW})),
+    );
+    assert!(out.status.success(), "{out:?}");
+    let printed = String::from_utf8_lossy(&out.stdout).into_owned();
+    assert!(!printed.contains("argon2") && !printed.contains(NEW));
+    let reply: Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(reply["outcome"], "activated");
+    assert_eq!(reply["revision"], "2");
+    assert_eq!(reply["settled"], true);
+    let change = reply["change_id"].as_str().unwrap().to_owned();
+    // The change id is shown before sending, so an interrupt can still look it up.
+    assert!(
+        String::from_utf8_lossy(&out.stderr)
+            .contains(&format!("Submitting password change {change}")),
+        "{out:?}"
+    );
+    assert_eq!(a.session(&cookie, "").status, 401, "old session ends");
+    assert_eq!(
+        a.login("admin", PASSWORD).status,
+        401,
+        "old password refused"
+    );
+    assert_eq!(a.login("admin", NEW).status, 200);
+    let record: Value =
+        serde_json::from_slice(&fs::read(f.root.join("accounts/admin-account.json")).unwrap())
+            .unwrap();
+    assert_eq!(record["revision"], 2);
+    let looked = account_command(
+        &f,
+        "--admin-account-status",
+        &["--change-id", &change],
+        None,
+    );
+    assert!(looked.status.success(), "{looked:?}");
+    let looked: Value = serde_json::from_slice(&looked.stdout).unwrap();
+    assert_eq!(looked["change"]["outcome"], "activated");
+    assert_eq!(looked["change"]["standing"], "active");
+
+    // Refusals on the socket itself: nothing changes.
+    let other = file_mover::password::Verifier::create(
+        &file_mover::password::Password::new(b"disposable third".to_vec()).unwrap(),
+    )
+    .unwrap();
+    let replace = |instance: &str, id: &str, base: &str, verifier: &str| {
+        serde_json::to_vec(
+            &json!({"version":1,"command":"password-replace","instance_id":instance,
+            "change_id":id,"base_revision":base,"verifier":verifier}),
+        )
+        .unwrap()
+    };
+    let (x, y, z) = ("ab".repeat(32), "cd".repeat(32), "ef".repeat(32));
+    let code = |r: Option<Value>| r.unwrap()["code"].as_str().unwrap().to_owned();
+    assert_eq!(
+        code(account_socket(
+            &socket,
+            &replace(&instance, &x, "1", other.encoded())
+        )),
+        "revision_conflict"
+    );
+    assert_eq!(
+        code(account_socket(
+            &socket,
+            &replace(&instance, &x, "2", other.encoded())
+        )),
+        "duplicate_change"
+    );
+    assert_eq!(
+        code(account_socket(
+            &socket,
+            &replace("other", &y, "2", other.encoded())
+        )),
+        "instance_changed"
+    );
+    assert_eq!(
+        code(account_socket(
+            &socket,
+            &replace(&instance, &y, "2", "$argon2id$v=19$m=8,t=1,p=1$AAAA$AAAA")
+        )),
+        "invalid_verifier"
+    );
+    assert!(
+        account_socket(&socket, &vec![b' '; 4096]).is_none(),
+        "oversize closes"
+    );
+    assert!(
+        account_socket(
+            &socket,
+            br#"{"version":1,"command":"account-status","extra":1}"#
+        )
+        .is_none(),
+        "unknown keys close"
+    );
+    // Refusals changed nothing (logins are rate limited: five per minute).
+    let same = account_command(&f, "--admin-account-status", &[], None);
+    let same: Value = serde_json::from_slice(&same.stdout).unwrap();
+    assert_eq!(same["active_revision"], "2");
+    assert_eq!(same["published_revision"], "2");
+
+    // A later change supersedes the first.
+    let third = account_socket(&socket, &replace(&instance, &z, "2", other.encoded())).unwrap();
+    assert_eq!(third["outcome"], "activated");
+    assert_eq!(third["revision"], "3");
+    let status = |id: &str| {
+        account_socket(
+            &socket,
+            &serde_json::to_vec(&json!({"version":1,"command":"account-status","instance_id":instance,"change_id":id}))
+                .unwrap(),
+        )
+        .unwrap()
+    };
+    assert_eq!(status(&change)["change"]["standing"], "superseded");
+    assert_eq!(status(&z)["change"]["standing"], "active");
+    assert_eq!(status(&x)["change"]["outcome"], "unchanged");
+    assert_eq!(a.login("admin", "disposable third").status, 200);
+
+    // Restart loads the published record; retained history is gone. The
+    // exact earlier request is refused by the new process identity, and even
+    // re-aimed at the new instance by its base revision.
+    f.stop();
+    assert!(!socket.exists());
+    f.start();
+    assert_eq!(a.login("admin", NEW).status, 401);
+    assert_eq!(a.login("admin", "disposable third").status, 200);
+    assert_eq!(
+        code(account_socket(
+            &socket,
+            &replace(&instance, &z, "2", other.encoded())
+        )),
+        "instance_changed"
+    );
+    let restarted = account_command(&f, "--admin-account-status", &["--change-id", &z], None);
+    let restarted: Value = serde_json::from_slice(&restarted.stdout).unwrap();
+    assert!(restarted["change"].is_null(), "history is not retained");
+    assert_eq!(restarted["active_revision"], "3");
+    let instance = restarted["instance_id"].as_str().unwrap();
+    assert_ne!(instance, s["instance_id"]);
+    assert_eq!(
+        code(account_socket(
+            &socket,
+            &replace(instance, &z, "2", other.encoded())
+        )),
+        "revision_conflict"
+    );
+    let log = fs::read_to_string(f.root.join("service.log")).unwrap();
+    for secret in [PASSWORD, NEW, "disposable third", other.encoded()] {
+        assert!(!log.contains(secret));
+    }
+    f.stop();
+}

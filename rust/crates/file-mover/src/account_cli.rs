@@ -186,13 +186,29 @@ fn classify(error: &(dyn std::error::Error + 'static)) -> (&'static str, Option<
 }
 
 fn options(args: Vec<String>, action: Action, allow_stdin: bool) -> Result<(String, bool)> {
+    let (directory, stdin, change) = options_with_change(args, action, allow_stdin)?;
+    if change.is_some() {
+        return Err("--change-id applies only to --admin-account-status".into());
+    }
+    Ok((directory, stdin))
+}
+fn options_with_change(
+    args: Vec<String>,
+    action: Action,
+    allow_stdin: bool,
+) -> Result<(String, bool, Option<String>)> {
     let mut directory = None;
     let mut stdin = false;
+    let mut change = None;
     let mut args = args.into_iter();
     while let Some(arg) = args.next() {
-        match arg.as_str(){"--account-dir" if directory.is_none()=>directory=Some(args.next().ok_or("account directory required")?),"--stdin" if allow_stdin&&!stdin&&action!=Action::Status=>stdin=true,_=>return Err("usage: account command CONFIG.json --account-dir EXISTING_PRIVATE_DIRECTORY [--stdin]".into())}
+        match arg.as_str(){"--account-dir" if directory.is_none()=>directory=Some(args.next().ok_or("account directory required")?),"--stdin" if allow_stdin&&!stdin&&action!=Action::Status=>stdin=true,"--change-id" if change.is_none()&&action==Action::Status=>change=Some(args.next().ok_or("change id required")?),_=>return Err("usage: account command CONFIG.json --account-dir EXISTING_PRIVATE_DIRECTORY [--stdin] [--change-id ID (status)]".into())}
     }
-    Ok((directory.ok_or("explicit --account-dir required")?, stdin))
+    Ok((
+        directory.ok_or("explicit --account-dir required")?,
+        stdin,
+        change,
+    ))
 }
 fn emit(value: &serde_json::Value) -> Result<()> {
     let mut out = std::io::stdout().lock();
@@ -439,9 +455,22 @@ fn response_error(value: &serde_json::Value) -> Box<dyn std::error::Error> {
         _ => "account setup refused; check initialized state, selected command and private account custody".into(),
     }
 }
-pub fn run(config_path: String, action: Action, args: Vec<String>) -> Result<()> {
+pub fn run(config_path: String, config: Config, action: Action, args: Vec<String>) -> Result<()> {
     use std::io::IsTerminal;
-    let (directory, stdin) = options(args, action, true)?;
+    let (directory, stdin, change) = options_with_change(args, action, true)?;
+    // A running service with the dashboard owns the account and serves its
+    // socket: change it live (status reads it live). Any other owner (a
+    // service without the dashboard, another account command) keeps the
+    // offline refusal.
+    let live = matches!(action, Action::Change | Action::Status)
+        && matches!(
+            mover_fs::instance_ownership(&config.state_database)?,
+            mover_fs::InstanceOwnership::Held
+        )
+        && crate::account_ipc::endpoint(&config.state_database).is_some();
+    if change.is_some() && !live {
+        return Err("--change-id needs the running service".into());
+    }
     let supplied = if stdin {
         if std::io::stdin().is_terminal() {
             return Err("--stdin requires a nonterminal input; use the no-echo prompt".into());
@@ -455,6 +484,9 @@ pub fn run(config_path: String, action: Action, args: Vec<String>) -> Result<()>
     } else {
         None
     };
+    if live {
+        return live_command(&config, action, supplied, change);
+    }
     let mut helper = Helper::start(&config_path, action, &directory)?;
     if action == Action::Status {
         return emit(&helper.finish()?);
@@ -483,6 +515,101 @@ pub fn run(config_path: String, action: Action, args: Vec<String>) -> Result<()>
         };
         emit(&status)
     })
+}
+
+/// Live password change or status against the running service's account
+/// control (design: docs/dashboard/PASSWORD-ACTIVATION-DESIGN.md). The
+/// password is turned into a verifier here; only the verifier is sent.
+fn live_command(
+    config: &Config,
+    action: Action,
+    supplied: Option<NewCredentials>,
+    change: Option<String>,
+) -> Result<()> {
+    use crate::account_ipc::{REPLACE_WAIT, STATUS_WAIT, call, new_change_id};
+    let database = config.state_database.as_str();
+    let status_request = |change: Option<&str>| serde_json::json!({"version":1,"command":"account-status","instance_id":null,"change_id":change});
+    if action == Action::Status {
+        return emit(&call(
+            database,
+            &status_request(change.as_deref()),
+            STATUS_WAIT,
+        )?);
+    }
+    let status = call(database, &status_request(None), STATUS_WAIT)?;
+    let active = status["active_revision"]
+        .as_str()
+        .ok_or("invalid account status")?
+        .to_owned();
+    if status["published_revision"].as_str() != Some(active.as_str()) {
+        return Err("the published account differs from the active one; restart the service (it loads the published record and ends all sessions) before changing the password".into());
+    }
+    let instance = status["instance_id"]
+        .as_str()
+        .ok_or("invalid account status")?
+        .to_owned();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()?;
+    // Signals stay handled from the prompt through submission and
+    // reconciliation, so an interrupt after sending still reports the change.
+    let mut signals = {
+        let _context = runtime.enter();
+        Signals::new()?
+    };
+    let credentials = match supplied {
+        Some(c) => c,
+        None => runtime.block_on(prompt(false, &mut signals))?,
+    };
+    let verifier = crate::password::Verifier::create(&credentials.password)
+        .map_err(|_| "password hashing failed")?;
+    drop(credentials);
+    let change_id = new_change_id()?;
+    let request = serde_json::json!({"version":1,"command":"password-replace","instance_id":instance,
+        "change_id":change_id,"base_revision":active,"verifier":verifier.encoded()});
+    eprintln!("Submitting password change {change_id}");
+    let (sent, received) = tokio::sync::oneshot::channel();
+    let owned = database.to_owned();
+    std::thread::spawn(move || {
+        let _ = sent.send(call(&owned, &request, REPLACE_WAIT).map_err(|e| e.to_string()));
+    });
+    let reply = match runtime.block_on(until_cancelled(received, &mut signals)) {
+        Some(Ok(Ok(mut reply))) => {
+            reply["change_id"] = change_id.clone().into();
+            reply
+        }
+        lost => {
+            // Interrupted or lost reply: ask once for this change's outcome.
+            let why = if lost.is_none() {
+                "interrupted"
+            } else {
+                "reply lost"
+            };
+            let status = call(database, &status_request(Some(&change_id)), STATUS_WAIT).ok();
+            emit(
+                &serde_json::json!({"outcome":"uncertain","change_id":change_id,"status":status}),
+            )?;
+            return Err(format!("password change {why}; outcome uncertain; run --admin-account-status --change-id {change_id}").into());
+        }
+    };
+    emit(&reply)?;
+    match reply["outcome"].as_str() {
+        Some("activated") if reply["settled"] == true => Ok(()),
+        Some("activated") => {
+            eprintln!("New password active; all dashboard sessions signed out; earlier admitted actions were still finishing.");
+            Ok(())
+        }
+        Some("unchanged") => Err(format!(
+            "password not changed ({}); compare the active revision with {active} to see whether another change happened",
+            reply["code"].as_str().unwrap_or("refused")
+        )
+        .into()),
+        _ => Err(format!(
+            "password change outcome uncertain ({}); do not retry; run --admin-account-status --change-id {change_id}; a restart loads the published record",
+            reply["code"].as_str().unwrap_or("unknown")
+        )
+        .into()),
+    }
 }
 
 async fn prompt(initialize: bool, signals: &mut Signals) -> Result<NewCredentials> {
