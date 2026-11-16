@@ -189,7 +189,11 @@
       // Each reached step is a colored pill; unreached steps are outlined grey.
       wrap.appendChild(el("span", label, "step step-" + i + (done[i] ? " done" : ""),
         (done[i] ? "" : "Not yet: ") + tips[i]));
-      if (i < 2) { wrap.appendChild(el("span", "›", "arrow")); }
+      if (i < 2) {
+        var arrow = el("span", "›", "arrow");
+        arrow.setAttribute("aria-hidden", "true"); // Decorative separator.
+        wrap.appendChild(arrow);
+      }
     });
     var attention = ATTENTION[item.condition];
     if (attention) {
@@ -379,6 +383,19 @@
     if (!allItems.length) {
       var empty = el("tr"); var td = el("td", "No jobs are kept yet.", "muted"); td.colSpan = 5; empty.appendChild(td); rows.appendChild(empty);
     }
+    labelCells(rows);
+  }
+  // Narrow windows show rows as stacked cards; label each value with its column.
+  function labelCells(tbody) {
+    var heads = Array.prototype.map.call(tbody.closest("table").querySelectorAll("thead th"), function (th) {
+      return th.textContent.replace(/[▲▼]/g, "").trim();
+    });
+    Array.prototype.forEach.call(tbody.children, function (tr) {
+      if (tr.classList.contains("detail-row")) { return; }
+      Array.prototype.forEach.call(tr.children, function (td, i) {
+        if (td.colSpan === 1 && heads[i] && heads[i] !== "Job") { td.dataset.label = heads[i]; }
+      });
+    });
   }
   function renderAttention() {
     var list = allItems.filter(function (i) { return i.condition === "ReviewRequired"; });
@@ -396,6 +413,7 @@
       tr.appendChild(folderCell(item.destination_folder, "destination"));
       rows.appendChild(tr);
     });
+    labelCells(rows);
   }
   function loadOverviewStorage() {
     return request("/api/v2/retention", false, "overview").then(function (r) {
@@ -423,7 +441,7 @@
     rowsById = {};
     var items = body.items;
     $("history-status").textContent = body.total === 0
-      ? (allItems.length === 0 ? "No jobs are kept." : "No jobs match these filters. Try a different search.")
+      ? "0 jobs"
       : body.total + " job" + (body.total === 1 ? "" : "s") + (body.pages > 1 ? " · page " + (page + 1) + " of " + body.pages : "");
     items.forEach(function (item) {
       rowsById[item.job_id] = item;
@@ -466,6 +484,23 @@
       tr.appendChild(folderCell(item.destination_folder, "destination"));
       rows.appendChild(tr);
     });
+    if (body.total === 0) {
+      // Nothing to show: say why, and offer the way back when filtered.
+      var none = el("tr"); var cell = el("td", null, "empty-results"); cell.colSpan = 7;
+      var filtered = query !== "" || filter !== "all";
+      cell.appendChild(el("p", allItems.length === 0 ? "No jobs are kept yet." : "No jobs match these filters."));
+      if (filtered && allItems.length) {
+        var reset = el("button", "Show all jobs", "button");
+        reset.type = "button";
+        reset.addEventListener("click", function () {
+          filter = "all"; query = ""; $("search").value = ""; page = 0; openJob = null;
+          syncFilters(); renderHistory(false); $("search").focus();
+        });
+        cell.appendChild(reset);
+      }
+      none.appendChild(cell); rows.appendChild(none);
+    }
+    labelCells(rows);
     $("prev").disabled = page === 0;
     $("next").disabled = page + 1 >= body.pages;
     renderSelection();
@@ -768,6 +803,7 @@
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
+    labelCells(tbody); // Narrow windows: Status, Size and Attempts stay labelled.
     var scroll = el("div", null, "scroll"); scroll.appendChild(table); files.appendChild(scroll);
     box.appendChild(files);
     return placeholder;
@@ -1230,6 +1266,8 @@
     yes.disabled = bulk.sending || !bulk.proof;
     $("confirm-back").disabled = bulk.sending;
     if (!d.open) { d.showModal(); $("confirm-back").focus(); }
+    // Back is disabled while the confirmation loads; take focus once it is not.
+    if (document.activeElement === d && !$("confirm-back").disabled) { $("confirm-back").focus(); }
   }
   function renderSelection() {
     var bar = $("selection");
@@ -1238,7 +1276,7 @@
     var onPage = pageIds.filter(function (id) { return selected.has(id); }).length;
     all.checked = pageIds.length > 0 && onPage === pageIds.length;
     var locked = selectionLocked(bulk);
-    all.disabled = locked;
+    all.disabled = locked || pageIds.length === 0;
     document.querySelectorAll("#history-rows td.pick input").forEach(function (b) { b.disabled = locked; });
     all.indeterminate = onPage > 0 && onPage < pageIds.length;
     $("clear-all").disabled = locked || !clearAllPlan(allItems).ids.length;
@@ -1469,6 +1507,10 @@
     e.textContent = text;
     e.className = "live " + cls;
     e.title = hover;
+    // The sidebar status follows the live connection, so it never claims
+    // "Connected" while the service is unreachable.
+    $("instance-detail").textContent = { on: "Connected", wait: "Reconnecting…", off: "Not connected" }[cls] || text;
+    $("instance-dot").className = "live-dot " + cls;
   }
   function refreshVisible() {
     if (retryInUse()) { liveDeferred = true; return; }
@@ -1617,6 +1659,8 @@
     startBulk("clear-history", plan);
   });
   $("confirm-yes").addEventListener("click", sendBulk);
+  // Keyboard users skip the sidebar (the hash is the view, so no #main link).
+  $("skip").addEventListener("click", function () { $("main").focus(); });
   $("confirm-back").addEventListener("click", bulkBack);
   // Escape acts as Back, but never while a request is in flight.
   $("confirm-dialog").addEventListener("cancel", function (e) { e.preventDefault(); bulkBack(); });
