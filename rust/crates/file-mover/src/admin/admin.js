@@ -1275,7 +1275,7 @@
     var onPage = pageIds.filter(function (id) { return selected.has(id); }).length;
     all.checked = pageIds.length > 0 && onPage === pageIds.length;
     var locked = selectionLocked(bulk);
-    all.disabled = locked;
+    all.disabled = locked || pageIds.length === 0;
     document.querySelectorAll("#history-rows td.pick input").forEach(function (b) { b.disabled = locked; });
     all.indeterminate = onPage > 0 && onPage < pageIds.length;
     $("clear-all").disabled = locked || !clearAllPlan(allItems).ids.length;

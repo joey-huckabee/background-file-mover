@@ -78,6 +78,10 @@ dashboard remain unfinished. Packaging is not the next dashboard milestone.
   keyboard/focus behavior, contrast and narrow layouts. Complete browser
   verification left unfinished in the design draft. Retain the accepted visual
   direction; do not treat this step as permission to remove approved behavior.
+  Robustness items (long paths, unknown sizes, large histories, empty/error/
+  stale states, keyboard/focus, contrast, narrow layouts) done in
+  [increment 158](RUST-INCREMENT-158.md); screen-by-screen trimming with the
+  user remains.
 - [ ] After the dashboard/backend and remaining release prerequisites are
   qualified, validate the complete offline bundle, instructions and cutover.
   All eight FR gates remain open until their own closure evidence is complete.
