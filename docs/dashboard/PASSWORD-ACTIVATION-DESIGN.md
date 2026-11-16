@@ -57,9 +57,13 @@ running service.
      `uncertain`. The last 16 changes are retained in memory and cleared by
      restart, so `change` = `null` means **not retained** (evicted, restarted,
      or never received), never proof that it was not received.
-   - For an `activated` change the reply adds `"current": B`, true only while
-     `active_revision` still equals R (and `published_revision` equals it).
-     A later change makes it `false` ("superseded").
+   - For an `activated` change the reply adds `"standing"`, derived from the
+     active revision first and the published read-back second:
+     `active` (active = R and published = R), `superseded` (active > R: a later
+     change is active), or `unverified` (active = R but the published record is
+     unreadable or differs, e.g. a later change was published but not
+     activated). `unverified` never says the password is gone: memory still
+     uses R.
    - The CLI uses status as preflight (service running, instance unchanged,
      consistent account) before prompting, and to resolve a lost reply.
 2. **Replace** `{"version":1,"command":"password-replace","instance_id":ID,
@@ -114,8 +118,9 @@ running service.
 
 | Status after an uncertain or lost reply | Meaning | Guidance |
 | --- | --- | --- |
-| `change` = `activated`, `current` true | Your password is the active one | Done; sign in with the new password. If `settled` is false, earlier admitted actions were still finishing when it was acknowledged |
-| `change` = `activated`, `current` false | Your change was applied, then superseded by a later change | Your password is no longer active; sign in with the latest password or change it again |
+| `change` = `activated`, `standing` = `active` | Your password is the active one | Done; sign in with the new password. If `settled` is false, earlier admitted actions were still finishing when it was acknowledged |
+| `change` = `activated`, `standing` = `superseded` | A later change is active | Your password is no longer active; sign in with the latest password or change it again |
+| `change` = `activated`, `standing` = `unverified` | Your password is still active in the running service, but the published record is unreadable or differs | Sign-in works with your password now; a restart would load the published record. Inspect `published_revision`: if higher, a later change was published but not activated (see the next row) |
 | `change` = `unchanged` | Your change had no effect | It does not say which password is active now (another change may have happened); compare `active_revision` with your base: equal means the password you started from is still active |
 | `change` = `uncertain`, or `published_revision` != `active_revision` | Disk and memory may differ | Do not retry (a new change is refused while they differ); restart the service: it loads the published record and ends all sessions; then check which password works |
 | `change` = `null` (not retained), `active_revision` above your base | Applied by you or by someone else; the record is no longer retained | Not attributable: sign in to check, or change the password again |
@@ -166,7 +171,13 @@ Additional cases from review:
   reports `activated` and `current` true. Concurrent changes: the second gets
   `revision_conflict`. A repeated change id is refused while retained.
 - Superseded: change A then change B; status for A reports `activated`,
-  `current` false; status for B `current` true.
+  `superseded`; status for B `active`.
+- Unverified, unreadable: after A activates, the published record cannot be
+  read (account file custody fault): status for A reports `unverified` with
+  `published_revision` null, never `superseded`.
+- Unverified, divergence: after A activates R, B publishes R+1 but activation
+  fails (`uncertain`): status for A reports `unverified` with
+  `published_revision` R+1 and `active_revision` R.
 - Eviction: after 16 newer changes, A's id reports `null`; resending A's exact
   request is refused by the base-revision check (no second application).
 - Restart: retained history is empty; an exact old request is refused the
