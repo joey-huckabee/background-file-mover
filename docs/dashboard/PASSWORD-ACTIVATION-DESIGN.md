@@ -51,15 +51,24 @@ running service.
    - `published_revision` is read back from the account file on the account
      thread (custody-checked, under `account.lock`); `null` if it cannot be
      read safely. `M != N` means disk and memory differ (see Reconciliation).
-   - With a `change_id`, `change` is the service's recorded outcome for that
-     change (the last 16 changes are kept in memory, cleared by restart):
-     `activated`, `unchanged`, `uncertain`, or `null` if never received.
+   - With a `change_id`, `change` is the service's retained record of that
+     change: `{"outcome":O,"revision":"R"|null,"settled":B|null}` where
+     `outcome` is `activated` (R = the revision it installed), `unchanged` or
+     `uncertain`. The last 16 changes are retained in memory and cleared by
+     restart, so `change` = `null` means **not retained** (evicted, restarted,
+     or never received), never proof that it was not received.
+   - For an `activated` change the reply adds `"current": B`, true only while
+     `active_revision` still equals R (and `published_revision` equals it).
+     A later change makes it `false` ("superseded").
    - The CLI uses status as preflight (service running, instance unchanged,
      consistent account) before prompting, and to resolve a lost reply.
 2. **Replace** `{"version":1,"command":"password-replace","instance_id":ID,
    "change_id":C,"base_revision":"N","verifier":PHC}`. `change_id` is 32
-   random bytes (hex) chosen by the CLI; a repeated `change_id` is refused, so
-   a resend can never apply a change twice.
+   random bytes (hex) chosen by the CLI. A `change_id` still in the retained
+   history is refused. After eviction or restart an exact old request is
+   still refused by the base-revision check: its `base_revision` is no longer
+   the active revision once it (or anything later) was applied, so a resend
+   can never apply a change twice.
    - The CLI derives the verifier itself (`Verifier::create`, the fixed
      Argon2id profile m=19456,t=2,p=1, 16-byte salt, 32-byte tag). **The
      password never leaves the CLI process**; only the verifier crosses the
@@ -105,11 +114,12 @@ running service.
 
 | Status after an uncertain or lost reply | Meaning | Guidance |
 | --- | --- | --- |
-| `change` = `activated` | Your change is active | Done; sign in with the new password |
-| `change` = `unchanged` | Your change had no effect | The old password is active; retry if needed |
+| `change` = `activated`, `current` true | Your password is the active one | Done; sign in with the new password. If `settled` is false, earlier admitted actions were still finishing when it was acknowledged |
+| `change` = `activated`, `current` false | Your change was applied, then superseded by a later change | Your password is no longer active; sign in with the latest password or change it again |
+| `change` = `unchanged` | Your change had no effect | It does not say which password is active now (another change may have happened); compare `active_revision` with your base: equal means the password you started from is still active |
 | `change` = `uncertain`, or `published_revision` != `active_revision` | Disk and memory may differ | Do not retry (a new change is refused while they differ); restart the service: it loads the published record and ends all sessions; then check which password works |
-| `change` = `null`, revisions equal and above your base | Another change won, or yours was applied but its record was lost with a restart | Not attributable: sign in to check, or change the password again |
-| `change` = `null`, revisions equal your base | Your request never arrived | Nothing changed; retry |
+| `change` = `null` (not retained), `active_revision` above your base | Applied by you or by someone else; the record is no longer retained | Not attributable: sign in to check, or change the password again |
+| `change` = `null` (not retained), `active_revision` equal to your base | Not applied (if it had been, the revision would have advanced) | Nothing changed; retry |
 
 A new `password-replace` is refused (`account_changed`) while the published and
 active revisions differ, so a mismatch is never silently overwritten.
@@ -153,8 +163,14 @@ Additional cases from review:
   controls): reply `uncertain`; status shows the published and active
   revisions; a further replace is refused until restart.
 - Lost reply: the reply is dropped after activation; status with the change id
-  reports `activated`. Concurrent changes: the second gets
-  `revision_conflict`. A repeated change id is refused.
+  reports `activated` and `current` true. Concurrent changes: the second gets
+  `revision_conflict`. A repeated change id is refused while retained.
+- Superseded: change A then change B; status for A reports `activated`,
+  `current` false; status for B `current` true.
+- Eviction: after 16 newer changes, A's id reports `null`; resending A's exact
+  request is refused by the base-revision check (no second application).
+- Restart: retained history is empty; an exact old request is refused the
+  same way.
 
 - Unit: request/reply bounds and decoding; base-revision conflict; weak and
   non-canonical verifiers refused; activation revokes sessions (existing).
