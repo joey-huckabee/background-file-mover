@@ -23,7 +23,7 @@ page was open.
 | F5/F11 | An expanded job detail was as wide as the horizontally scrolling table: at 1440 px the third panel and the file list's Status/Size columns were cut off (also at 800 px) | The detail sticks to the left edge and is sized to the visible card (the table scroller is a CSS size container; `100cqw`) |
 | F7 | A search with no results showed one small line | A centred "No jobs match these filters." with **Show all jobs** (clears search and filter, returns focus to the search box); footer reads "0 jobs" |
 | F9 | At narrow widths the live status text ran into the breadcrumb | Below 800 px the top bar shows the status dot only (wording still announced), hides "Private admin interface" |
-| F10 | At 390 px the history table showed only the Job column and the filter tabs overflowed | Below 600 px every table becomes stacked cards, each value labelled with its column (labels taken from the table header); tabs wrap |
+| F10 | At 390 px the history table showed only the Job column and the filter tabs overflowed | Below 600 px every table becomes stacked cards, each value labelled with its column (labels taken from the table header: recent jobs, history, needs attention and a job's file list); tabs wrap |
 | F12 | With the service stopped the top bar said "Reconnecting…" but the sidebar still said "Connected" | The sidebar status and dot follow the live connection: Connected / Reconnecting… / Not connected |
 | Contrast | 26 text groups below WCAG AA, e.g. the "Live" label (1.43:1), inactive steps (2.59:1), most captions and table headers (3-4.4:1) | Darker text tones: muted `#5a665f`, Live `#2f6b45`, amber notices `#7a5414`, active nav count `#3c5a44`, sidebar label `#9fb5a6`; each at least 4.5:1 on its backgrounds. Remaining: decorative "›" and "/" (now `aria-hidden`) and the disabled pagination arrow (exempt) |
 | Keyboard | Logical order and a visible focus indicator on all 40 steps; no way to skip the sidebar; the confirmation dialog focused itself while Back was still disabled | **Skip to content** button (first Tab stop; the hash is the view, so it moves focus to the main region); focus moves to Back once enabled; Escape still closes and returns focus to the opener |
@@ -38,8 +38,9 @@ Known, not changed:
   folders or file names.
 - At 1440 px the history table is still wider than its card (horizontal
   scroll for the destination column); the detail no longer depends on it.
-- The 40-page loading bound (10,240 jobs) was not exercised here (unit tested
-  in increment 145).
+- The 40-page loading bound (10,240 jobs) and "Load older jobs" were not
+  exercised here, and no automated test covers `fetchAll`/`pageBudget`; a
+  large-history test remains open.
 - Quick repeated sign-ins can briefly exhaust the live-stream slots: freed
   slots are noticed at the next 15 s keepalive, and the page retries after
   30 s, showing "Live updates unavailable" meanwhile.

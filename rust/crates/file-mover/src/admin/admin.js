@@ -803,6 +803,7 @@
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
+    labelCells(tbody); // Narrow windows: Status, Size and Attempts stay labelled.
     var scroll = el("div", null, "scroll"); scroll.appendChild(table); files.appendChild(scroll);
     box.appendChild(files);
     return placeholder;
