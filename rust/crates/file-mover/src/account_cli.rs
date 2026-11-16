@@ -551,12 +551,15 @@ fn live_command(
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?;
+    // Signals stay handled from the prompt through submission and
+    // reconciliation, so an interrupt after sending still reports the change.
+    let mut signals = {
+        let _context = runtime.enter();
+        Signals::new()?
+    };
     let credentials = match supplied {
         Some(c) => c,
-        None => runtime.block_on(async {
-            let mut signals = Signals::new()?;
-            prompt(false, &mut signals).await
-        })?,
+        None => runtime.block_on(prompt(false, &mut signals))?,
     };
     let verifier = crate::password::Verifier::create(&credentials.password)
         .map_err(|_| "password hashing failed")?;
@@ -564,18 +567,29 @@ fn live_command(
     let change_id = new_change_id()?;
     let request = serde_json::json!({"version":1,"command":"password-replace","instance_id":instance,
         "change_id":change_id,"base_revision":active,"verifier":verifier.encoded()});
-    let reply = match call(database, &request, REPLACE_WAIT) {
-        Ok(mut reply) => {
+    eprintln!("Submitting password change {change_id}");
+    let (sent, received) = tokio::sync::oneshot::channel();
+    let owned = database.to_owned();
+    std::thread::spawn(move || {
+        let _ = sent.send(call(&owned, &request, REPLACE_WAIT).map_err(|e| e.to_string()));
+    });
+    let reply = match runtime.block_on(until_cancelled(received, &mut signals)) {
+        Some(Ok(Ok(mut reply))) => {
             reply["change_id"] = change_id.clone().into();
             reply
         }
-        Err(_) => {
-            // Lost reply: ask once for this change's recorded outcome.
+        lost => {
+            // Interrupted or lost reply: ask once for this change's outcome.
+            let why = if lost.is_none() {
+                "interrupted"
+            } else {
+                "reply lost"
+            };
             let status = call(database, &status_request(Some(&change_id)), STATUS_WAIT).ok();
             emit(
                 &serde_json::json!({"outcome":"uncertain","change_id":change_id,"status":status}),
             )?;
-            return Err(format!("password change outcome uncertain; run --admin-account-status --change-id {change_id}").into());
+            return Err(format!("password change {why}; outcome uncertain; run --admin-account-status --change-id {change_id}").into());
         }
     };
     emit(&reply)?;

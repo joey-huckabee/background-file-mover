@@ -135,9 +135,9 @@ nonzero:
 
 | Outcome | Meaning | What to do |
 |---|---|---|
-| `unchanged` (`code`) | Nothing changed; the old password still works. `revision_conflict`: someone else changed it first. `account_changed`: the saved account differs from the running one | Check status; for `account_changed`, restart the service first |
+| `unchanged` (`code`) | This request changed nothing. It does not say which password is active: `revision_conflict` means another change was activated first. `account_changed`: the saved account differs from the running one | Run status and compare `active_revision` with the revision you started from (equal: your previous password is still active); for `account_changed`, restart the service first |
 | `uncertain` | The new record may be saved but is not active | Do not retry. Restart the service (it loads the saved record and ends all sessions), then check which password works |
-| No reply | The command prints the change ID | Run status with `--change-id ID` (below) |
+| No reply, or interrupted after sending | The command prints the change ID before sending and asks status once | Run status with `--change-id ID` (below) |
 
 Status while running reads the live service and adds the active and saved
 revisions:

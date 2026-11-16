@@ -1876,6 +1876,12 @@ fn live_password_change_activates_without_restart() {
     assert_eq!(reply["revision"], "2");
     assert_eq!(reply["settled"], true);
     let change = reply["change_id"].as_str().unwrap().to_owned();
+    // The change id is shown before sending, so an interrupt can still look it up.
+    assert!(
+        String::from_utf8_lossy(&out.stderr)
+            .contains(&format!("Submitting password change {change}")),
+        "{out:?}"
+    );
     assert_eq!(a.session(&cookie, "").status, 401, "old session ends");
     assert_eq!(
         a.login("admin", PASSWORD).status,

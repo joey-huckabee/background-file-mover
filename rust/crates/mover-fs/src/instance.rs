@@ -128,6 +128,7 @@ impl InstanceGuard {
             &[
                 INSTANCE_LOCK,
                 "control.sock",
+                "account.sock",
                 "tls-reload.sock",
                 crate::worker_epoch::WORKER_EPOCH,
                 crate::worker_epoch::WORKER_NEXT,
@@ -211,6 +212,7 @@ impl InstanceGuard {
                 ![
                     INSTANCE_LOCK,
                     "control.sock",
+                    "account.sock",
                     "tls-reload.sock",
                     crate::worker_epoch::WORKER_EPOCH,
                     crate::worker_epoch::WORKER_NEXT,
@@ -797,6 +799,7 @@ mod tests {
         for name in [
             INSTANCE_LOCK,
             "control.sock",
+            "account.sock",
             "tls-reload.sock",
             "jobs-wal",
             "jobs-shm",
