@@ -168,7 +168,7 @@ Additional cases from review:
   controls): reply `uncertain`; status shows the published and active
   revisions; a further replace is refused until restart.
 - Lost reply: the reply is dropped after activation; status with the change id
-  reports `activated` and `current` true. Concurrent changes: the second gets
+  reports `activated` and `standing` `active`. Concurrent changes: the second gets
   `revision_conflict`. A repeated change id is refused while retained.
 - Superseded: change A then change B; status for A reports `activated`,
   `superseded`; status for B `active`.
