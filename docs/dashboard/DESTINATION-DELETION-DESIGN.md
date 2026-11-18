@@ -204,6 +204,14 @@ delivery:
   `allow_data_deletion`: these are the mover's own incomplete temporary copies,
   and the recording's verified delivered files and its retained source copy
   remain.
+- **Admission (no pass protects discovery):** the delivery thread first marks
+  the job busy (the same marker history clear and other workers honor), then
+  **rechecks** in the store that the job is still tracked and the exact attempt
+  is still an eligible superseded attempt with no cleanup record, and only then
+  starts the worker. If the recheck fails (for example history clear forgot
+  the job in between), nothing is touched. The marker is held through the
+  worker child's reaping and the result's persistence, so a clear that arrives
+  meanwhile is refused as busy until the cleanup has actually finished.
 - **Record:** each result is a `destination_deletion_targets` row with no pass
   (`pass` NULL): `Deleted`, or `Failed` with a bounded diagnostic. A failed
   cleanup is logged and **not retried automatically** (no loop on a damaged
@@ -245,6 +253,9 @@ delivery:
   selected for automatic cleanup, never the published attempt; manifest phase
   3 gives none; a Failed automatic row is not offered again; manual previews of
   delivered jobs offer no destination targets.
+- Clear races: clear first, then cleanup (recheck fails, no file touched);
+  cleanup holding the busy marker, then clear (refused as busy until the
+  cleanup result is saved).
 - Two actions: each preview lists only its scope; a source proof cannot start a
   destination pass and vice versa (stale); while one pass is active neither
   action is offered.
