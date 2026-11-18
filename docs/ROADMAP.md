@@ -53,8 +53,14 @@ dashboard remain unfinished. Packaging is not the next dashboard milestone.
   failure causes ([139](RUST-INCREMENT-139.md)), cancel
   ([140](RUST-INCREMENT-140.md)/[141](RUST-INCREMENT-141.md)), history clear
   ([142](RUST-INCREMENT-142.md)), retained-data deletion
-  ([143](RUST-INCREMENT-143.md)/[144](RUST-INCREMENT-144.md); off by default). Remaining:
-  unfinished-destination deletion kinds; UI revisit against the original mockup.
+  ([143](RUST-INCREMENT-143.md)/[144](RUST-INCREMENT-144.md); off by default),
+  unfinished destination data ([design](dashboard/DESTINATION-DELETION-DESIGN.md);
+  [160](RUST-INCREMENT-160.md)). Remaining: UI revisit against the original
+  mockup.
+- [ ] **Move mode (user request 2026-11-18):** a recording submitted as a move
+  deletes the mover's held source copy after verified delivery; a copy keeps
+  it. Needs its own design, approval and separate authorization for source
+  deletion (today `delete_source_after_commit` stays false).
 - [x] **Multiple admin browser connections (user request 2026-11-12, soon):**
   done in [increment135](RUST-INCREMENT-135.md): four admin connections, one
   global slot always reserved for the private operator.

@@ -1,6 +1,15 @@
-# Delete unfinished destination data: design (proposal)
+# Delete unfinished destination data: design
 
-Status: proposal for review before implementation. Completes the roadmap item
+Status: approved (independent review, 2026-11-17); revised 2026-11-18 after the
+user decisions below, for re-review. Implemented in
+[increment 160](../RUST-INCREMENT-160.md).
+
+**User decisions 2026-11-18:** two separate dashboard actions, **Delete source
+files…** (retained source copies, unchanged) and **Delete partial destination
+files…** (this design, cancelled jobs). A delivered job's leftover partial
+attempts are removed **automatically** after a successful delivery, not by a
+button. Deleting source files after delivery belongs to a future "move" mode
+(separate work and authorization; roadmap). Completes the roadmap item
 "unfinished-destination deletion kinds" of the confirmed data deletion workflow
 (contract group 22/50/51, `DeleteTarget`). It extends the retained-source
 deletion of [increment 143](../RUST-INCREMENT-143.md) and
@@ -37,12 +46,13 @@ identity and phase (0 intent, 1 allocated, 2 written, 3 authorized,
 - **Eligible job:** cancelled with the stop confirmed (`cancellations.state =
   Cancelled`). This already implies no worker is on the job and the delivery
   did not commit first. A job that failed but is not cancelled must be
-  cancelled first (approved eligibility rule). Delivered jobs: only superseded
-  partial attempts (see below).
+  cancelled first (approved eligibility rule). Delivered jobs get no manual
+  targets; their superseded attempts are cleaned up automatically (see
+  "Delivered jobs" below).
 - **Committed or possibly committed:** if the manifest row is at phase 3 or
   later, the job gets **no destination targets** (publication may have
-  happened), with one exception: on a delivered job (manifest phase 4),
-  superseded phase-0 staging attempts (see "Delivered jobs" below). On the
+  happened). The only exception is the automatic cleanup of a delivered job's
+  (manifest phase 4) superseded phase-0 staging attempts. On the
   cancelled-job path the worker refuses every destination target of a job whose
   area contains `COMMITTED.json`, whatever the database says.
 - **Target kinds** (contract `DeleteTarget`):
@@ -57,8 +67,8 @@ identity and phase (0 intent, 1 allocated, 2 written, 3 authorized,
   file kinds and `COMMITTED.json` for the manifest kind. Private host paths and
   inode numbers never reach the wire.
 - **Never deleted:** `COMMITTED.json`; anything in a job whose manifest
-  reached phase 3, except a delivered job's superseded phase-0 staging
-  attempts; any object whose identity differs from the record; anything
+  reached phase 3, except the automatic cleanup of a delivered job's superseded
+  phase-0 staging attempts; any object whose identity differs from the record; anything
   outside the job's area; symlink targets; other jobs' areas; the destination
   root and its `.file-mover` namespace.
 - **Folders:** after a job's targets are all deleted, the worker removes the
@@ -79,15 +89,23 @@ identity and phase (0 intent, 1 allocated, 2 written, 3 authorized,
     entries in it. If the walk fails anywhere, every ancestor stays.
   - The area itself is removed only if empty and its identity matches.
 
-## One confirmation per job, both sides
+## Two actions per job
 
-The existing **Delete retained data…** action covers both sides for a
-cancelled job: the preview lists retained source copies (`RetainedSource`) and
-the destination targets above in one selection, and one confirmation deletes
-them all. The proof binds the fingerprint of the complete selection (kind,
-file, attempt, recorded identity, pass version), so a selection that changed
-since the preview is `stale_confirmation` with nothing deleted. Still per job
-and behind `admin_ingress.allow_data_deletion` (default off).
+The dashboard offers two separate confirmed actions, both per job and both
+behind `admin_ingress.allow_data_deletion` (default off):
+- **Delete source files…** (`confirm_action=delete-data`): retained source
+  copies only (`RetainedSource`), as in increments 143/144. Delivered and
+  cancelled jobs.
+- **Delete partial destination files…**
+  (`confirm_action=delete-destination-data`): the destination targets above.
+  Cancelled jobs only.
+
+Each preview lists only its own kinds, and its proof binds the fingerprint of
+that selection with a scope tag (source or destination), kind, file, attempt,
+recorded identity and pass version. A proof for one action can therefore never
+start the other, and a selection that changed since the preview is
+`stale_confirmation` with nothing deleted. Both actions share the job's single
+pass: while either is active the other is not offered.
 
 ## Execution
 
@@ -134,12 +152,17 @@ and behind `admin_ingress.allow_data_deletion` (default off).
 
 ## State (schema 17)
 
-`deletion_targets` gets an `attempt` column and a new key
-`(job_id, kind, file_index, attempt)`. `file_index` is `-1` and `attempt` is
-`0` for the manifest kind, `attempt` is `0` for `RetainedSource`; CHECK
-constraints tie these to their kinds. The migration from 16 copies existing
-rows (`attempt = 0`) through the shared guarded additive step and chains
-11 -> ... -> 17. Startup reports MigrationRequired for 11-16.
+Implemented as a new table rather than a new key on `deletion_targets`
+(changed during implementation, increment 160): the guarded migration step
+only adds empty tables, and rebuilding `deletion_targets` would have needed a
+new kind of migration. `destination_deletion_targets` has the key
+`(job_id, kind, file_index, attempt)`; `file_index` is `-1` and `attempt` `0`
+for the manifest kind, and CHECK constraints tie these to their kinds. Rows
+reference `jobs`; `pass` is the confirmed pass, or NULL for an automatic
+cleanup (then only `UnfinishedDestinationStaging`, never Pending). A pass and
+its counts span both tables; automatic rows never count. `--migrate-state` adds it 16 -> 17 through the shared guarded
+additive step and chains 11 -> ... -> 17; startup reports MigrationRequired for
+11-16.
 
 ## Accounting and status
 
@@ -153,38 +176,49 @@ rows (`attempt = 0`) through the shared guarded additive step and chains
 
 ## Dashboard
 
-The confirmation for a cancelled job shows two groups:
-- **Source copies (N files, size):** the existing warning that these are the
-  only copies of the recording.
-- **Partial destination files (N items, known size):** "Unfinished files at the
-  destination. Consumers never saw them." Unknown sizes read "+ N partial
-  files of unknown size".
+- **Delete source files…** keeps its button, wording and warning (only copies
+  of an undelivered recording).
+- **Delete partial destination files…** appears on cancelled jobs when
+  deletion is enabled. Its confirmation lists the items (file name and
+  attempt), the known total size and "+ N partial files of unknown size", and
+  says: "These are unfinished files the mover left at the destination for this
+  cancelled job. Consumers never saw them. The mover's held copies on the source
+  disk are not touched." Confirm is disabled when nothing is left.
+- Activity shows the latest pass of either action with its counts.
 
-Confirm stays disabled when nothing is left. Activity and outcome wording is
-unchanged ("Deleting retained copies…" becomes "Deleting retained data…").
-
-## Delivered jobs: leftover partial attempts (user decision 2026-11-17)
+## Delivered jobs: automatic cleanup of leftover partial attempts
 
 When a file needed a retry, the older partial `.part` stays in the delivered
-recording's private `.staging` folder (not in the manifest, not consumer
-data). The user decided to include them: a delivered job also offers each
-**superseded** attempt (an attempt lower than the file's published attempt,
-always phase 0) as `UnfinishedDestinationStaging`. Never the published
-attempt's object, the final names, `COMMITTED.json`, their folders or the area
-itself; on a delivered job only `.staging/<index>` and `.staging` are removed,
-and only if they end up empty.
-
-This is a separate, narrower path, an explicit exception to the step 1
-`COMMITTED.json` refusal:
-- the store selects only attempts below the file's published attempt and only
-  on a job whose manifest row is committed (phase 4);
-- the worker opens only names under `.staging` (never the area's other
-  entries), and before unlinking a superseded `.part` it opens **every**
-  published final name of the job (identity-checked parents) and requires the
-  target's device and inode to differ from each of them. If any final name
-  cannot be opened or matches, the target is Failed and kept;
-- `COMMITTED.json` is never opened for writing, renamed or removed; its
-  presence is required on this path (a delivered job without it is refused).
+recording's private `.staging` folder (not in the manifest, not consumer data).
+The user decided these are removed automatically as part of a successful
+delivery:
+- **What:** each **superseded** attempt of a job whose manifest is committed
+  (phase 4): an attempt below the file's published attempt, always phase 0.
+  Never the published attempt's object, the final names, `COMMITTED.json`,
+  their folders or the area; only `.staging/<index>` and `.staging` are
+  removed, and only if they end up empty.
+- **When:** the delivery thread looks for such attempts between jobs, like
+  confirmed deletions (a few per tick, the job marked busy, under the job's
+  destination custody lane), so a job delivered by this version and leftovers
+  of jobs delivered earlier are both cleaned. Not gated by
+  `allow_data_deletion`: these are the mover's own incomplete temporary copies,
+  and the recording's verified delivered files and its retained source copy
+  remain.
+- **Record:** each result is a `destination_deletion_targets` row with no pass
+  (`pass` NULL): `Deleted`, or `Failed` with a bounded diagnostic. A failed
+  cleanup is logged and **not retried automatically** (no loop on a damaged
+  folder); it stays reserved in the accounting. Automatic rows never count in a
+  pass's `DeletionStatus`.
+- **Safety:** an explicit exception to the step 1 `COMMITTED.json` refusal:
+  - only committed jobs (manifest phase 4) and only attempts below the
+    published attempt are selected;
+  - the worker opens only names under `.staging` (never the area's other
+    entries), and before unlinking a superseded `.part` it opens **every**
+    published final name of the job (identity-checked parents) and requires the
+    target's device and inode to differ from each of them. If any final name
+    cannot be opened or matches, the target is Failed and kept;
+  - `COMMITTED.json` is never opened for writing, renamed or removed; its
+    presence is required on this path (a delivered job without it is refused).
 
 ## Proof
 
@@ -208,7 +242,12 @@ This is a separate, narrower path, an explicit exception to the step 1
   inode at the `.part` name) is refused and kept; a delivered job without
   `COMMITTED.json` is refused.
 - Delivered leftovers (store): only attempts below the published attempt are
-  selected, never the published attempt; manifest phase 3 gives none.
+  selected for automatic cleanup, never the published attempt; manifest phase
+  3 gives none; a Failed automatic row is not offered again; manual previews of
+  delivered jobs offer no destination targets.
+- Two actions: each preview lists only its scope; a source proof cannot start a
+  destination pass and vice versa (stale); while one pass is active neither
+  action is offered.
 - Store: eligibility (pending cancel and not cancelled give no destination
   targets; manifest phase 3+ gives none except a delivered job's superseded
   phase-0 staging attempts at phase 4); fingerprint covers kinds and attempts; stale, replay,
@@ -220,9 +259,10 @@ This is a separate, narrower path, an explicit exception to the step 1
   original and other jobs are untouched; destination reserved bytes drop;
   a job with `COMMITTED.json` planted in its area deletes nothing at the
   destination and reports failures; replay stays 409.
-- Real service, delivered job with a retried file: the preview lists only the
-  older attempt (plus retained source copies); delete removes only that
-  `.part`; published files and `COMMITTED.json` keep their bytes and inodes;
+- Real service, delivered job with a retried file: the service removes the
+  older attempt's `.part` automatically after delivery, with no confirmation; published files and `COMMITTED.json` keep their bytes and inodes;
   the area stays; destination reserved bytes drop by exactly that attempt;
   an exact producer replay still returns 202.
-- Dashboard: confirmation groups, unknown sizes, wording (node tests).
+- Dashboard: second button only on cancelled jobs; its confirmation lists
+  destination items with unknown sizes counted separately; source dialog
+  unchanged (node tests).
