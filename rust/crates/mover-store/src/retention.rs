@@ -15,7 +15,10 @@ pub struct RetentionSnapshot {
 }
 pub(crate) fn reserved_bytes(c: &Connection, destination: bool, id: Option<i64>) -> Result<u128> {
     let sql = if destination {
-        "SELECT c.source_identity FROM transfers t JOIN claims c ON c.job_id=t.job_id AND c.file_index=t.file_index WHERE (?1 IS NULL OR t.job_id=?1)"
+        // Deliberately deleted destination attempts no longer occupy space.
+        "SELECT c.source_identity FROM transfers t JOIN claims c ON c.job_id=t.job_id AND c.file_index=t.file_index WHERE (?1 IS NULL OR t.job_id=?1) AND NOT EXISTS(\
+         SELECT 1 FROM destination_deletion_targets d WHERE d.job_id=t.job_id AND d.file_index=t.file_index \
+         AND d.attempt=t.attempt AND d.kind IN ('UnfinishedDestinationStaging','UnfinishedDestinationPayload') AND d.state='Deleted')"
     } else {
         // Deliberately deleted retained copies no longer occupy source space.
         "SELECT c.source_identity FROM claims c WHERE (?1 IS NULL OR c.job_id=?1) AND NOT EXISTS(\
@@ -53,7 +56,7 @@ impl Store {
             let destination_reserved_bytes=reserved_bytes(&tx,true,id)?;
             let mut destination_attempts_by_phase=[0;5];
             {
-                let mut s=tx.prepare("SELECT phase,count(*) FROM transfers WHERE (?1 IS NULL OR job_id=?1) GROUP BY phase")?;
+                let mut s=tx.prepare("SELECT phase,count(*) FROM transfers t WHERE (?1 IS NULL OR job_id=?1) AND NOT EXISTS(SELECT 1 FROM destination_deletion_targets d WHERE d.job_id=t.job_id AND d.file_index=t.file_index AND d.attempt=t.attempt AND d.kind IN ('UnfinishedDestinationStaging','UnfinishedDestinationPayload') AND d.state='Deleted') GROUP BY phase")?;
                 for row in s.query_map([id],|r|Ok((r.get::<_,i64>(0)?,r.get::<_,i64>(1)?)))? {
                     let (phase,n)=row?;
                     let slot=usize::try_from(phase).ok().and_then(|i|destination_attempts_by_phase.get_mut(i)).ok_or(StoreError::CorruptState)?;

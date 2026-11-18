@@ -1639,6 +1639,21 @@ fn admin_delete_data_is_off_by_default_and_removes_only_retained_copies() {
         br#"{"job_ids":[1]}"#,
     );
     assert_eq!((r.status, r.json()), (404, json!({"error":"not_found"})));
+    // The partial-destination action is off with it.
+    let partial = "/api/v2/admin/jobs/delete-destination-data";
+    assert_eq!(
+        preview(&a, &cookie, &csrf, "delete-destination-data", "1").json(),
+        json!({"error":"invalid_selection"})
+    );
+    let r = send(
+        &a,
+        &cookie,
+        &csrf,
+        partial,
+        "c1.1.1.-.00",
+        br#"{"job_ids":[1]}"#,
+    );
+    assert_eq!((r.status, r.json()), (404, json!({"error":"not_found"})));
     // Enable it for this host.
     f.stop();
     f.config["admin_ingress"]["allow_data_deletion"] = json!(true);
@@ -1667,6 +1682,25 @@ fn admin_delete_data_is_off_by_default_and_removes_only_retained_copies() {
     assert_eq!(
         send(&a, &cookie, &csrf, delete, &wrong, br#"{"job_ids":[1]}"#).json(),
         json!({"error":"invalid_confirmation"})
+    );
+    // The partial-destination action is separate: a delivered job has nothing
+    // to offer there, and neither action's proof works for the other.
+    let other =
+        preview(&a, &cookie, &csrf, "delete-destination-data", "1").json()["confirmation"].clone();
+    assert_eq!(other["action"], "delete-destination-data");
+    assert_eq!(other["deletion_targets"], json!([]));
+    let other = other["token"].as_str().unwrap().to_owned();
+    assert_eq!(
+        send(&a, &cookie, &csrf, delete, &other, br#"{"job_ids":[1]}"#).json(),
+        json!({"error":"invalid_confirmation"})
+    );
+    assert_eq!(
+        send(&a, &cookie, &csrf, partial, &proof, br#"{"job_ids":[1]}"#).json(),
+        json!({"error":"invalid_confirmation"})
+    );
+    assert_eq!(
+        send(&a, &cookie, &csrf, partial, &other, br#"{"job_ids":[1]}"#).json(),
+        json!({"deleted_count":0,"failed_count":0,"completion_pending":false})
     );
     let r = send(&a, &cookie, &csrf, delete, &proof, br#"{"job_ids":[1]}"#);
     assert_eq!(r.status, 202, "{}", String::from_utf8_lossy(&r.body));

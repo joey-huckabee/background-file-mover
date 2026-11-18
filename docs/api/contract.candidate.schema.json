@@ -1020,7 +1020,7 @@
         "Counts are actual confirmed deleted/failed selected owned names, not freed bytes. Unknown pending outcomes are not successful deletions.",
         "Repeated observations of the same latest pass must not double-count targets."
       ],
-      "x-status": "implemented increment143 (latest pass per job; state schema 16)"
+      "x-status": "implemented increment143 (latest pass per job; state schema 16); counts cover destination kinds since increment160 (schema 17)"
     },
     "JobDetails": {
       "type": "object",
@@ -1397,7 +1397,7 @@
         "Only safely owned retained source/unfinished destination may be selected. Protect originals, committed output/manifests, foreign and uncertain allocations.",
         "Coordinates describe existing job/file/attempt/location; never a new public identifier. Full private host paths and inode authority remain internal."
       ],
-      "x-status": "RetainedSource implemented in increments143/144 (state schema 16); unfinished destination kinds reserved, not implemented"
+      "x-status": "RetainedSource implemented in increments143/144 (state schema 16); unfinished destination kinds implemented in increment160 (schema 17): cancelled jobs whose manifest never reached publication intent, plus superseded partial attempts of delivered jobs"
     },
     "ConfirmationPreview": {
       "type": "object",

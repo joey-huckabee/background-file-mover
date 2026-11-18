@@ -119,6 +119,17 @@ enum Operation {
         assignment: Assignment,
         manifest: ManifestWire,
     },
+    /// Confirmed deletion of one unfinished destination target (admin):
+    /// `staging`, `payload`, `manifest` or `superseded` (delivered job).
+    Discard {
+        kind: String,
+        assignment: Box<Assignment>,
+        anchor: Box<Assignment>,
+        #[serde(default)]
+        manifest: Option<Box<ManifestWire>>,
+        #[serde(default)]
+        published: Vec<Assignment>,
+    },
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -367,6 +378,74 @@ impl Session {
         Ok(t)
     }
 }
+/// Delete one confirmed unfinished destination target through a supervised
+/// worker under destination custody (`shared`, or acquired by the child). Ok
+/// when the object is gone; Err carries the worker's bounded diagnostic.
+pub(crate) fn discard(
+    store: &Store,
+    guard: &LocalClaimLock,
+    shared: Option<&LocalClaimLock>,
+    stop: &AtomicBool,
+    work: &mover_store::DestinationWork,
+) -> std::result::Result<(), String> {
+    use mover_store::DeleteKind;
+    let mut slot: Option<Session> = None;
+    let result = (|| -> Result<()> {
+        let kind = match (work.kind, work.delivered) {
+            (DeleteKind::DestinationStaging, false) => "staging",
+            (DeleteKind::DestinationStaging, true) => "superseded",
+            (DeleteKind::DestinationPayload, false) => "payload",
+            (DeleteKind::ManifestStaging, false) => "manifest",
+            _ => return Err("invalid destination target".into()),
+        };
+        let job = store.get(work.job_id)?.ok_or("unknown job")?;
+        let opened = open_session(
+            store,
+            work.job_id,
+            &job,
+            guard,
+            shared,
+            mover_fs::DEFAULT_COPY_BUFFER,
+            stop,
+        )?
+        .ok_or("destination_unavailable")?;
+        let session = slot.insert(opened);
+        let wire = |t: &Transfer| -> Result<Assignment> {
+            Ok(Assignment::new(t, &claim(store, t.job_id, t.file_index)?))
+        };
+        let published = if kind == "superseded" {
+            work.published
+                .iter()
+                .map(wire)
+                .collect::<Result<Vec<_>>>()?
+        } else {
+            Vec::new()
+        };
+        let reply = session.call(
+            Operation::Discard {
+                kind: kind.into(),
+                assignment: Box::new(wire(&work.transfer)?),
+                anchor: Box::new(wire(&work.anchor)?),
+                manifest: work
+                    .manifest
+                    .as_ref()
+                    .map(|m| Box::new(ManifestWire::new(m))),
+                published,
+            },
+            stop,
+        )?;
+        if reply.error.is_some() || reply.transfer.is_some() || reply.manifest.is_some() {
+            return Err("destination deletion blocked or uncertain".into());
+        }
+        Ok(())
+    })();
+    result.map_err(|e| {
+        slot.as_mut()
+            .and_then(|s| s.diagnostic.take())
+            .unwrap_or_else(|| super::diagnostic::describe(e.as_ref()))
+    })
+}
+
 fn claim(store: &Store, id: i64, index: usize) -> Result<ClaimIntent> {
     let (c, done) = store.claim_intent(id, index)?.ok_or("missing claim")?;
     if !done {
@@ -952,7 +1031,11 @@ pub fn worker() -> Result<()> {
             return Err("invalid delivery sequence".into());
         }
         sequence = request.sequence;
-        if !matches!(request.command, Operation::Manifest { .. }) && bytes.len() > 32768 {
+        if !matches!(
+            request.command,
+            Operation::Manifest { .. } | Operation::Discard { .. }
+        ) && bytes.len() > 32768
+        {
             return Err("delivery assignment too large".into());
         }
         let mut reply = Reply {
@@ -1091,6 +1174,59 @@ pub fn worker() -> Result<()> {
                     checking_destination = true;
                     destination_locks()?;
                     checking_destination = false;
+                    let in_scope = |a: Assignment| -> Result<Transfer> {
+                        let (t, c, embedded) = a.decode()?;
+                        if t.recording_directory != *component
+                            || t.job_id != *id
+                            || c.job_id != *id
+                            || t.file_index != c.file_index
+                            || c.root_path != *source
+                            || !destination.matches_path(&t.destination_root)
+                            || embedded.is_some()
+                        {
+                            return Err("delivery assignment scope changed".into());
+                        }
+                        Ok(t)
+                    };
+                    if let Operation::Discard {
+                        kind,
+                        assignment,
+                        anchor,
+                        manifest,
+                        published,
+                    } = command
+                    {
+                        let t = in_scope(*assignment)?;
+                        let anchor = in_scope(*anchor)?;
+                        let published = published
+                            .into_iter()
+                            .map(in_scope)
+                            .collect::<Result<Vec<_>>>()?;
+                        let manifest = manifest.map(|m| m.decode()).transpose()?;
+                        let target = match kind.as_str() {
+                            "staging" => mover_fs::DestinationTarget::Staging(&t),
+                            "payload" => mover_fs::DestinationTarget::Payload(&t),
+                            "manifest" => mover_fs::DestinationTarget::Manifest(
+                                manifest.as_ref().ok_or("manifest record required")?,
+                            ),
+                            "superseded" if !published.is_empty() => {
+                                mover_fs::DestinationTarget::Superseded {
+                                    transfer: &t,
+                                    published: &published,
+                                }
+                            }
+                            _ => return Err("invalid destination deletion".into()),
+                        };
+                        mover_fs::discard_unfinished_destination(target, &anchor)?;
+                        mover_fs::validate_worker_source(
+                            source,
+                            request.source_authorization.as_ref(),
+                        )?;
+                        source_locks(source)?;
+                        checking_destination = true;
+                        destination_locks()?;
+                        return Ok(());
+                    }
                     let (assignment, kind, manifest) = match command {
                         Operation::Prepare { assignment } => (assignment, 0, None),
                         Operation::Restart { assignment } => (assignment, 1, None),

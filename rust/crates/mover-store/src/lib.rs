@@ -19,7 +19,9 @@ use std::{
 mod admin_retry;
 mod cancellations;
 mod deletions;
-pub use deletions::{DeleteTarget, DeletionStart, DeletionView};
+pub use deletions::{
+    DeleteKind, DeleteTarget, DeletionScope, DeletionStart, DeletionView, DestinationWork,
+};
 mod problems;
 pub use cancellations::{CancelOutcome, CancelState, Cancellation};
 pub use problems::{JobProblem, ProblemStage, valid_diagnostic};
@@ -39,7 +41,7 @@ pub use retention::RetentionSnapshot;
 pub use source_ownership::SourceOwnership;
 
 const APPLICATION_ID: i64 = 0x42464d52;
-const SCHEMA_VERSION: i64 = 16;
+const SCHEMA_VERSION: i64 = 17;
 
 #[derive(Debug)]
 pub enum StoreError {
@@ -79,7 +81,7 @@ impl fmt::Display for StoreError {
             Self::Io(error) => write!(f, "I/O: {error}"),
             Self::UnsupportedSchema => write!(
                 f,
-                "UnsupportedSchema: schema 16 mover state required; automatic upgrades are disabled. Preserve original state and use compatible software; do not reinitialize or restore a stale database."
+                "UnsupportedSchema: schema 17 mover state required; automatic upgrades are disabled. Preserve original state and use compatible software; do not reinitialize or restore a stale database."
             ),
             Self::Cancelled => write!(
                 f,
@@ -87,7 +89,7 @@ impl fmt::Display for StoreError {
             ),
             Self::MigrationRequired => write!(
                 f,
-                "MigrationRequired: older state is preserved; explicit offline migration to schema 16 is required (file-mover --migrate-state); normal startup never applies it. Do not reinitialize or replace original state."
+                "MigrationRequired: older state is preserved; explicit offline migration to schema 17 is required (file-mover --migrate-state); normal startup never applies it. Do not reinitialize or replace original state."
             ),
             Self::UnsupportedIdentity => write!(
                 f,
@@ -789,10 +791,18 @@ impl Drop for Store {
     }
 }
 
-/// Current schema (16): schema 15 plus retained-data deletion passes.
+/// Current schema (17): schema 16 plus unfinished destination deletion targets.
 fn create_tables(connection: &Connection) -> Result<()> {
+    create_tables_v16(connection)?;
+    create_destination_deletion_tables(connection)
+}
+/// Schema 16: schema 15 plus retained-data deletion passes.
+fn create_tables_v16(connection: &Connection) -> Result<()> {
     create_tables_v15(connection)?;
     create_deletion_tables(connection)
+}
+fn create_destination_deletion_tables(connection: &Connection) -> Result<()> {
+    Ok(connection.execute_batch(include_str!("destination_deletions.sql"))?)
 }
 /// Schema 15: schema 14 plus admin cancellations.
 fn create_tables_v15(connection: &Connection) -> Result<()> {
@@ -879,7 +889,8 @@ fn validate_schema_for(connection: &Connection, version: i64) -> Result<()> {
         13 => create_tables_v13(&reference)?,
         14 => create_tables_v14(&reference)?,
         15 => create_tables_v15(&reference)?,
-        16 => create_tables(&reference)?,
+        16 => create_tables_v16(&reference)?,
+        17 => create_tables(&reference)?,
         _ => return Err(StoreError::UnsupportedSchema),
     }
     if schema_definitions(connection)? != schema_definitions(&reference)? {
@@ -1024,7 +1035,7 @@ impl Database {
         let version: i64 = connection.pragma_query_value(None, "user_version", |r| r.get(0))?;
         let application: i64 =
             connection.pragma_query_value(None, "application_id", |r| r.get(0))?;
-        if (11..=15).contains(&version) && application == APPLICATION_ID {
+        if (11..=16).contains(&version) && application == APPLICATION_ID {
             return Err(StoreError::MigrationRequired);
         }
         if history_clear && (version != SCHEMA_VERSION || application != APPLICATION_ID) {
@@ -1554,7 +1565,16 @@ fn destination_component(c: &Connection, id: i64) -> Result<String> {
     }
 }
 fn load_transfer(c: &Connection, job: i64, index: usize) -> Result<Option<Transfer>> {
-    let row=c.query_row("SELECT attempt,destination_root,relative_name,root_identity,area_identity,parent_identity,staging_directory_identity,stage_identity,sha256,phase FROM transfers WHERE job_id=?1 AND file_index=?2 ORDER BY attempt DESC LIMIT 1",params![job,index as i64],|r|Ok((r.get::<_,i64>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get::<_,String>(3)?,r.get::<_,String>(4)?,r.get::<_,String>(5)?,r.get::<_,String>(6)?,r.get::<_,String>(7)?,r.get::<_,Option<String>>(8)?,r.get::<_,i64>(9)?))).optional()?;
+    load_transfer_attempt(c, job, index, None)
+}
+/// One recorded attempt of a file (`None`: the latest).
+fn load_transfer_attempt(
+    c: &Connection,
+    job: i64,
+    index: usize,
+    attempt: Option<i64>,
+) -> Result<Option<Transfer>> {
+    let row=c.query_row("SELECT attempt,destination_root,relative_name,root_identity,area_identity,parent_identity,staging_directory_identity,stage_identity,sha256,phase FROM transfers WHERE job_id=?1 AND file_index=?2 AND (?3 IS NULL OR attempt=?3) ORDER BY attempt DESC LIMIT 1",params![job,index as i64,attempt],|r|Ok((r.get::<_,i64>(0)?,r.get::<_,String>(1)?,r.get::<_,String>(2)?,r.get::<_,String>(3)?,r.get::<_,String>(4)?,r.get::<_,String>(5)?,r.get::<_,String>(6)?,r.get::<_,String>(7)?,r.get::<_,Option<String>>(8)?,r.get::<_,i64>(9)?))).optional()?;
     row.map(
         |(
             attempt,

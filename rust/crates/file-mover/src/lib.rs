@@ -295,11 +295,12 @@ enum Observation {
     Cancel(i64, String, RetryGate),
     /// One admin history-clear occurrence, gated likewise.
     Clear(i64, RetryGate),
-    /// Retained-data deletion preview for one job (targets + fingerprint).
-    DeletePreview(i64),
+    /// Deletion preview for one job and action (targets + fingerprint).
+    DeletePreview(i64, mover_store::DeletionScope),
     /// Start, observe or replay one job's deletion pass, gated likewise.
     DeleteStart {
         job_id: i64,
+        scope: mover_store::DeletionScope,
         principal: String,
         proof_digest: String,
         confirmed: String,
@@ -392,13 +393,14 @@ impl Worker {
                             missing_reset_response(&observation_store, id, input)
                         }
                         Observation::RetryScope => retry_scope_response(&observation_store),
-                        Observation::DeletePreview(id) => delete_preview_response(&observation_store, id),
-                        Observation::DeleteStart { job_id, principal, proof_digest, confirmed, gate } => {
+                        Observation::DeletePreview(id, scope) => delete_preview_response(&observation_store, id, scope),
+                        Observation::DeleteStart { job_id, scope, principal, proof_digest, confirmed, gate } => {
                             let mut decided = None;
                             if gate(&mut || {
                                 decided = Some(delete_start_response(
                                     &observation_store,
                                     job_id,
+                                    scope,
                                     &principal,
                                     &proof_digest,
                                     &confirmed,
@@ -526,6 +528,102 @@ impl Worker {
                             diagnostic.as_deref(),
                             now(),
                         ) {
+                            eprintln!("Deletion result persistence failed: {error}");
+                            delivery_stop.store(true, Ordering::Relaxed);
+                            break;
+                        }
+                    }
+                    // Then unfinished destination data of confirmed passes, then
+                    // automatic cleanup of delivered jobs' superseded attempts,
+                    // under the job's destination custody lane like a delivery.
+                    for _ in 0..16 {
+                        if delivery_stop.load(Ordering::Relaxed) {
+                            break;
+                        }
+                        let found = match delivery_store.next_destination_deletion() {
+                            Ok(Some(work)) => Ok(Some((work, false))),
+                            Ok(None) => delivery_store
+                                .next_automatic_cleanup()
+                                .map(|w| w.map(|w| (w, true))),
+                            Err(error) => Err(error),
+                        };
+                        let (work, automatic) = match found {
+                            Ok(Some(found)) => found,
+                            Ok(None) => break,
+                            Err(error) => {
+                                eprintln!("Deletion discovery failed: {error}");
+                                delivery_stop.store(true, Ordering::Relaxed);
+                                break;
+                            }
+                        };
+                        // Held through the worker's reaping and the result's
+                        // persistence: history clear refuses a busy job.
+                        let Some(_working) = delivering.enter(work.job_id) else {
+                            break; // Another worker is on this job; next tick.
+                        };
+                        // No pass protects automatic discovery: recheck now
+                        // that the job is marked busy (clear may have won).
+                        if automatic {
+                            match delivery_store.automatic_cleanup_eligible(&work) {
+                                Ok(true) => (),
+                                Ok(false) => continue,
+                                Err(error) => {
+                                    eprintln!("Deletion discovery failed: {error}");
+                                    delivery_stop.store(true, Ordering::Relaxed);
+                                    break;
+                                }
+                            }
+                        }
+                        let lane = custody.lane(
+                            &delivery_store,
+                            work.job_id,
+                            &delivery_guard,
+                            &delivery_stop,
+                            parallel,
+                        );
+                        let shared = match &lane {
+                            Lane::Shared(lock) => Some(lock.clone()),
+                            Lane::Serialized(_) => None,
+                            Lane::Wait => break, // Next tick.
+                        };
+                        let outcome = delivery_worker::discard(
+                            &delivery_store,
+                            &delivery_guard,
+                            shared.as_deref(),
+                            &delivery_stop,
+                            &work,
+                        );
+                        drop(lane);
+                        if delivery_stop.load(Ordering::Relaxed) {
+                            break; // Stopping: leave the target pending.
+                        }
+                        let diagnostic = outcome.as_ref().err().map(|d| {
+                            let d: String = d.chars().filter(|c| c.is_ascii_graphic() || *c == ' ').take(240).collect();
+                            if d.is_empty() { "blocked_or_uncertain".to_owned() } else { d }
+                        });
+                        if let Some(d) = &diagnostic {
+                            eprintln!(
+                                "{} of job {} {} failed: {d}",
+                                if automatic { "Cleanup" } else { "Deletion" },
+                                work.job_id,
+                                work.kind.code()
+                            );
+                        }
+                        let recorded = if automatic {
+                            delivery_store.finish_automatic_cleanup(
+                                &work,
+                                outcome.is_ok(),
+                                diagnostic.as_deref(),
+                            )
+                        } else {
+                            delivery_store.finish_destination_deletion(
+                                &work,
+                                outcome.is_ok(),
+                                diagnostic.as_deref(),
+                                now(),
+                            )
+                        };
+                        if let Err(error) = recorded {
                             eprintln!("Deletion result persistence failed: {error}");
                             delivery_stop.store(true, Ordering::Relaxed);
                             break;
@@ -1345,13 +1443,15 @@ fn clear_response(store: &Store, id: i64, busy: impl Fn(i64) -> bool + Send + 's
         Err(_) => error(503, "storage_unavailable", true, None),
     }
 }
-fn delete_preview_response(store: &Store, id: i64) -> Response {
-    match store.deletion_preview(id) {
+fn delete_preview_response(store: &Store, id: i64, scope: mover_store::DeletionScope) -> Response {
+    match store.deletion_preview(id, scope) {
         Ok(Some((targets, fingerprint))) => observed(serde_json::json!({
             "fingerprint": fingerprint,
             "targets": targets.iter().map(|t| serde_json::json!({
-                "file_id": t.file_index.to_string(),
+                "file_id": t.file_index.map(|i| i.to_string()),
+                "kind": t.kind.code(),
                 "relative_path": t.relative_path,
+                "attempt": t.attempt,
                 "size_bytes": t.size_bytes,
             })).collect::<Vec<_>>(),
         })),
@@ -1363,11 +1463,12 @@ fn delete_preview_response(store: &Store, id: i64) -> Response {
 fn delete_start_response(
     store: &Store,
     id: i64,
+    scope: mover_store::DeletionScope,
     principal: &str,
     proof_digest: &str,
     confirmed: &str,
 ) -> Response {
-    match store.start_deletion(id, principal, proof_digest, confirmed, now()) {
+    match store.start_deletion(id, scope, principal, proof_digest, confirmed, now()) {
         Ok(mover_store::DeletionStart::Started(v)) => {
             observed(serde_json::json!({"outcome":"started","status":deletion_view(&v)}))
         }
@@ -1670,7 +1771,7 @@ async fn connection(
                                     | Observation::Retry(..)
                                     | Observation::Cancel(..)
                                     | Observation::Clear(..)
-                                    | Observation::DeletePreview(_)
+                                    | Observation::DeletePreview(..)
                                     | Observation::DeleteStart { .. } => None,
                                 };
                                 let key_conflict = command_id.is_some_and(|id| {

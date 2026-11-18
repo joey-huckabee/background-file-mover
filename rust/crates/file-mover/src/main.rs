@@ -160,10 +160,10 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         ]);
         // Preview validates lexical/local placement, without creating output.
         mover_fs::BackupOutput::check_location(&output, &excluded)?;
-        if !confirm || version == 16 {
+        if !confirm || version == 17 {
             println!(
                 "{}",
-                serde_json::json!({"schema_version":version,"target_schema":16,"conversion_required":version<16,"converted":false,"preview":!confirm,"backup_directory":output,"pairing_state":pairing,"payload_filesystem_inspected":false})
+                serde_json::json!({"schema_version":version,"target_schema":17,"conversion_required":version<17,"converted":false,"preview":!confirm,"backup_directory":output,"pairing_state":pairing,"payload_filesystem_inspected":false})
             );
             return Ok(());
         }
@@ -253,13 +253,29 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             state
         };
         // 15 -> 16 adds the empty retained-data deletion tables.
+        let state = if state.summary().schema_version == 15 {
+            state
+                .upgrade_deletions(&config.state_database, |stage| {
+                    checkpoint(match stage {
+                        "before_create" => "deletions_before_create",
+                        "after_create" => "deletions_after_create",
+                        "before_commit" => "deletions_before_commit",
+                        _ => "deletions_after_commit",
+                    })
+                })
+                .map_err(failed)?;
+            mover_store::StateInspection::open(&config.state_database)?
+        } else {
+            state
+        };
+        // 16 -> 17 adds the empty unfinished destination deletion target table.
         let summary = state
-            .upgrade_deletions(&config.state_database, |stage| {
+            .upgrade_destination_deletions(&config.state_database, |stage| {
                 checkpoint(match stage {
-                    "before_create" => "deletions_before_create",
-                    "after_create" => "deletions_after_create",
-                    "before_commit" => "deletions_before_commit",
-                    _ => "deletions_after_commit",
+                    "before_create" => "destination_deletions_before_create",
+                    "after_create" => "destination_deletions_after_create",
+                    "before_commit" => "destination_deletions_before_commit",
+                    _ => "destination_deletions_after_commit",
                 })
             })
             .map_err(failed)?;

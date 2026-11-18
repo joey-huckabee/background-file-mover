@@ -5126,7 +5126,7 @@ fn offline_history_epoch_helper() {
 #[test]
 fn incompatible_database_refuses_before_bootstrap_for_every_effect_entry_point() {
     let exe = std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap();
-    for case in (1..=15).chain([17, 99, 100, 101]) {
+    for case in (1..=16).chain([18, 99, 100, 101]) {
         let f = Fixture::uninitialized(300);
         let database = f.root.join("state/jobs.sqlite");
         drop(mover_store::Store::open(&database).unwrap());
@@ -5181,7 +5181,7 @@ fn incompatible_database_refuses_before_bootstrap_for_every_effect_entry_point()
             assert!(
                 log.contains(if case == 101 {
                     "file is not a database"
-                } else if (11..=15).contains(&case) {
+                } else if (11..=16).contains(&case) {
                     "MigrationRequired"
                 } else {
                     "UnsupportedSchema"
@@ -5255,7 +5255,7 @@ fn offline_inspection_and_backup_preserve_original_recovery_without_payload_root
     let result = check.wait_with_output().unwrap();
     assert!(result.status.success(), "{result:?}");
     let report: Value = serde_json::from_slice(&result.stdout).unwrap();
-    assert_eq!(report["schema_version"], 16);
+    assert_eq!(report["schema_version"], 17);
     assert_eq!(report["retained_jobs"], 1);
     assert_eq!(report["pairing_state"], "RecordedActive");
     let epoch: Value =
@@ -5430,7 +5430,7 @@ fn migration_cli_refuses_live_owner_bad_arguments_and_missing_state_then_validat
         assert!(result.status.success(), "{result:?}");
         let value: Value = serde_json::from_slice(&result.stdout).unwrap();
         assert_eq!(value["converted"], false);
-        assert_eq!(value["schema_version"], 16);
+        assert_eq!(value["schema_version"], 17);
         assert!(!backup.exists());
     }
     for args in [
@@ -6140,11 +6140,21 @@ fn confirmed_deletion_removes_only_retained_copies_and_keeps_replay() {
     f.stop();
     {
         let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
-        let (targets, digest) = s.deletion_preview(1).unwrap().unwrap();
+        let (targets, digest) = s
+            .deletion_preview(1, mover_store::DeletionScope::Source)
+            .unwrap()
+            .unwrap();
         assert_eq!(targets.len(), 1);
         assert!(matches!(
-            s.start_deletion(1, "dashboard-account", &"a".repeat(64), &digest, 100)
-                .unwrap(),
+            s.start_deletion(
+                1,
+                mover_store::DeletionScope::Source,
+                "dashboard-account",
+                &"a".repeat(64),
+                &digest,
+                100
+            )
+            .unwrap(),
             mover_store::DeletionStart::Started(_)
         ));
     }
@@ -6177,9 +6187,19 @@ fn confirmed_deletion_removes_only_retained_copies_and_keeps_replay() {
     f.stop();
     {
         let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
-        let (_, digest) = s.deletion_preview(2).unwrap().unwrap();
-        s.start_deletion(2, "dashboard-account", &"c".repeat(64), &digest, 300)
+        let (_, digest) = s
+            .deletion_preview(2, mover_store::DeletionScope::Source)
+            .unwrap()
             .unwrap();
+        s.start_deletion(
+            2,
+            mover_store::DeletionScope::Source,
+            "dashboard-account",
+            &"c".repeat(64),
+            &digest,
+            300,
+        )
+        .unwrap();
         std::fs::remove_file(f.root.join("source/.file-mover/2-0/data")).unwrap();
         s.finish_deletion_target(2, 0, false, Some("discard.sync_area errno=5"), 301)
             .unwrap();
@@ -6193,10 +6213,20 @@ fn confirmed_deletion_removes_only_retained_copies_and_keeps_replay() {
     f.stop();
     {
         let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
-        let (remaining, digest) = s.deletion_preview(2).unwrap().unwrap();
-        assert_eq!(remaining.len(), 1);
-        s.start_deletion(2, "dashboard-account", &"d".repeat(64), &digest, 310)
+        let (remaining, digest) = s
+            .deletion_preview(2, mover_store::DeletionScope::Source)
+            .unwrap()
             .unwrap();
+        assert_eq!(remaining.len(), 1);
+        s.start_deletion(
+            2,
+            mover_store::DeletionScope::Source,
+            "dashboard-account",
+            &"d".repeat(64),
+            &digest,
+            310,
+        )
+        .unwrap();
     }
     f.start();
     assert_eq!(
@@ -6222,9 +6252,19 @@ fn confirmed_deletion_removes_only_retained_copies_and_keeps_replay() {
             mover_store::CancelOutcome::Accepted
         );
         s.settle_cancellations(201, || false, |_| false).unwrap();
-        let (_, digest) = s.deletion_preview(3).unwrap().unwrap();
-        s.start_deletion(3, "dashboard-account", &"b".repeat(64), &digest, 202)
+        let (_, digest) = s
+            .deletion_preview(3, mover_store::DeletionScope::Source)
+            .unwrap()
             .unwrap();
+        s.start_deletion(
+            3,
+            mover_store::DeletionScope::Source,
+            "dashboard-account",
+            &"b".repeat(64),
+            &digest,
+            202,
+        )
+        .unwrap();
     }
     f.start();
     let result = wait_deletion(&f, "3");
@@ -6233,6 +6273,158 @@ fn confirmed_deletion_removes_only_retained_copies_and_keeps_replay() {
         json!({"completion_pending":false,"deleted_count":0,"failed_count":1})
     );
     assert_eq!(std::fs::read(&copy).unwrap(), b"not the claimed object");
+    f.stop();
+}
+
+#[test]
+fn partial_destination_files_are_deleted_on_confirmation_and_leftovers_after_delivery() {
+    use mover_store::DeleteKind as K;
+    let mut f = Fixture::new(300);
+    // Both handed off while the destination is not provisioned: delivery waits.
+    f.write("alpha", b"abc");
+    f.write("beta", b"other");
+    f.write("gamma", b"ggg");
+    let partial = f.input("destination-partial", json!(["alpha", "beta"]));
+    assert_eq!(f.post(&partial).0, 202);
+    let retried = f.input("destination-retried", json!(["gamma"]));
+    assert_eq!(f.post(&retried).0, 202);
+    f.stop();
+    provision_destination(&f);
+    let db = f.root.join("state/jobs.sqlite");
+    {
+        let s = mover_store::Store::open(&db).unwrap();
+        // As the service does: hold destination custody and pin its observed
+        // identity for each job before any destination effect.
+        let destination = f.root.join("destination");
+        let lock = mover_fs::LocalClaimLock::acquire_destination(
+            destination.to_str().unwrap(),
+            &destination_binding(),
+            None,
+        )
+        .unwrap();
+        let observation = lock
+            .destination_authorization()
+            .unwrap()
+            .observation
+            .clone();
+        for id in [1, 2] {
+            s.pin_destination(id, &destination_binding().encode(), &observation)
+                .unwrap();
+        }
+        // Job 1, with the real effects: file 0 published, file 1 allocated.
+        let t0 = mover_fs::prepare_transfer_file(&s, 1, 0).unwrap();
+        let t0 = mover_fs::authorize_publication(
+            &s,
+            &mover_fs::verify_stage(&s, &mover_fs::copy_stage(&s, &t0).unwrap()).unwrap(),
+        )
+        .unwrap();
+        mover_fs::publish_stage(&s, &t0).unwrap();
+        mover_fs::prepare_transfer_file(&s, 1, 1).unwrap();
+        // Job 2: attempt 1 copied but its receipt lost; attempt 2 allocated.
+        let t = mover_fs::prepare_transfer_file(&s, 2, 0).unwrap();
+        {
+            let ro = mover_store::Store::open_read_only(&db).unwrap();
+            assert!(mover_fs::copy_stage(&ro, &t).is_err());
+        }
+        mover_fs::restart_transfer(&s, &s.transfer(2, 0).unwrap().unwrap()).unwrap();
+        // Job 1 is cancelled; its whole selection is confirmed.
+        assert_eq!(
+            s.admin_cancel(1, "dashboard-account", 100).unwrap(),
+            mover_store::CancelOutcome::Accepted
+        );
+        s.settle_cancellations(101, || false, |_| false).unwrap();
+        // "Delete partial destination files": only the destination side.
+        let scope = mover_store::DeletionScope::Destination;
+        let (targets, digest) = s.deletion_preview(1, scope).unwrap().unwrap();
+        assert_eq!(
+            targets
+                .iter()
+                .map(|t| (t.kind, t.file_index, t.attempt))
+                .collect::<Vec<_>>(),
+            vec![
+                (K::DestinationPayload, Some(0), Some(1)),
+                (K::DestinationStaging, Some(1), Some(1)),
+            ]
+        );
+        s.start_deletion(1, scope, "dashboard-account", &"a".repeat(64), &digest, 102)
+            .unwrap();
+        drop(lock);
+    }
+    let area = f.destination("1", "");
+    assert!(area.join("alpha").exists());
+    f.start();
+    // The running service deletes the cancelled job's destination data and its
+    // folder, and delivers job 2 from a later attempt meanwhile.
+    assert_eq!(
+        wait_deletion(&f, "1"),
+        json!({"completion_pending":false,"deleted_count":2,"failed_count":0})
+    );
+    assert!(!area.exists());
+    assert!(f.root.join("destination/.file-mover").exists());
+    // The retained source copies belong to the other action: untouched.
+    for i in 0..2 {
+        assert!(
+            f.root
+                .join(format!("source/.file-mover/1-{i}/data"))
+                .exists()
+        );
+    }
+    assert_eq!(
+        retention(&f, Some("1")).1["details"]["destination_reserved_bytes"],
+        "0"
+    );
+    // Job 2: after its successful delivery the service removes the leftover
+    // partial attempts by itself, with no confirmation.
+    wait_manifest(&f, "2");
+    // Recorded results release the reservation: wait until only the
+    // published attempt is still reserved, then check the files.
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while retention(&f, Some("2")).1["details"]["destination_reserved_bytes"] != "3" {
+        assert!(
+            Instant::now() < deadline,
+            "leftover attempts not cleaned up"
+        );
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let staging = f.destination("2", ".staging");
+    assert!(
+        !staging.exists()
+            || !std::fs::read_dir(&staging).unwrap().any(|e| e
+                .unwrap()
+                .file_name()
+                .to_string_lossy()
+                .ends_with(".part")),
+        "no partial attempt is left"
+    );
+    assert_eq!(std::fs::read(f.destination("2", "gamma")).unwrap(), b"ggg");
+    let manifest = std::fs::read(f.destination("2", "COMMITTED.json")).unwrap();
+    assert_eq!(status(&f, "2").1["details"]["deletion"], Value::Null);
+    f.stop();
+    {
+        let s = mover_store::Store::open(&db).unwrap();
+        // The service restarted the unfinished attempt into a new one: every
+        // attempt below the published one was superseded and cleaned up.
+        let published = s.transfer(2, 0).unwrap().unwrap().attempt;
+        assert!(published >= 2);
+        assert!(s.next_automatic_cleanup().unwrap().is_none());
+        let (manual, _) = s
+            .deletion_preview(2, mover_store::DeletionScope::Destination)
+            .unwrap()
+            .unwrap();
+        assert!(
+            manual.is_empty(),
+            "no manual destination action for a delivered job"
+        );
+    }
+    f.start();
+    assert_eq!(
+        std::fs::read(f.destination("2", "COMMITTED.json")).unwrap(),
+        manifest
+    );
+    // Both completed handoffs keep their original meaning on replay, though
+    // their destination leftovers are gone.
+    assert_eq!(f.post(&retried).0, 202);
+    assert_eq!(f.post(&partial).0, 202);
     f.stop();
 }
 
@@ -6270,9 +6462,19 @@ fn replay_validation_tolerates_a_deletion_that_starts_mid_check() {
     // Meanwhile a confirmed deletion removes the retained copy.
     {
         let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
-        let (_, digest) = s.deletion_preview(1).unwrap().unwrap();
-        s.start_deletion(1, "dashboard-account", &"a".repeat(64), &digest, 100)
+        let (_, digest) = s
+            .deletion_preview(1, mover_store::DeletionScope::Source)
+            .unwrap()
             .unwrap();
+        s.start_deletion(
+            1,
+            mover_store::DeletionScope::Source,
+            "dashboard-account",
+            &"a".repeat(64),
+            &digest,
+            100,
+        )
+        .unwrap();
     }
     let until = Instant::now() + Duration::from_secs(10);
     while f.root.join("source/.file-mover/1-0").exists() {

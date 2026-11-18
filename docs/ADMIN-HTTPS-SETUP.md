@@ -56,6 +56,15 @@ Open `https://AUTHORITY/` and sign in with the account username and password.
 - Five sign-in attempts per minute are allowed for the whole instance. After that,
   wait a minute. There is no permanent lockout.
 - **Sign out everywhere** ends every dashboard session. Transfers keep running.
+- **Deleting files** (only with `"allow_data_deletion": true` in `admin_ingress`;
+  off by default). Each needs a confirmation that lists exactly what goes:
+  - **Delete source files…** (delivered or cancelled jobs): the copies the mover
+    holds on the source disk. For a cancelled job these are the only copies.
+  - **Delete partial destination files…** (cancelled jobs): the unfinished
+    files the mover left at the destination. Consumers never saw them.
+  - Delivered files and `COMMITTED.json` are never deleted. Leftover partial
+    copies from a retried file are removed automatically after a successful
+    delivery, with no button.
 - Sessions end after the inactivity timeout. Background page loads do not extend
   a session; only deliberate activity does.
 - Restarting the service ends every session.

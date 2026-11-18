@@ -474,7 +474,12 @@ async fn handle(
                 if r.head.method != "POST" {
                     return Reply::method("POST");
                 }
-                delete_data(admin, r, observer).await
+                delete_data(admin, r, observer, mover_store::DeletionScope::Source).await
+            } else if path == b"/api/v2/admin/jobs/delete-destination-data" && query.is_none() {
+                if r.head.method != "POST" {
+                    return Reply::method("POST");
+                }
+                delete_data(admin, r, observer, mover_store::DeletionScope::Destination).await
             } else if path == b"/api/v2/admin/jobs/clear-history" && query.is_none() {
                 if r.head.method != "POST" {
                     return Reply::method("POST");
@@ -1136,8 +1141,10 @@ fn confirmation_query(query: &[u8], deletion: bool) -> Result<(String, Vec<i64>)
     match (action, ids) {
         (Some(action @ ("cancel" | "clear-history")), Some(ids)) => Ok((action.into(), ids)),
         // Delete is per job (its proof carries that job's exact file binding).
-        (Some("delete-data"), Some(ids)) if deletion && ids.len() == 1 => {
-            Ok(("delete-data".into(), ids))
+        (Some(action @ ("delete-data" | "delete-destination-data")), Some(ids))
+            if deletion && ids.len() == 1 =>
+        {
+            Ok((action.into(), ids))
         }
         _ => Err(Reply::error(400, "invalid_selection")),
     }
@@ -1170,9 +1177,17 @@ async fn confirmation(
     };
     // Delete-data previews the job's exact deletable copies and binds their
     // fingerprint; cancel and clear touch no files.
-    let (targets, binding) = if action == "delete-data" {
-        let response =
-            crate::operator_reply(observer, crate::Observation::DeletePreview(ids[0])).await;
+    let deletion_scope = match action.as_str() {
+        "delete-data" => Some(mover_store::DeletionScope::Source),
+        "delete-destination-data" => Some(mover_store::DeletionScope::Destination),
+        _ => None,
+    };
+    let (targets, binding) = if let Some(deletion) = deletion_scope {
+        let response = crate::operator_reply(
+            observer,
+            crate::Observation::DeletePreview(ids[0], deletion),
+        )
+        .await;
         let Some(d) = response.details.as_ref().filter(|_| response.status == 200) else {
             return from_operator(response);
         };
@@ -1183,8 +1198,8 @@ async fn confirmation(
             .unwrap_or_default()
             .iter()
             .map(|t| {
-                serde_json::json!({"job_id": job, "file_id": t["file_id"], "kind": "RetainedSource",
-                    "relative_path": t["relative_path"], "attempt": null, "size_bytes": t["size_bytes"]})
+                serde_json::json!({"job_id": job, "file_id": t["file_id"], "kind": t["kind"],
+                    "relative_path": t["relative_path"], "attempt": t["attempt"], "size_bytes": t["size_bytes"]})
             })
             .collect();
         let binding = d["fingerprint"]
@@ -1382,7 +1397,13 @@ async fn delete_data(
     admin: &Arc<Admin>,
     r: &http::Request,
     observer: &std::sync::mpsc::SyncSender<crate::OperatorWork>,
+    deletion: mover_store::DeletionScope,
 ) -> Reply {
+    // Each action has its own proof scope: one never verifies for the other.
+    let action = match deletion {
+        mover_store::DeletionScope::Source => "delete-data",
+        mover_store::DeletionScope::Destination => "delete-destination-data",
+    };
     if !admin.allow_deletion {
         return Reply::error(404, "not_found");
     }
@@ -1403,7 +1424,7 @@ async fn delete_data(
         instance: &instance,
         principal: &authorized.principal,
         generation: authorized.generation,
-        action: "delete-data",
+        action,
         job_ids: &ids,
     };
     let Some((proof, (high_water, binding))) = proof.and_then(|p| {
@@ -1432,6 +1453,7 @@ async fn delete_data(
     });
     let work = crate::Observation::DeleteStart {
         job_id,
+        scope: deletion,
         principal: authorized.principal.clone(),
         proof_digest: mover_fs::sha256_hex(proof.as_bytes()),
         confirmed,
