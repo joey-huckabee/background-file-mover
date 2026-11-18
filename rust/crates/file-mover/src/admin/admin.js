@@ -755,7 +755,7 @@
     }
     if (d.deletion) {
       quietJob = false;
-      activity.appendChild(el("p", deleteOutcome(d.deletion), d.deletion.completion_pending ? "notice" : "muted",
+      activity.appendChild(el("p", deleteOutcome(d.deletion, "Files"), d.deletion.completion_pending ? "notice" : "muted",
         "deletion: latest pass"));
     }
     var stopped = job.state === "Committed" || cancellation.state === "Cancelled";
@@ -763,6 +763,13 @@
         (deletionEnabled && stopped && !(d.deletion && d.deletion.completion_pending))) {
       quietJob = false;
       activity.appendChild(actionForm("delete-data", job.job_id, job));
+    }
+    // Unfinished destination files: cancelled jobs only (a delivered job's
+    // leftover partial copies are removed automatically after delivery).
+    if (actionPending("delete-destination-data", job.job_id) ||
+        (deletionEnabled && cancellation.state === "Cancelled" && !(d.deletion && d.deletion.completion_pending))) {
+      quietJob = false;
+      activity.appendChild(actionForm("delete-destination-data", job.job_id, job));
     }
     // Delivered jobs and completed cancellations can be removed from history.
     if (actionPending("clear-history", job.job_id) ||
@@ -963,12 +970,14 @@
     if (String(counts.failed_count) !== "0") { return "A cancellation is already in progress for this job."; }
     return "Nothing to cancel: the job is already delivered, cancelled or no longer tracked.";
   }
-  function deleteOutcome(body) {
-    if (body.completion_pending === true) { return "Deleting source files…"; }
-    if (String(body.deleted_count) === "0" && String(body.failed_count) === "0") { return "Nothing was deleted: no source files remain."; }
-    return "Source files: " + body.deleted_count + " deleted" +
+  function deleteOutcome(body, what) {
+    what = what || "Source files";
+    if (body.completion_pending === true) { return "Deleting " + what.toLowerCase() + "…"; }
+    if (String(body.deleted_count) === "0" && String(body.failed_count) === "0") { return "Nothing was deleted: no " + what.toLowerCase() + " remain."; }
+    return what + ": " + body.deleted_count + " deleted" +
       (String(body.failed_count) !== "0" ? ", " + body.failed_count + " could not be deleted (see the service log)" : "") + ".";
   }
+  function partialOutcome(body) { return deleteOutcome(body, "Partial destination files"); }
   function clearOutcome(body) {
     return String(body.cleared_count) !== "0" ? "Removed from history."
       : "Nothing was removed: the job is still in progress, already removed, or busy. Try again shortly.";
@@ -991,7 +1000,7 @@
         var targets = (st && st.targets) || [];
         if (!targets.length) { return "Nothing to delete: the mover holds no copies of job #" + jobId + "'s files on the source disk."; }
         var total = 0n;
-        targets.forEach(function (t) { total += BigInt(t.size_bytes); });
+        targets.forEach(function (t) { if (t.size_bytes !== null) { total += BigInt(t.size_bytes); } });
         var names = targets.slice(0, 5).map(function (t) { return t.relative_path; }).join(", ") +
           (targets.length > 5 ? " and " + (targets.length - 5) + " more" : "");
         var row = rowsById[jobId] || {};
@@ -1006,6 +1015,31 @@
       },
       blocked: function (st) { return !st || !st.targets || !st.targets.length; },
       done: function (b) { return b && b.completion_pending !== undefined; }, outcome: deleteOutcome
+    },
+    "delete-destination-data": {
+      route: "/api/v2/admin/jobs/delete-destination-data", ask: "Delete partial destination files…",
+      confirm: "Delete partial files", keep: "Keep them",
+      hover: "Permanently delete the unfinished files the mover left at the destination for this cancelled job. Consumers never saw them. You will be asked to confirm.",
+      question: function (jobId, job, st) {
+        var targets = (st && st.targets) || [];
+        if (!targets.length) { return "Nothing to delete: the mover left no unfinished files at the destination for job #" + jobId + "."; }
+        var total = 0n, unknown = 0;
+        targets.forEach(function (t) { if (t.size_bytes === null) { unknown++; } else { total += BigInt(t.size_bytes); } });
+        var label = function (t) {
+          return t.kind === "UnfinishedManifestStaging" ? "unfinished manifest"
+            : t.relative_path + (t.attempt !== null ? " (attempt " + t.attempt + ")" : "");
+        };
+        var names = targets.slice(0, 5).map(label).join(", ") +
+          (targets.length > 5 ? " and " + (targets.length - 5) + " more" : "");
+        var row = rowsById[jobId] || {};
+        var at = row.destination_folder !== undefined ? " in " + folder(row.destination_folder, "destination") : "";
+        return "Permanently delete the unfinished files the mover left at the destination" + at + " for cancelled job #" + jobId + "? " +
+          targets.length + " item(s), " + bytes(total) +
+          (unknown ? " + " + unknown + " partial file(s) of unknown size" : "") + ": " + names + ". " +
+          "Consumers never saw them. The mover's held copies on the source disk are not touched. This cannot be undone.";
+      },
+      blocked: function (st) { return !st || !st.targets || !st.targets.length; },
+      done: function (b) { return b && b.completion_pending !== undefined; }, outcome: partialOutcome
     },
     "clear-history": {
       route: "/api/v2/admin/jobs/clear-history", ask: "Clear from history…", confirm: "Clear from history", keep: "Keep in history",

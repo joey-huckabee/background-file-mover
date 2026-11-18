@@ -33,6 +33,7 @@ enforce the separation, not rely on hiding controls in the dashboard.
 | POST /api/v2/admin/jobs/retry | Valid dashboard session | Origin plus CSRF; frozen reviewed-state header remains separate |
 | POST /api/v2/admin/jobs/clear-history | Valid dashboard session | Origin plus CSRF; existing clear confirmation/safe-stop requirements |
 | POST /api/v2/admin/jobs/delete-data | Valid dashboard session | Origin plus CSRF; exact-file confirmation remains separate |
+| POST /api/v2/admin/jobs/delete-destination-data | Valid dashboard session | Origin plus CSRF; its own exact-file confirmation (increment 160) |
 | POST /api/v2/jobs/{job_id}/resume | Protected trusted-local operator transport only | Existing audited command/preconditions; never exposed by producer or dashboard ingress |
 | POST /api/v2/jobs/{job_id}/reset-missing | Protected trusted-local operator transport only | Existing audited command/preconditions; never exposed by producer or dashboard ingress |
 

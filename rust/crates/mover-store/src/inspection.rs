@@ -33,7 +33,7 @@ impl StateInspection {
         c.pragma_update(None, "trusted_schema", "OFF")?;
         let application: i64 = c.pragma_query_value(None, "application_id", |r| r.get(0))?;
         let version: i64 = c.pragma_query_value(None, "user_version", |r| r.get(0))?;
-        if application != APPLICATION_ID || !(11..=16).contains(&version) {
+        if application != APPLICATION_ID || !(11..=17).contains(&version) {
             return Err(StoreError::UnsupportedSchema);
         }
         validate_schema_for(&c, version)?;
@@ -205,6 +205,14 @@ pub(super) fn compare_rows(
             ("deletion_passes", "job_id"),
             ("deletion_targets", "job_id,file_index,kind"),
         ],
+    )?;
+    compare_added_tables(
+        source,
+        snapshot,
+        &[(
+            "destination_deletion_targets",
+            "job_id,kind,file_index,attempt",
+        )],
     )
 }
 

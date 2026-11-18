@@ -31,6 +31,7 @@ fn eligible(tx: &Connection, id: i64) -> Result<Option<bool>> {
 /// No filesystem access: files stay in place and leave mover management.
 fn forget(tx: &Connection, id: i64) -> Result<u64> {
     for sql in [
+        "DELETE FROM destination_deletion_targets WHERE job_id=?1",
         "DELETE FROM deletion_targets WHERE job_id=?1",
         "DELETE FROM deletion_passes WHERE job_id=?1",
         "DELETE FROM cancellations WHERE job_id=?1",

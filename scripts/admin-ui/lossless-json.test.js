@@ -153,6 +153,25 @@ console.log('byte formatting ok');
   assert.match(del.question('7', { state: 'Committed' }, { targets: [] }), /Nothing to delete/);
   assert.match(deleteOutcome(parseJSON('{"deleted_count":0,"failed_count":0,"completion_pending":true}')), /Deleting source files/);
   assert.match(deleteOutcome(parseJSON('{"deleted_count":2,"failed_count":1,"completion_pending":false}')), /2 deleted, 1 could not be deleted/);
+  // Partial destination files: its own action, unknown sizes counted apart.
+  const part = ACTIONS['delete-destination-data'];
+  assert.strictEqual(part.route, '/api/v2/admin/jobs/delete-destination-data');
+  assert.match(part.ask, /Delete partial destination files/);
+  const partial = parseJSON('{"deletion_targets":[' +
+    '{"job_id":"7","file_id":"0","kind":"UnfinishedDestinationPayload","relative_path":"cam/video.mkv","attempt":1,"size_bytes":2048},' +
+    '{"job_id":"7","file_id":"1","kind":"UnfinishedDestinationStaging","relative_path":"cam/audio.wav","attempt":2,"size_bytes":null},' +
+    '{"job_id":"7","file_id":null,"kind":"UnfinishedManifestStaging","relative_path":"COMMITTED.json","attempt":null,"size_bytes":null}]}');
+  const q = part.question('7', { state: 'Claimed' }, { targets: partial.deletion_targets });
+  assert.match(q, /3 item\(s\), 2\.00 KiB \(2048 bytes\) \+ 2 partial file\(s\) of unknown size/);
+  assert.match(q, /cam\/video\.mkv \(attempt 1\), cam\/audio\.wav \(attempt 2\), unfinished manifest/);
+  assert.match(q, /in 8d058de9\/ for cancelled job #7/);
+  assert.match(q, /Consumers never saw them\. The mover's held copies on the source disk are not touched/);
+  assert.strictEqual(part.blocked({ targets: [] }), true);
+  assert.match(part.question('7', {}, { targets: [] }), /left no unfinished files/);
+  assert.match(part.outcome(parseJSON('{"deleted_count":0,"failed_count":0,"completion_pending":true}')), /Deleting partial destination files/);
+  assert.match(part.outcome(parseJSON('{"deleted_count":3,"failed_count":0,"completion_pending":false}')), /Partial destination files: 3 deleted\./);
+  // The source dialog never trips on a null size.
+  assert.match(del.question('7', { state: 'Committed' }, { targets: partial.deletion_targets.slice(1, 2) }), /1 file\(s\), 0 bytes/);
   console.log('delete confirmation wording ok');
 }
 

@@ -1,7 +1,7 @@
 use mover_core::{DeliveryPolicy, FilePhase, FileSpec, Submission, TransferPhase};
 use mover_fs::{
-    authorize_publication, claim, copy_stage, prepare_transfer, publish_stage, transfer_one,
-    verify_stage,
+    authorize_publication, claim, copy_stage, prepare_transfer, prepare_transfer_file,
+    publish_stage, restart_transfer, transfer_one, verify_stage,
 };
 use mover_store::{AcceptanceContext, Store};
 use std::{
@@ -658,4 +658,408 @@ fn child_manifest() {
     })
     .unwrap();
     panic!("checkpoint not reached");
+}
+
+// ---- Confirmed deletion of unfinished destination data (increment 160) ----
+
+/// Cancel a job and confirm its partial destination files.
+fn cancel_and_confirm(s: &Store, id: i64) -> Vec<mover_store::DeleteTarget> {
+    s.admin_cancel(id, "op", 10).unwrap();
+    s.settle_cancellations(11, || false, |_| false).unwrap();
+    confirm(s, id)
+}
+/// Confirm the "Delete partial destination files" action's current selection.
+fn confirm(s: &Store, id: i64) -> Vec<mover_store::DeleteTarget> {
+    // Retained source copies are not exercised here: settle any still
+    // pending so the earlier pass finishes and a fresh preview is offered.
+    while let Some((job, index, _)) = s.next_deletion_target().unwrap() {
+        s.finish_deletion_target(job, index, false, Some("not run in this test"), 20)
+            .unwrap();
+    }
+    let scope = mover_store::DeletionScope::Destination;
+    let (targets, digest) = s.deletion_preview(id, scope).unwrap().unwrap();
+    // A distinct confirmation each time (the same one replays its pass).
+    let proof: String = format!("{:064x}", NEXT.fetch_add(1, Ordering::Relaxed) + 1);
+    s.start_deletion(id, scope, "op", &proof, &digest, 12)
+        .unwrap();
+    targets
+}
+/// Run every pending destination target, then every automatic cleanup, the
+/// way the delivery thread does.
+fn run_destination(s: &Store) -> Vec<(mover_store::DeleteKind, Option<String>)> {
+    use mover_fs::DestinationTarget as T;
+    use mover_store::DeleteKind as K;
+    let mut out = Vec::new();
+    loop {
+        let (w, automatic) = match s.next_destination_deletion().unwrap() {
+            Some(w) => (w, false),
+            None => match s.next_automatic_cleanup().unwrap() {
+                Some(w) => (w, true),
+                None => break,
+            },
+        };
+        if automatic {
+            assert!(s.automatic_cleanup_eligible(&w).unwrap());
+        }
+        // As the worker does: verify every published final first (one each).
+        let published = if w.delivered {
+            w.published
+                .iter()
+                .map(mover_fs::published_identity)
+                .collect::<Result<Vec<_>, _>>()
+        } else {
+            Ok(Vec::new())
+        };
+        let result = published.and_then(|published| {
+            let target = match (w.kind, w.delivered) {
+                (K::DestinationStaging, false) => T::Staging(&w.transfer),
+                (K::DestinationStaging, true) => T::Superseded {
+                    transfer: &w.transfer,
+                    published: &published,
+                },
+                (K::DestinationPayload, _) => T::Payload(&w.transfer),
+                (K::ManifestStaging, _) => T::Manifest(w.manifest.as_ref().unwrap()),
+                _ => unreachable!(),
+            };
+            mover_fs::discard_unfinished_destination(target, &w.anchor)
+        });
+        let diagnostic = result.as_ref().err().map(|e| {
+            let d: String = e
+                .to_string()
+                .chars()
+                .filter(|c| c.is_ascii_graphic() || *c == ' ')
+                .take(200)
+                .collect();
+            if d.is_empty() { "failed".into() } else { d }
+        });
+        if automatic {
+            s.finish_automatic_cleanup(&w, result.is_ok(), diagnostic.as_deref())
+                .unwrap();
+        } else {
+            s.finish_destination_deletion(&w, result.is_ok(), diagnostic.as_deref(), 20)
+                .unwrap();
+        }
+        out.push((w.kind, diagnostic));
+    }
+    out
+}
+fn inode(p: &std::path::Path) -> (u64, u64) {
+    let m = std::fs::symlink_metadata(p).unwrap();
+    (m.ino(), m.nlink())
+}
+
+#[test]
+fn cancelled_job_destination_data_is_deleted_exactly_with_its_folders() {
+    use mover_store::DeleteKind as K;
+    let f = Fixture::new(false);
+    f.accept_multi();
+    let s = f.store();
+    // File 0 published; file 1 has a copied attempt 1 (receipt lost) and an
+    // allocated attempt 2; file 2 never started.
+    let t0 = prepare_transfer_file(&s, 1, 0).unwrap();
+    let t0 = authorize_publication(
+        &s,
+        &verify_stage(&s, &copy_stage(&s, &t0).unwrap()).unwrap(),
+    )
+    .unwrap();
+    publish_stage(&s, &t0).unwrap();
+    let t1 = prepare_transfer_file(&s, 1, 1).unwrap();
+    let ro = Store::open_read_only(f.db()).unwrap();
+    assert!(copy_stage(&ro, &t1).is_err());
+    drop(ro);
+    restart_transfer(&s, &s.transfer(1, 1).unwrap().unwrap()).unwrap();
+    let area = f.destination.join("1");
+    assert!(area.join("sub/alpha").exists());
+    assert!(area.join(".staging/1/1.part").exists());
+    assert!(area.join(".staging/1/2.part").exists());
+    let before = s
+        .retention(Some(1))
+        .unwrap()
+        .unwrap()
+        .destination_reserved_bytes;
+    assert!(before > 0);
+
+    let targets = cancel_and_confirm(&s, 1);
+    let kinds: Vec<_> = targets
+        .iter()
+        .map(|t| (t.kind, t.file_index, t.attempt, t.size_bytes))
+        .collect();
+    assert_eq!(
+        kinds,
+        vec![
+            (K::DestinationPayload, Some(0), Some(1), Some(3)),
+            (K::DestinationStaging, Some(1), Some(1), None),
+            (K::DestinationStaging, Some(1), Some(2), None),
+        ]
+    );
+    let results = run_destination(&s);
+    assert_eq!(results.len(), 3);
+    assert!(results.iter().all(|(_, d)| d.is_none()), "{results:?}");
+    // Everything the mover created at the destination is gone, folders too.
+    assert!(!area.exists());
+    assert!(f.destination.join(".file-mover/coordinator.lock").exists());
+    // Retained source copies belong to the other action: untouched.
+    for i in 0..3 {
+        assert!(
+            f.base
+                .join(format!("source/.file-mover/1-{i}/data"))
+                .exists()
+        );
+    }
+    assert_eq!(
+        s.retention(Some(1))
+            .unwrap()
+            .unwrap()
+            .destination_reserved_bytes,
+        0
+    );
+    let view = s.status(1).unwrap().unwrap().deletion.unwrap();
+    assert_eq!((view.deleted_count, view.failed_count), (3, 0));
+    assert!(!view.completion_pending);
+    // The source action still offers the three retained copies.
+    let (source, _) = s
+        .deletion_preview(1, mover_store::DeletionScope::Source)
+        .unwrap()
+        .unwrap();
+    assert_eq!(source.len(), 3);
+    assert!(source.iter().all(|t| t.kind == K::RetainedSource));
+    // A rerun of an already deleted payload finds nothing (durable absence).
+    let anchor = s.transfer(1, 0).unwrap().unwrap();
+    assert_eq!(
+        mover_fs::discard_unfinished_destination(
+            mover_fs::DestinationTarget::Payload(&anchor),
+            &anchor
+        )
+        .unwrap(),
+        mover_fs::Discarded::AlreadyAbsent
+    );
+}
+
+#[test]
+fn payload_names_recover_from_every_partial_state_and_never_touch_substitutes() {
+    use mover_fs::{DestinationTarget, Discarded, discard_unfinished_destination as discard};
+    // final only, alias only, both, neither; then substituted alias / final.
+    for case in [
+        "final",
+        "alias",
+        "both",
+        "neither",
+        "foreign_alias",
+        "foreign_final",
+    ] {
+        let f = Fixture::new(false);
+        f.accept_claim(b"abc");
+        let s = f.store();
+        let t = authorize_publication(
+            &s,
+            &verify_stage(
+                &s,
+                &copy_stage(&s, &prepare_transfer(&s, 1).unwrap()).unwrap(),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+        let t = publish_stage(&s, &t).unwrap();
+        let (fin, alias) = (f.final_path(), f.stage(1));
+        match case {
+            "final" => (),
+            "alias" => std::fs::rename(&fin, &alias).unwrap(),
+            "both" => std::fs::hard_link(&fin, &alias).unwrap(),
+            "neither" => std::fs::remove_file(&fin).unwrap(),
+            "foreign_alias" => std::fs::write(&alias, b"foreign").unwrap(),
+            "foreign_final" => {
+                std::fs::rename(&fin, &alias).unwrap();
+                std::fs::write(&fin, b"foreign").unwrap();
+            }
+            _ => unreachable!(),
+        }
+        let result = discard(DestinationTarget::Payload(&t), &t);
+        match case {
+            "foreign_alias" | "foreign_final" => {
+                assert!(result.is_err(), "{case}");
+                // Nothing unlinked: both names stay.
+                assert!(fin.exists() && alias.exists(), "{case}");
+            }
+            "neither" => assert_eq!(result.unwrap(), Discarded::AlreadyAbsent, "{case}"),
+            _ => {
+                assert_eq!(result.unwrap(), Discarded::Removed, "{case}");
+                assert!(!fin.exists() && !alias.exists(), "{case}");
+                assert!(!f.destination.join("1").exists(), "{case}");
+            }
+        }
+        assert_eq!(std::fs::read(f.claimed()).unwrap(), b"abc", "{case}");
+    }
+}
+
+#[test]
+fn committed_or_substituted_destination_data_is_never_deleted() {
+    let f = Fixture::new(false);
+    f.accept_claim(b"abc");
+    let s = f.store();
+    let t = authorize_publication(
+        &s,
+        &verify_stage(
+            &s,
+            &copy_stage(&s, &prepare_transfer(&s, 1).unwrap()).unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    publish_stage(&s, &t).unwrap();
+    cancel_and_confirm(&s, 1);
+    // A COMMITTED.json in the area refuses everything on the cancelled path.
+    let committed = f.destination.join("1/COMMITTED.json");
+    std::fs::write(&committed, b"{}").unwrap();
+    let results = run_destination(&s);
+    assert_eq!(results.len(), 1);
+    assert!(results[0].1.is_some());
+    assert_eq!(std::fs::read(f.final_path()).unwrap(), b"abc");
+    assert!(committed.exists());
+    // A fresh confirmation without the manifest; the final was replaced by
+    // another object meanwhile: refused and kept.
+    std::fs::remove_file(&committed).unwrap();
+    std::fs::rename(f.final_path(), f.destination.join("1/aside")).unwrap();
+    std::fs::write(f.final_path(), b"xyz").unwrap();
+    confirm(&s, 1);
+    let results = run_destination(&s);
+    assert!(results[0].1.is_some());
+    assert_eq!(std::fs::read(f.final_path()).unwrap(), b"xyz");
+    assert_eq!(
+        std::fs::read(f.destination.join("1/aside")).unwrap(),
+        b"abc"
+    );
+    // A symlinked area is never followed.
+    std::fs::rename(f.final_path(), f.destination.join("xyz")).unwrap();
+    std::fs::rename(f.destination.join("1"), f.destination.join("real")).unwrap();
+    std::os::unix::fs::symlink(f.destination.join("real"), f.destination.join("1")).unwrap();
+    confirm(&s, 1);
+    assert!(run_destination(&s)[0].1.is_some());
+    assert!(f.destination.join("real/aside").exists());
+}
+
+#[test]
+fn delivered_job_superseded_attempt_is_cleaned_automatically_and_nothing_else() {
+    use mover_store::DeleteKind as K;
+    // "linked": the leftover name now points at the published file;
+    // "no_manifest": COMMITTED.json missing. Both are refused, never retried.
+    for case in ["normal", "linked", "no_manifest"] {
+        let f = Fixture::new(false);
+        f.accept_claim(b"abc");
+        let s = f.store();
+        // Attempt 1 copied but its receipt lost; delivery restarts into 2.
+        let t = prepare_transfer(&s, 1).unwrap();
+        let ro = Store::open_read_only(f.db()).unwrap();
+        assert!(copy_stage(&ro, &t).is_err());
+        drop(ro);
+        mover_fs::deliver_recording(&s, 1).unwrap();
+        assert!(s.get(1).unwrap().unwrap().recording.is_committed());
+        let manifest = f.destination.join("1/COMMITTED.json");
+        let (manifest_bytes, manifest_inode) =
+            (std::fs::read(&manifest).unwrap(), inode(&manifest));
+        let final_inode = inode(&f.final_path());
+        assert!(f.stage(1).exists());
+        let before = s
+            .retention(Some(1))
+            .unwrap()
+            .unwrap()
+            .destination_reserved_bytes;
+        // The manual destination action never offers a delivered job's data.
+        let (manual, _) = s
+            .deletion_preview(1, mover_store::DeletionScope::Destination)
+            .unwrap()
+            .unwrap();
+        assert!(manual.is_empty(), "{case}");
+        match case {
+            "linked" => {
+                std::fs::rename(f.stage(1), f.destination.join("1/.staging/kept")).unwrap();
+                std::fs::hard_link(f.final_path(), f.stage(1)).unwrap();
+            }
+            "no_manifest" => {
+                std::fs::rename(&manifest, f.destination.join("1/aside.json")).unwrap()
+            }
+            _ => (),
+        }
+        let results = run_destination(&s);
+        assert_eq!(results.len(), 1, "{case}");
+        assert_eq!(results[0].0, K::DestinationStaging);
+        assert_eq!(std::fs::read(f.final_path()).unwrap(), b"abc", "{case}");
+        match case {
+            "normal" => {
+                assert!(results[0].1.is_none(), "{results:?}");
+                assert!(!f.stage(1).exists());
+                assert_eq!(inode(&f.final_path()), final_inode);
+                assert_eq!(std::fs::read(&manifest).unwrap(), manifest_bytes);
+                assert_eq!(inode(&manifest), manifest_inode);
+                assert!(f.destination.join("1/sub").is_dir());
+                let after = s
+                    .retention(Some(1))
+                    .unwrap()
+                    .unwrap()
+                    .destination_reserved_bytes;
+                assert_eq!(before - after, 3, "exactly the superseded attempt");
+                // Not a confirmed pass: no deletion status on the job.
+                assert_eq!(s.status(1).unwrap().unwrap().deletion, None);
+            }
+            "linked" => {
+                assert!(results[0].1.is_some(), "{case}");
+                assert_eq!(inode(&f.stage(1)).0, final_inode.0);
+                assert!(f.destination.join("1/.staging/kept").exists());
+            }
+            _ => {
+                assert!(results[0].1.is_some(), "{case}");
+                assert!(f.stage(1).exists());
+            }
+        }
+        // Recorded once; a failure is not retried automatically.
+        assert!(run_destination(&s).is_empty(), "{case}");
+    }
+}
+
+#[test]
+fn manifest_staging_is_deleted_and_publication_intent_offers_no_destination_targets() {
+    use mover_store::DeleteKind as K;
+    // "written": manifest staging exists (phase 2). "authorized": publication
+    // intent (phase 3), so COMMITTED.json may exist: nothing at the destination.
+    for (point, offered) in [("written", true), ("authorized", false)] {
+        let f = Fixture::new(false);
+        f.accept_claim(b"abc");
+        transfer_one(&f.store(), 1).unwrap();
+        let out = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--ignored", "--exact", "child_manifest", "--test-threads=1"])
+            .env("FILE_MOVER_TRANSFER_DB", f.db())
+            .env("FILE_MOVER_MANIFEST_POINT", point)
+            .output()
+            .unwrap();
+        assert!(out.status.success(), "{out:?}");
+        let s = f.store();
+        s.admin_cancel(1, "op", 10).unwrap();
+        s.settle_cancellations(11, || false, |_| false).unwrap();
+        let destination: Vec<_> = s
+            .deletion_preview(1, mover_store::DeletionScope::Destination)
+            .unwrap()
+            .map(|(targets, _)| targets)
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|t| t.kind != K::RetainedSource)
+            .map(|t| (t.kind, t.relative_path, t.size_bytes))
+            .collect();
+        if offered {
+            assert_eq!(
+                destination,
+                vec![
+                    (K::DestinationPayload, "sub/data".into(), Some(3)),
+                    (K::ManifestStaging, "COMMITTED.json".into(), None),
+                ],
+                "{point}"
+            );
+            confirm(&s, 1);
+            let results = run_destination(&s);
+            assert!(results.iter().all(|(_, d)| d.is_none()), "{results:?}");
+            assert!(!f.destination.join("1").exists());
+        } else {
+            assert!(destination.is_empty(), "{point}: {destination:?}");
+            assert_eq!(std::fs::read(f.final_path()).unwrap(), b"abc");
+        }
+        assert_eq!(std::fs::read(f.claimed()).unwrap(), b"abc");
+    }
 }

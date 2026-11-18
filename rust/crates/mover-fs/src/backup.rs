@@ -446,7 +446,7 @@ mod tests {
         assert!(result.status.success(), "{result:?}");
         let body: serde_json::Value = serde_json::from_slice(&result.stdout).unwrap();
         assert_eq!(body["converted"], true);
-        assert_eq!(body["schema_version"], 16);
+        assert_eq!(body["schema_version"], 17);
         assert!(Path::new(&f.path("snapshot/VERIFIED.json")).exists());
         let s = Store::open(f.path("state/jobs.sqlite")).unwrap();
         let job = s.get(7).unwrap().unwrap();
@@ -503,7 +503,7 @@ mod tests {
                     .unwrap()
                     .summary()
                     .schema_version,
-                if nfs_qualification_enabled() { 11 } else { 16 }
+                if nfs_qualification_enabled() { 11 } else { 17 }
             );
             if nfs_qualification_enabled() {
                 assert!(!migrate_command(&f, true).output().unwrap().status.success());

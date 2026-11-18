@@ -1671,7 +1671,8 @@
               "enum": [
                 "cancel",
                 "clear-history",
-                "delete-data"
+                "delete-data",
+                "delete-destination-data"
               ]
             },
             "description": "Confirmation mode requires job_ids and excludes limit/cursor; no job mutation."
@@ -3520,6 +3521,323 @@
       "post": {
         "operationId": "adminDeleteData",
         "description": "Latest actual deleted/failed counts and pending flag; one active pass per job, no automatic retry. No-work requests return202 with zero counts and not pending. Exact confirmation/replay/clear rules are in API-CONTRACT-CLOSEOUT.md.",
+        "security": [
+          {
+            "adminCookie": [],
+            "adminCsrfHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "Candidate exact configured HTTPS dashboard origin; reject missing, null, multiple or mismatching values. Never infer the trusted origin from an untrusted forwarded header."
+          },
+          {
+            "name": "Mover-Confirmation",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "./contract.candidate.schema.json#/$defs/ConfirmationToken"
+            },
+            "description": "Service-issued complete preview proof, bound to account, action, instance and exact ordered selection. Deletion also binds owned objects/state. No additional public operation ID."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "./contract.candidate.schema.json#/$defs/JobSelection"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Latest actual deleted/failed counts plus pending flag. One active pass per job; no automatic retry. Empty/ineligible batch status remains a candidate.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/DeleteAccepted"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "400": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_http",
+              "invalid_json",
+              "invalid_selection",
+              "invalid_confirmation"
+            ],
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "403": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "admin_request_forbidden"
+            ],
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "404": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "405": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "headers": {
+              "Allow": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Allowed method(s) for this route."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "408": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "request_timeout"
+            ],
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "413": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "request_too_large"
+            ],
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "431": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "request_headers_too_large"
+            ],
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "500": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ],
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "503": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "service_busy",
+              "storage_unavailable",
+              "service_stopping"
+            ],
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "415": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "unsupported_media_type"
+            ],
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or globally revoked session. Authenticate before state/receipt disclosure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AuthenticationRequired"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "409": {
+            "description": "Changed deletion selection/state or invalidated confirmation; no new effects. Exact recognized active/latest deletion replay is checked first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "stale_confirmation"
+            ]
+          }
+        },
+        "x-body-max-bytes": 65536,
+        "x-header-max-bytes": 8192
+      }
+    },
+    "/api/v2/admin/jobs/delete-destination-data": {
+      "post": {
+        "operationId": "adminDeleteDestinationData",
+        "description": "Partial destination files of one cancelled job (UnfinishedDestination* kinds), with its own confirmation scope (confirm_action=delete-destination-data); same counts, pass and replay rules as delete-data, sharing the job's single pass. Off unless allow_data_deletion. Increment 160.",
         "security": [
           {
             "adminCookie": [],

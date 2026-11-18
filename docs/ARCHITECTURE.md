@@ -12,7 +12,7 @@ the design; it does not claim release readiness. All eight FR release gates rema
 | Audience | Transport | Authenticates with | Routes |
 |---|---|---|---|
 | Producer | `native_ingress.bind`: HTTPS mTLS, or explicit loopback HTTP | Client certificate fingerprint mapped to the configured generator | `POST /api/v2/jobs` only |
-| Dashboard admin | `admin_ingress.bind`: separate HTTPS port, server certificate only | Account password, then session cookie + CSRF header | `GET /`, `POST /api/v2/admin/login`, `GET /api/v2/admin/session`, `POST /api/v2/admin/logout`, `GET /api/v2/admin/jobs`, `GET /api/v2/jobs/{id}`, `GET /api/v2/retention`, `GET /api/v2/jobs/{id}/retention`, `GET /api/v2/admin/settings`, `GET /api/v2/admin/events` (live updates), `POST /api/v2/admin/jobs/retry` (reviewed delivery retry), `GET /api/v2/admin/jobs?confirm_action=cancel|clear-history|delete-data&job_ids=…` (confirmation proof), `POST /api/v2/admin/jobs/cancel`, `POST /api/v2/admin/jobs/clear-history`, `POST /api/v2/admin/jobs/delete-data` (off unless `allow_data_deletion`) |
+| Dashboard admin | `admin_ingress.bind`: separate HTTPS port, server certificate only | Account password, then session cookie + CSRF header | `GET /`, `POST /api/v2/admin/login`, `GET /api/v2/admin/session`, `POST /api/v2/admin/logout`, `GET /api/v2/admin/jobs`, `GET /api/v2/jobs/{id}`, `GET /api/v2/retention`, `GET /api/v2/jobs/{id}/retention`, `GET /api/v2/admin/settings`, `GET /api/v2/admin/events` (live updates), `POST /api/v2/admin/jobs/retry` (reviewed delivery retry), `GET /api/v2/admin/jobs?confirm_action=cancel|clear-history|delete-data&job_ids=…` (confirmation proof), `POST /api/v2/admin/jobs/cancel`, `POST /api/v2/admin/jobs/clear-history`, `POST /api/v2/admin/jobs/delete-data` and `POST /api/v2/admin/jobs/delete-destination-data` (`confirm_action=delete-destination-data`; both off unless `allow_data_deletion`) |
 | Trusted local operator | Private Unix socket | Kernel peer UID equals the service UID | `GET /healthz`, job and retention reads, `resume`, `reset-missing` |
 
 Each listener refuses the others' routes. Lifecycle (`control.sock`) and TLS
@@ -28,7 +28,7 @@ proxy UID instead, and there is no TCP listener.
    fixed executor pool with a 5-second handshake deadline.
 2. Strict HTTP/1.1 framing and validation: generator binding, source scope, UUID
    `recording_id` replay and optional expected sizes.
-3. The async coordinator records every transition in SQLite (schema 16). All
+3. The async coordinator records every transition in SQLite (schema 17). All
    filesystem I/O runs in supervised child workers: source-space observer, claim
    worker, delivery worker per recording, bootstrap and enrollment.
 4. Recordings are claimed from the source root by rename and published to
