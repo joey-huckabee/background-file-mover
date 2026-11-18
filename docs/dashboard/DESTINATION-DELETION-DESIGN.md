@@ -41,7 +41,9 @@ identity and phase (0 intent, 1 allocated, 2 written, 3 authorized,
   partial attempts (see below).
 - **Committed or possibly committed:** if the manifest row is at phase 3 or
   later, the job gets **no destination targets** (publication may have
-  happened). The worker also refuses every destination target of a job whose
+  happened), with one exception: on a delivered job (manifest phase 4),
+  superseded phase-0 staging attempts (see "Delivered jobs" below). On the
+  cancelled-job path the worker refuses every destination target of a job whose
   area contains `COMMITTED.json`, whatever the database says.
 - **Target kinds** (contract `DeleteTarget`):
 
@@ -55,7 +57,8 @@ identity and phase (0 intent, 1 allocated, 2 written, 3 authorized,
   file kinds and `COMMITTED.json` for the manifest kind. Private host paths and
   inode numbers never reach the wire.
 - **Never deleted:** `COMMITTED.json`; anything in a job whose manifest
-  reached phase 3; any object whose identity differs from the record; anything
+  reached phase 3, except a delivered job's superseded phase-0 staging
+  attempts; any object whose identity differs from the record; anything
   outside the job's area; symlink targets; other jobs' areas; the destination
   root and its `.file-mover` namespace.
 - **Folders:** after a job's targets are all deleted, the worker removes the
@@ -196,10 +199,14 @@ This is a separate, narrower path, an explicit exception to the step 1
   after both but before persistence; each rerun completes, the row is counted
   once and accounting is released only after Deleted. A substituted final or
   alias (other inode) is never unlinked and the target is Failed.
-- Delivered leftovers: a superseded attempt is removed; the published files,
-  `COMMITTED.json` and their folders are byte- and inode-identical afterwards;
-  a target whose inode equals a published object (planted) is refused; a
-  delivered job without `COMMITTED.json` is refused.
+- Delivered leftovers (mover-fs): a superseded attempt is removed; the
+  published files, `COMMITTED.json` and their folders are byte- and
+  inode-identical afterwards and the area stays; a target whose inode equals a
+  published object (planted) is refused; a substituted staging alias (other
+  inode at the `.part` name) is refused and kept; a delivered job without
+  `COMMITTED.json` is refused.
+- Delivered leftovers (store): only attempts below the published attempt are
+  selected, never the published attempt; manifest phase 3 gives none.
 - Store: eligibility (pending cancel, not cancelled, manifest phase 3+ give no
   destination targets); fingerprint covers kinds and attempts; stale, replay,
   no-work and failed-then-fresh-confirmation; accounting drops deleted
@@ -210,4 +217,9 @@ This is a separate, narrower path, an explicit exception to the step 1
   original and other jobs are untouched; destination reserved bytes drop;
   a job with `COMMITTED.json` planted in its area deletes nothing at the
   destination and reports failures; replay stays 409.
+- Real service, delivered job with a retried file: the preview lists only the
+  older attempt (plus retained source copies); delete removes only that
+  `.part`; published files and `COMMITTED.json` keep their bytes and inodes;
+  the area stays; destination reserved bytes drop by exactly that attempt;
+  an exact producer replay still returns 202.
 - Dashboard: confirmation groups, unknown sizes, wording (node tests).
