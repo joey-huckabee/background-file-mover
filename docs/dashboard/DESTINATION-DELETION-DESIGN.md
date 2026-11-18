@@ -37,8 +37,8 @@ identity and phase (0 intent, 1 allocated, 2 written, 3 authorized,
 - **Eligible job:** cancelled with the stop confirmed (`cancellations.state =
   Cancelled`). This already implies no worker is on the job and the delivery
   did not commit first. A job that failed but is not cancelled must be
-  cancelled first (approved eligibility rule). Delivered jobs: see the open
-  decision below.
+  cancelled first (approved eligibility rule). Delivered jobs: only superseded
+  partial attempts (see below).
 - **Committed or possibly committed:** if the manifest row is at phase 3 or
   later, the job gets **no destination targets** (publication may have
   happened). The worker also refuses every destination target of a job whose
@@ -132,15 +132,18 @@ The confirmation for a cancelled job shows two groups:
 Confirm stays disabled when nothing is left. Activity and outcome wording is
 unchanged ("Deleting retained copies…" becomes "Deleting retained data…").
 
-## Open decision (user)
+## Delivered jobs: leftover partial attempts (user decision 2026-11-17)
 
-**Delivered jobs with leftover partial attempts.** When a file needed a retry,
-the older partial `.part` stays in the delivered recording's private
-`.staging` folder (not listed in the manifest, not consumer data). Proposal:
-also offer those as `UnfinishedDestinationStaging` targets on delivered jobs,
-never the published files or `COMMITTED.json`, and never the published
-attempt's object. The alternative is to keep destination deletion for
-cancelled jobs only.
+When a file needed a retry, the older partial `.part` stays in the delivered
+recording's private `.staging` folder (not in the manifest, not consumer
+data). The user decided to include them: a delivered job also offers each
+**superseded** attempt (an attempt lower than the file's published attempt,
+always phase 0) as `UnfinishedDestinationStaging`. Never the published
+attempt's object, the final names, `COMMITTED.json` or the area itself; on a
+delivered job only `.staging` subfolders that end up empty are removed. The
+`COMMITTED.json` refusal of step 1 does not apply to these targets; instead the
+worker requires the committed manifest row (phase 4) and that the target
+lives under `.staging`.
 
 ## Proof
 
