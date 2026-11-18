@@ -62,8 +62,19 @@ identity and phase (0 intent, 1 allocated, 2 written, 3 authorized,
   folders the mover created, if empty, bottom-up: `.staging/<index>`,
   `.staging`, the final name's parent folders, then the area. It never removes
   recursively (plain `rmdir`; non-empty means something else is there and it
-  stays) and never goes above the area. The area is removed only if its
-  identity matches the record.
+  stays) and never goes above the area. Authority for each folder:
+  - the area, `.staging` and `.staging/<index>`: their recorded identities
+    (area, staging directory);
+  - the final name's ancestors (for `a/b/file` the record holds only `b`, the
+    deepest parent): the worker walks exactly the recorded `relative_name`
+    components from the identity-checked area, each opened `O_NOFOLLOW` as a
+    directory, owned by the service uid with no group/other write access, and
+    requires the walk to end at the recorded parent identity. Only that
+    authenticated chain is removed, bottom-up, and only while empty. The area
+    is private (owner-only, checked as at creation), so under the existing
+    trusted private-namespace assumption only the mover could have created
+    entries in it. If the walk fails anywhere, every ancestor stays.
+  - The area itself is removed only if empty and its identity matches.
 
 ## One confirmation per job, both sides
 
@@ -89,15 +100,30 @@ and behind `admin_ingress.allow_data_deletion` (default off).
   2. open the staging directory (and `<index>` subfolder) with identity checks;
   3. open the target name `O_NOFOLLOW` as a regular file and require the
      recorded device, inode and uid (not size or mtime: a partial attempt
-     changed after its identity was recorded at allocation); unlink it; for a payload unlink the final name in its recorded parent
-     (identity-checked) and the staging alias if present, each verified;
-  4. after the last name, `fstat` the still-open handle and require
-     `nlink == 0` (proof the removed names were that object; a mismatch is
-     reported as failed, as for source discard);
-  5. `fsync` every directory a name was removed from; then remove empty
+     changed after its identity was recorded at allocation); unlink it;
+  4. a **payload** has up to two names for one object: the final name (in its
+     identity-checked recorded parent) and the staging alias. The worker opens
+     each name that exists and requires both to be the recorded object before
+     unlinking anything. A name that exists but is another object is
+     substituted: nothing is unlinked, the target is Failed and both names stay.
+     It unlinks the final name, then the alias. Absent names are allowed, so a
+     rerun after an interruption between the two unlinks, or after both but
+     before the result was saved, completes from whatever remains: final only,
+     alias only, both or neither;
+  5. after the last name, `fstat` the still-open handle and require
+     `nlink == 0`. As for source discard (increment 143) this is a
+     post-operation check under the trusted private-namespace assumption: it
+     reports an unexpected extra link as Failed, but it cannot prevent a
+     same-uid name swap racing the unlink;
+  6. `fsync` every directory a name was removed from; then remove empty
      folders as above and `fsync` their parents.
-- An already absent object counts as deleted only after the directory where it
-  is absent has been synced (as in increment 143).
+- An already absent object (both names, for a payload) counts as deleted only
+  after every directory where a name is absent has been synced (as in
+  increment 143).
+- The result is persisted only after step 6. A crash or stop before that
+  leaves the target Pending; the next tick reruns it idempotently. A target is
+  counted once (one row per kind, file and attempt); accounting releases its
+  bytes only when the row becomes Deleted, i.e. after durable removal.
 - A stop leaves the target pending; failures are recorded with a bounded
   diagnostic and only retried by a fresh confirmation.
 
@@ -139,18 +165,41 @@ recording's private `.staging` folder (not in the manifest, not consumer
 data). The user decided to include them: a delivered job also offers each
 **superseded** attempt (an attempt lower than the file's published attempt,
 always phase 0) as `UnfinishedDestinationStaging`. Never the published
-attempt's object, the final names, `COMMITTED.json` or the area itself; on a
-delivered job only `.staging` subfolders that end up empty are removed. The
-`COMMITTED.json` refusal of step 1 does not apply to these targets; instead the
-worker requires the committed manifest row (phase 4) and that the target
-lives under `.staging`.
+attempt's object, the final names, `COMMITTED.json`, their folders or the area
+itself; on a delivered job only `.staging/<index>` and `.staging` are removed,
+and only if they end up empty.
+
+This is a separate, narrower path, an explicit exception to the step 1
+`COMMITTED.json` refusal:
+- the store selects only attempts below the file's published attempt and only
+  on a job whose manifest row is committed (phase 4);
+- the worker opens only names under `.staging` (never the area's other
+  entries), and before unlinking a superseded `.part` it opens **every**
+  published final name of the job (identity-checked parents) and requires the
+  target's device and inode to differ from each of them. If any final name
+  cannot be opened or matches, the target is Failed and kept;
+- `COMMITTED.json` is never opened for writing, renamed or removed; its
+  presence is required on this path (a delivered job without it is refused).
 
 ## Proof
 
 - mover-fs: each kind removes exactly its object and the empty folders;
   substituted object refused and kept; symlinked area or staging never
-  followed; `COMMITTED.json` present refuses everything; a non-empty folder
-  stays; a repeat finds nothing; already absent acknowledged after sync.
+  followed; `COMMITTED.json` present refuses everything on the cancelled-job
+  path; a non-empty folder stays; a repeat finds nothing; already absent
+  acknowledged after sync.
+- Folders: nested `a/b/file` removes `b` and `a` when empty; an ancestor
+  replaced by a symlink, another uid's or a group-writable folder, or a walk
+  not ending at the recorded parent leaves every ancestor in place.
+- Payload two-name recovery: start states final-only, alias-only, both and
+  neither; interruption (qualification pause) between the two unlinks and
+  after both but before persistence; each rerun completes, the row is counted
+  once and accounting is released only after Deleted. A substituted final or
+  alias (other inode) is never unlinked and the target is Failed.
+- Delivered leftovers: a superseded attempt is removed; the published files,
+  `COMMITTED.json` and their folders are byte- and inode-identical afterwards;
+  a target whose inode equals a published object (planted) is refused; a
+  delivered job without `COMMITTED.json` is refused.
 - Store: eligibility (pending cancel, not cancelled, manifest phase 3+ give no
   destination targets); fingerprint covers kinds and attempts; stale, replay,
   no-work and failed-then-fresh-confirmation; accounting drops deleted
