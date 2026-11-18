@@ -103,7 +103,9 @@ and behind `admin_ingress.allow_data_deletion` (default off).
   2. open the staging directory (and `<index>` subfolder) with identity checks;
   3. open the target name `O_NOFOLLOW` as a regular file and require the
      recorded device, inode and uid (not size or mtime: a partial attempt
-     changed after its identity was recorded at allocation); unlink it;
+     changed after its identity was recorded at allocation). For a
+     single-name target (staging, manifest staging) unlink it; a payload is
+     never unlinked here (step 4 validates both names first);
   4. a **payload** has up to two names for one object: the final name (in its
      identity-checked recorded parent) and the staging alias. The worker opens
      each name that exists and requires both to be the recorded object before
@@ -207,8 +209,9 @@ This is a separate, narrower path, an explicit exception to the step 1
   `COMMITTED.json` is refused.
 - Delivered leftovers (store): only attempts below the published attempt are
   selected, never the published attempt; manifest phase 3 gives none.
-- Store: eligibility (pending cancel, not cancelled, manifest phase 3+ give no
-  destination targets); fingerprint covers kinds and attempts; stale, replay,
+- Store: eligibility (pending cancel and not cancelled give no destination
+  targets; manifest phase 3+ gives none except a delivered job's superseded
+  phase-0 staging attempts at phase 4); fingerprint covers kinds and attempts; stale, replay,
   no-work and failed-then-fresh-confirmation; accounting drops deleted
   attempts; migration 16 -> 17 with fault injection; snapshot verification.
 - Real service: cancel a job mid-delivery (a published file, a partial
