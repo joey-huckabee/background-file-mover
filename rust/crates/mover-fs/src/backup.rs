@@ -503,7 +503,7 @@ mod tests {
                     .unwrap()
                     .summary()
                     .schema_version,
-                if nfs_qualification_enabled() { 11 } else { 16 }
+                if nfs_qualification_enabled() { 11 } else { 17 }
             );
             if nfs_qualification_enabled() {
                 assert!(!migrate_command(&f, true).output().unwrap().status.success());
