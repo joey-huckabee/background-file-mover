@@ -66,7 +66,7 @@ The cursor binds instance and pagination semantics; it is not a snapshot across
 requests. Cleared rows disappear. Ordinary pages are limited to 1 MiB serialized.
 
 The same route has a proposed confirmation mode: `confirm_action` is `cancel`,
-`clear-history` or `delete-data`, paired with comma-separated `job_ids` in the
+`clear-history`, `delete-data` or `delete-destination-data` (increment 160), paired with comma-separated `job_ids` in the
 query. Decode 1–256 exact positive i64 integers in order, retaining duplicates.
 Reject repeated query keys, limit/cursor in confirmation mode, incomplete pairs
 and unknown query keys. Numeric parsing must not pass through binary64.

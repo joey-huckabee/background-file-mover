@@ -227,7 +227,8 @@ def main():
         # Added with the dashboard settings view and live updates (increments 133/136).
         ("get", "/api/v2/admin/settings"), ("get", "/api/v2/admin/events"),
         *(('post', '/api/v2/admin/jobs/' + action)
-          for action in ('cancel', 'retry', 'clear-history', 'delete-data')),
+          for action in ('cancel', 'retry', 'clear-history', 'delete-data',
+                         'delete-destination-data')),
         ("post", "/api/v2/jobs/{job_id}/resume"),
         ("post", "/api/v2/jobs/{job_id}/reset-missing"),
     }

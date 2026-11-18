@@ -1945,6 +1945,46 @@
       }
     },
     {
+      "id": "confirmation-delete-destination-data",
+      "schema": "ConfirmationPreview",
+      "valid": true,
+      "value": {
+        "action": "delete-destination-data",
+        "job_ids": [
+          42
+        ],
+        "token": "candidate-proof-0002",
+        "expires_at": 1700000000,
+        "deletion_targets": [
+          {
+            "job_id": "42",
+            "file_id": "0",
+            "kind": "UnfinishedDestinationPayload",
+            "relative_path": "cam/video.mkv",
+            "attempt": 1,
+            "size_bytes": 2048
+          },
+          {
+            "job_id": "42",
+            "file_id": "1",
+            "kind": "UnfinishedDestinationStaging",
+            "relative_path": "cam/audio.wav",
+            "attempt": 2,
+            "size_bytes": null
+          },
+          {
+            "job_id": "42",
+            "file_id": null,
+            "kind": "UnfinishedManifestStaging",
+            "relative_path": "COMMITTED.json",
+            "attempt": null,
+            "size_bytes": null
+          }
+        ],
+        "complete": true
+      }
+    },
+    {
       "id": "delete-accepted-progress",
       "schema": "DeleteAccepted",
       "valid": true,

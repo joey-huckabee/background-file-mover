@@ -1397,7 +1397,7 @@
         "Only safely owned retained source/unfinished destination may be selected. Protect originals, committed output/manifests, foreign and uncertain allocations.",
         "Coordinates describe existing job/file/attempt/location; never a new public identifier. Full private host paths and inode authority remain internal."
       ],
-      "x-status": "RetainedSource implemented in increments143/144 (state schema 16); unfinished destination kinds implemented in increment160 (schema 17): cancelled jobs whose manifest never reached publication intent, plus superseded partial attempts of delivered jobs"
+      "x-status": "RetainedSource implemented in increments143/144 (state schema 16); unfinished destination kinds implemented in increment160 (schema 17) through the separate delete-destination-data action: cancelled jobs whose manifest never reached publication intent (delivered jobs' superseded attempts are cleaned up automatically, never offered)"
     },
     "ConfirmationPreview": {
       "type": "object",
@@ -1408,7 +1408,8 @@
           "enum": [
             "cancel",
             "clear-history",
-            "delete-data"
+            "delete-data",
+            "delete-destination-data"
           ]
         },
         "job_ids": {

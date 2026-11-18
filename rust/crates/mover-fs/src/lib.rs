@@ -136,7 +136,9 @@ pub use enrollment::{
     EnrollmentAuthorization, EnrollmentReceipt, SOURCE_RECEIPT, create_source_enrollment,
 };
 mod destination_discard;
-pub use destination_discard::{DestinationTarget, discard_unfinished_destination};
+pub use destination_discard::{
+    DestinationTarget, discard_unfinished_destination, published_identity,
+};
 mod manifest;
 mod payload_io;
 mod qualification;

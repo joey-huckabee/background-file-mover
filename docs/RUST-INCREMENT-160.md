@@ -57,7 +57,13 @@ migrated and no production deletion is enabled.
     unlinked. Absent names are allowed, so a rerun completes from any partial
     state.
   - **Delivered jobs:** before unlinking, every published final name is opened
-    and verified, and the target must be none of them.
+    and verified (`published_identity`), and the target must be none of them.
+    The worker gets one bounded `verify_published` message per file in the
+    same session, in order, before the `discard`, so job size never exceeds a
+    frame limit (`destination_cleanup_messages_fit_their_frame_at_maximum_sizes`
+    uses maximum-length paths).
+  - **Payload folder syncs:** both names' folders are synced whichever name
+    was still present, so a rerun makes an interrupted earlier unlink durable.
   - **Already absent:** acknowledged only after syncing the folder it is
     absent from.
   - **Folders:** emptied folders are removed bottom-up. On cancelled jobs the
@@ -74,6 +80,9 @@ migrated and no production deletion is enabled.
   checked before and after. A stop leaves the target pending. Failures are
   recorded with the worker's bounded diagnostic and retried only by a fresh
   confirmation.
+- **Contract:** schema confirm action, OpenAPI `confirm_action` enum and the
+  new POST route, checker route inventory, and a destination preview fixture;
+  the contract checker passes.
 - **Routes:** `confirm_action=delete-destination-data` and
   `POST /api/v2/admin/jobs/delete-destination-data`. Each target in a preview
   now reports its `kind` and `attempt` (contract `DeleteTarget`).

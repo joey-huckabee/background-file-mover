@@ -119,8 +119,15 @@ enum Operation {
         assignment: Assignment,
         manifest: ManifestWire,
     },
-    /// Confirmed deletion of one unfinished destination target (admin):
-    /// `staging`, `payload`, `manifest` or `superseded` (delivered job).
+    /// Verify one published final of a delivered job (file `index` of
+    /// `files`, in order), before a `superseded` discard in this session. One
+    /// message per file keeps every frame bounded.
+    VerifyPublished {
+        assignment: Box<Assignment>,
+    },
+    /// Delete one unfinished destination target: `staging`, `payload`,
+    /// `manifest` (confirmed), or `superseded` (automatic cleanup; requires
+    /// `published_files` verified finals, files 0.., in this session).
     Discard {
         kind: String,
         assignment: Box<Assignment>,
@@ -128,7 +135,7 @@ enum Operation {
         #[serde(default)]
         manifest: Option<Box<ManifestWire>>,
         #[serde(default)]
-        published: Vec<Assignment>,
+        published_files: usize,
     },
 }
 #[derive(Serialize, Deserialize)]
@@ -413,14 +420,22 @@ pub(crate) fn discard(
         let wire = |t: &Transfer| -> Result<Assignment> {
             Ok(Assignment::new(t, &claim(store, t.job_id, t.file_index)?))
         };
-        let published = if kind == "superseded" {
-            work.published
-                .iter()
-                .map(wire)
-                .collect::<Result<Vec<_>>>()?
-        } else {
-            Vec::new()
-        };
+        // Every published final is verified first, one bounded message each.
+        let mut published_files = 0;
+        if kind == "superseded" {
+            for p in &work.published {
+                let reply = session.call(
+                    Operation::VerifyPublished {
+                        assignment: Box::new(wire(p)?),
+                    },
+                    stop,
+                )?;
+                if reply.error.is_some() || reply.transfer.is_some() || reply.manifest.is_some() {
+                    return Err("published file not verifiable".into());
+                }
+                published_files += 1;
+            }
+        }
         let reply = session.call(
             Operation::Discard {
                 kind: kind.into(),
@@ -430,7 +445,7 @@ pub(crate) fn discard(
                     .manifest
                     .as_ref()
                     .map(|m| Box::new(ManifestWire::new(m))),
-                published,
+                published_files,
             },
             stop,
         )?;
@@ -1023,6 +1038,8 @@ pub fn worker() -> Result<()> {
     // copy buffer bytes).
     let mut context: Option<(i64, String, String, LocalClaimLock, bool, usize)> = None;
     let mut source_authorization: Option<Option<mover_fs::SourceAuthorization>> = None;
+    // Published finals verified in this session (file index, device, inode).
+    let mut verified: Vec<(usize, (u64, u64))> = Vec::new();
     let mut sequence = 0;
     while let Some(bytes) = child_frame(&mut channel)? {
         _instance.validate()?;
@@ -1031,6 +1048,8 @@ pub fn worker() -> Result<()> {
             return Err("invalid delivery sequence".into());
         }
         sequence = request.sequence;
+        // Manifest steps and discards may carry the manifest (at most 128 KiB);
+        // both are fixed-size otherwise and bounded by the frame limit.
         if !matches!(
             request.command,
             Operation::Manifest { .. } | Operation::Discard { .. }
@@ -1188,20 +1207,41 @@ pub fn worker() -> Result<()> {
                         }
                         Ok(t)
                     };
+                    if let Operation::VerifyPublished { assignment } = command {
+                        let p = in_scope(*assignment)?;
+                        if p.file_index != verified.len() {
+                            return Err("published files out of order".into());
+                        }
+                        verified.push((p.file_index, mover_fs::published_identity(&p)?));
+                        mover_fs::validate_worker_source(
+                            source,
+                            request.source_authorization.as_ref(),
+                        )?;
+                        source_locks(source)?;
+                        checking_destination = true;
+                        destination_locks()?;
+                        return Ok(());
+                    }
                     if let Operation::Discard {
                         kind,
                         assignment,
                         anchor,
                         manifest,
-                        published,
+                        published_files,
                     } = command
                     {
                         let t = in_scope(*assignment)?;
                         let anchor = in_scope(*anchor)?;
-                        let published = published
-                            .into_iter()
-                            .map(in_scope)
-                            .collect::<Result<Vec<_>>>()?;
+                        // Exactly every file 0..n, verified in this session.
+                        if kind == "superseded"
+                            && (published_files == 0
+                                || verified.len() != published_files
+                                || verified.iter().enumerate().any(|(i, (f, _))| i != *f))
+                        {
+                            return Err("published files not verified".into());
+                        }
+                        let published: Vec<(u64, u64)> =
+                            verified.iter().map(|(_, identity)| *identity).collect();
                         let manifest = manifest.map(|m| m.decode()).transpose()?;
                         let target = match kind.as_str() {
                             "staging" => mover_fs::DestinationTarget::Staging(&t),
@@ -1346,6 +1386,71 @@ pub fn worker() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn destination_cleanup_messages_fit_their_frame_at_maximum_sizes() {
+        // Every path field at its 4095-byte maximum, every identity at its
+        // widest: one published file per VerifyPublished message, and the
+        // Discard itself carries no per-file list, so any job size fits.
+        let wide = ObjectIdentity {
+            device: u64::MAX,
+            inode: u64::MAX,
+            uid: u32::MAX,
+            size: u64::MAX,
+            modified_seconds: i64::MIN,
+            modified_nanos: u64::MAX,
+            links: u64::MAX,
+        };
+        let long = |c: char| format!("/{}", c.to_string().repeat(4094));
+        let t = Transfer {
+            job_id: i64::MAX,
+            recording_directory: "f".repeat(36),
+            file_index: 255,
+            attempt: 100,
+            destination_root: long('d'),
+            relative_name: "r".repeat(4095),
+            root: wide.clone(),
+            area: wide.clone(),
+            parent: wide.clone(),
+            staging_directory: wide.clone(),
+            stage: wide.clone(),
+            sha256: Some("a".repeat(64)),
+            phase: TransferPhase::Published,
+        };
+        let c = ClaimIntent {
+            job_id: i64::MAX,
+            file_index: 255,
+            root_path: long('s'),
+            source_name: "n".repeat(4095),
+            private_name: "p".repeat(4095),
+            root: wide.clone(),
+            parent: wide.clone(),
+            area: wide.clone(),
+            source: wide,
+        };
+        let frame = |command| {
+            serde_json::to_vec(&Request {
+                version: 2,
+                sequence: 2048,
+                command,
+                source_authorization: None,
+            })
+            .unwrap()
+            .len()
+        };
+        let verify = frame(Operation::VerifyPublished {
+            assignment: Box::new(Assignment::new(&t, &c)),
+        });
+        let discard = frame(Operation::Discard {
+            kind: "superseded".into(),
+            assignment: Box::new(Assignment::new(&t, &c)),
+            anchor: Box::new(Assignment::new(&t, &c)),
+            manifest: None,
+            published_files: 256,
+        });
+        assert!(verify <= 32768, "{verify}");
+        // A manifest-staging discard also carries the manifest (<= 128 KiB).
+        assert!(discard + 2 * 131072 <= LIMIT, "{discard}");
+    }
     #[test]
     fn a_halted_file_stops_before_recording_its_next_step() {
         let base = std::env::temp_dir().join(format!("fm-halt-{}", std::process::id()));

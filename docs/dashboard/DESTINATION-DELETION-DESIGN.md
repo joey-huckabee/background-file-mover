@@ -224,7 +224,10 @@ delivery:
     entries), and before unlinking a superseded `.part` it opens **every**
     published final name of the job (identity-checked parents) and requires the
     target's device and inode to differ from each of them. If any final name
-    cannot be opened or matches, the target is Failed and kept;
+    cannot be opened or matches, the target is Failed and kept. Each published
+    final is verified by its own bounded worker message in the same custody
+    session, files in order, before the discard, so job size never exceeds a
+    frame limit;
   - `COMMITTED.json` is never opened for writing, renamed or removed; its
     presence is required on this path (a delivered job without it is refused).
 

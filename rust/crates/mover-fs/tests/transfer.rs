@@ -701,17 +701,28 @@ fn run_destination(s: &Store) -> Vec<(mover_store::DeleteKind, Option<String>)> 
         if automatic {
             assert!(s.automatic_cleanup_eligible(&w).unwrap());
         }
-        let target = match (w.kind, w.delivered) {
-            (K::DestinationStaging, false) => T::Staging(&w.transfer),
-            (K::DestinationStaging, true) => T::Superseded {
-                transfer: &w.transfer,
-                published: &w.published,
-            },
-            (K::DestinationPayload, _) => T::Payload(&w.transfer),
-            (K::ManifestStaging, _) => T::Manifest(w.manifest.as_ref().unwrap()),
-            _ => unreachable!(),
+        // As the worker does: verify every published final first (one each).
+        let published = if w.delivered {
+            w.published
+                .iter()
+                .map(mover_fs::published_identity)
+                .collect::<Result<Vec<_>, _>>()
+        } else {
+            Ok(Vec::new())
         };
-        let result = mover_fs::discard_unfinished_destination(target, &w.anchor);
+        let result = published.and_then(|published| {
+            let target = match (w.kind, w.delivered) {
+                (K::DestinationStaging, false) => T::Staging(&w.transfer),
+                (K::DestinationStaging, true) => T::Superseded {
+                    transfer: &w.transfer,
+                    published: &published,
+                },
+                (K::DestinationPayload, _) => T::Payload(&w.transfer),
+                (K::ManifestStaging, _) => T::Manifest(w.manifest.as_ref().unwrap()),
+                _ => unreachable!(),
+            };
+            mover_fs::discard_unfinished_destination(target, &w.anchor)
+        });
         let diagnostic = result.as_ref().err().map(|e| {
             let d: String = e
                 .to_string()

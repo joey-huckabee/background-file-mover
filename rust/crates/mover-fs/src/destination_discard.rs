@@ -20,11 +20,12 @@ pub enum DestinationTarget<'a> {
     Payload(&'a Transfer),
     /// A cancelled job's manifest staging.
     Manifest(&'a ManifestRecord),
-    /// A delivered job's superseded attempt; `published` is every file's
-    /// published attempt.
+    /// A delivered job's superseded attempt; `published` is the (device,
+    /// inode) of every file's published final, each verified by
+    /// [`published_identity`] in this custody session just before.
     Superseded {
         transfer: &'a Transfer,
-        published: &'a [Transfer],
+        published: &'a [(u64, u64)],
     },
 }
 
@@ -235,21 +236,16 @@ pub fn discard_unfinished_destination(
                 Some(d) => open_existing(d, &part)?,
                 None => None,
             };
+            if published.is_empty() {
+                return Err(ClaimError::Blocked("published files not verified"));
+            }
             if let Some(fd) = &candidate {
                 same_object(fd, &transfer.stage)?;
                 let s = fs::fstat(fd).map_err(op("destination_discard.stat"))?;
-                for p in *published {
-                    let parent = final_parent(&area, p)?
-                        .ok_or(ClaimError::Blocked("published file not verifiable"))?;
-                    let published_fd = open_existing(&parent, final_name(p))?
-                        .ok_or(ClaimError::Blocked("published file not verifiable"))?;
-                    same_object(&published_fd, &p.stage)
-                        .map_err(|_| ClaimError::Blocked("published file not verifiable"))?;
-                    if p.stage.device == s.st_dev && p.stage.inode == s.st_ino {
-                        return Err(ClaimError::Blocked(
-                            "target is a published file; not deleted",
-                        ));
-                    }
+                if published.contains(&(s.st_dev, s.st_ino)) {
+                    return Err(ClaimError::Blocked(
+                        "target is a published file; not deleted",
+                    ));
                 }
             }
             single(staging, container, &part, &transfer.stage)?
@@ -275,23 +271,24 @@ pub fn discard_unfinished_destination(
             if let (Some(s), Some(_)) = (&staging, &alias_fd) {
                 names.push((s, part.as_str()));
             }
-            match final_fd.as_ref().or(alias_fd.as_ref()) {
+            let outcome = match final_fd.as_ref().or(alias_fd.as_ref()) {
                 Some(object) => {
                     unlink_names(&names, object)?;
                     Discarded::Removed
                 }
-                None => {
-                    // Durable absence of both names (and of removed folders).
-                    for dir in parent
-                        .iter()
-                        .chain(staging.iter())
-                        .chain([&area, container])
-                    {
-                        fs::fsync(dir).map_err(op("destination_discard.sync"))?;
-                    }
-                    Discarded::AlreadyAbsent
-                }
+                None => Discarded::AlreadyAbsent,
+            };
+            // Both names' folders are synced whichever name was still there:
+            // a rerun after an interrupted first unlink must make that earlier
+            // removal durable too (and the absence of removed folders).
+            for dir in parent
+                .iter()
+                .chain(staging.iter())
+                .chain([&area, container])
+            {
+                fs::fsync(dir).map_err(op("destination_discard.sync"))?;
             }
+            outcome
         }
     };
     // Folders: the attempt's staging subfolder and `.staging` when empty; on a
@@ -313,6 +310,26 @@ pub fn discard_unfinished_destination(
         remove_if_empty(&root, &t.recording_directory)?;
     }
     Ok(outcome)
+}
+
+/// Open a delivered job's published final (identity-checked root, private job
+/// folder and recorded parent) and require it to be the recorded object.
+/// Returns its (device, inode), for the superseded-attempt check. One call per
+/// file keeps every worker message bounded.
+pub fn published_identity(p: &Transfer) -> Result<(u64, u64)> {
+    let unverifiable = || ClaimError::Blocked("published file not verifiable");
+    if p.phase != mover_core::TransferPhase::Published {
+        return Err(unverifiable());
+    }
+    let root = root(&p.destination_root)?;
+    same_directory(&owned_directory(&root, false)?, &p.root)?;
+    let area = open_directory(&root, &p.recording_directory)?.ok_or_else(unverifiable)?;
+    same_directory(&owned_directory(&area, true)?, &p.area)?;
+    let parent = final_parent(&area, p)?.ok_or_else(unverifiable)?;
+    let fd = open_existing(&parent, final_name(p))?.ok_or_else(unverifiable)?;
+    same_object(&fd, &p.stage).map_err(|_| unverifiable())?;
+    let s = fs::fstat(&fd).map_err(op("destination_discard.stat"))?;
+    Ok((s.st_dev, s.st_ino))
 }
 
 /// One recorded name in `dir`. An absent name is acknowledged after syncing
