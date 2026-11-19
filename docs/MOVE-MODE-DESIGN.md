@@ -87,10 +87,12 @@ confirmed and automatic deletions. One job is cleaned per session:
    child accepts a source removal only after the complete set was verified in
    the same session.
 5. **For each eligible file,** in order:
-   - **record intent** durably (a `source_cleanups` row, state `Intent`) before
-     the removal message is sent. From then on, replay validation treats the
-     held copy as released (as for confirmed deletion), so a replay mid-cleanup
-     keeps its 202;
+   - **record intent** durably before the removal message is sent: the
+     `source_cleanups` row gets state `Intent` and `authorized = 1`. The
+     `authorized` flag is monotonic; once set it is never cleared. From then
+     on, replay validation treats the held copy as released (as for confirmed
+     deletion), so a replay keeps its 202 whether or not the unlink has
+     happened;
    - the child **removes the held copy** with the existing
      `discard_retained_source`. It checks root, area and object identity,
      unlinks, requires `nlink == 0`, syncs the area and removes the emptied
@@ -103,8 +105,14 @@ confirmed and automatic deletions. One job is cleaned per session:
      and the file's source reservation is released.
    - **Failure:** the rows become `Failed` with a bounded diagnostic,
      `attempts + 1`, and `next_attempt_at` set by backoff (30 s, doubling,
-     capped at 1 h). A failed set verification marks every file of that round
-     this way.
+     capped at 1 h). `authorized` keeps its value, so two cases stay distinct:
+     - **before authorization** (set verification failed; no intent was
+       recorded for the file): `authorized = 0`. No source effect could have
+       happened, so replay validation still requires the held copy, exactly as
+       before cleanup;
+     - **after authorization** (the removal was sent, then failed or was
+       uncertain): `authorized = 1`. The copy may already be gone, so replay
+       treats it as released and keeps its 202.
 
    A stop or crash before persistence leaves `Intent`, which is rerun on the
    next round (verification, then an idempotent removal, Removed or
@@ -134,7 +142,13 @@ stays committed and visible to consumers throughout.
 A new table `source_cleanups`:
 - key `(job_id, file_index)`;
 - `state` (`Intent`, `Removed`, `Failed`);
+- `authorized` (0 or 1, monotonic: once set, never cleared). A CHECK requires
+  `authorized = 1` for `Intent` and `Removed`;
 - `attempts`, `next_attempt_at`, `diagnostic`, `updated_at`.
+
+Replay validation's "released" test (`retained_copy_released`) becomes: a
+confirmed deletion has targeted the file, or a `source_cleanups` row has
+`authorized = 1`.
 
 It is added by the guarded additive migration 17 -> 18 (chain 11 -> 18).
 Snapshot verification compares it, and history clear forgets its rows.
@@ -230,7 +244,17 @@ Snapshot verification compares it, and history clear forgets its rows.
       exact replay still returns 202.
   - **Cancelled move job:** never cleaned up automatically, and **Delete
     source files…** still removes its held copies.
+  - **Failure before authorization:** set verification fails because a final
+    was replaced. The rows are `Failed` with `authorized = 0`, and the held
+    copies stay. A replay still validates custody, so it is refused (409)
+    once the held copy has also been swapped, as today. The next round retries
+    after backoff.
+  - **Failure after authorization:** the removal is sent, then the result
+    is recorded as failed (or the copy disappears). The row is `Failed` with
+    `authorized = 1`; an exact replay returns 202 although the copy is gone,
+    and the next round records `Removed` after the sync.
 - **Admin HTTPS:** detail `source_cleanup`, the `CleanupPending` condition,
-  and Delete source files hidden for move jobs.
+  and **Delete source files…** still offered for a move job (cancelled, or with
+  move mode off).
 - **Dashboard node tests:** progress labels, activity wording, and Needs
   attention.
