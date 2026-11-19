@@ -52,36 +52,63 @@ All of these must hold:
 
 ## Execution
 
-The delivery thread, between jobs, takes up to 16 cleanup steps per tick, like
-confirmed and automatic deletions:
-1. **Discover** the next eligible file, or a pending retry whose time has
-   come.
+The delivery thread, between jobs, takes up to 16 cleanup files per tick, like
+confirmed and automatic deletions. One job is cleaned per session:
+1. **Discover** a job with eligible files, or with a pending retry whose time
+   has come.
 2. **Mark the job busy**, then **recheck** eligibility in the store. History
    clear may have won, or a pass started; if the recheck fails, nothing is
-   touched. The marker is held through worker reaping and result persistence.
-3. **Record intent** durably: a `source_cleanups` row with state `Intent`,
-   before any effect. From then on, replay validation treats the held copy as
-   released (as for confirmed deletion), so a replay mid-cleanup keeps its 202.
-4. **Revalidate the delivered side** (protocol step 8) in a supervised
-   delivery-worker session under destination custody. `COMMITTED.json` must
-   exist and be the recorded manifest object (device, inode, uid), and this
-   file's published final must be the recorded object (`published_identity`,
-   increment 160). On failure, nothing on the source is touched and the result
-   is a failure (retried).
-5. **Remove the held copy** in the supervised claim worker under source custody,
-   with the existing `discard_retained_source`. It checks root, area and
-   object identity, unlinks, requires `nlink == 0`, syncs the area, and removes
-   the emptied area. An already-absent copy counts only after the containing
-   folder is synced.
-6. **Record the result** in one transaction:
+   touched.
+3. **Take custody for the whole session.** The cleanup uses the job's
+   destination custody lane, exactly like a delivery: the shared destination
+   lock held by the coordinator, or the serialized lane where the child
+   acquires it. It opens **one supervised delivery-worker session**, whose
+   child holds both source custody (its inherited source lock and source
+   authorization) and destination custody. That custody is held, unbroken,
+   through the verification, every source unlink and sync, and the child's
+   exit. A verification reply followed by releasing a lock is never enough.
+4. **Verify the intact delivered set** in that child, before any source effect:
+   - `COMMITTED.json` is opened `O_NOFOLLOW` in the identity-checked job folder.
+     Its device, inode, uid, size and mtime must equal the recorded manifest
+     object, and its bytes must equal the persisted manifest bytes, whose
+     SHA-256 matches the stored digest.
+   - **Every** file listed in the manifest is opened at its final name through
+     the authenticated parent walk. Its full recorded published identity must
+     match: regular file, uid, no group/other write, a single link, and the
+     size and mtime recorded at publication. This is the same check the
+     manifest step applies before commitment.
+   - No hash pass on the uninterrupted path: permissions and retention keep
+     verified objects unchanged, and size, mtime and links detect truncation
+     or rewriting through the same inode. Any mismatch or missing final fails
+     the whole job's cleanup this round; nothing on the source is touched.
+
+   The checks are sent as bounded messages: one for the manifest (which
+   carries at most 128 KiB of manifest bytes) and one per file, in order. The
+   child accepts a source removal only after the complete set was verified in
+   the same session.
+5. **For each eligible file,** in order:
+   - **record intent** durably (a `source_cleanups` row, state `Intent`) before
+     the removal message is sent. From then on, replay validation treats the
+     held copy as released (as for confirmed deletion), so a replay mid-cleanup
+     keeps its 202;
+   - the child **removes the held copy** with the existing
+     `discard_retained_source`. It checks root, area and object identity,
+     unlinks, requires `nlink == 0`, syncs the area and removes the emptied
+     area. An already-absent copy counts only after the containing folder is
+     synced.
+6. **After the child has exited and been reaped,** and still holding the busy
+   marker (and in shared mode, the lane), **record the results** in one
+   transaction:
    - **Removed:** the file phase becomes `SourceRemoved`, the row `Removed`,
-     and the job's source reservation for that file is released.
-   - **Failure:** the row becomes `Failed` with a bounded diagnostic,
+     and the file's source reservation is released.
+   - **Failure:** the rows become `Failed` with a bounded diagnostic,
      `attempts + 1`, and `next_attempt_at` set by backoff (30 s, doubling,
-     capped at 1 h).
+     capped at 1 h). A failed set verification marks every file of that round
+     this way.
 
    A stop or crash before persistence leaves `Intent`, which is rerun on the
-   next tick; removal is idempotent.
+   next round (verification, then an idempotent removal, Removed or
+   AlreadyAbsent).
 
 Cleanup failures never restart delivery or touch the destination. The recording
 stays committed and visible to consumers throughout.
@@ -98,6 +125,9 @@ stays committed and visible to consumers throughout.
   held copies stay reserved.
 - **Earlier manual deletion:** if a confirmed deletion pass removed the copy,
   cleanup finds it absent and records `Removed` after the sync.
+- **Setting off with an `Intent` row:** nothing runs and replay still treats
+  the copy as released, so it returns 202 whether or not the unlink happened.
+  The row is completed when move mode is turned back on.
 
 ## State (schema 18)
 
@@ -136,9 +166,12 @@ Snapshot verification compares it, and history clear forgets its rows.
   …)", or "paused: move mode is off".
 - **Needs attention:** includes move jobs whose cleanup has failed at least
   once.
-- **Delete source files…:** stays for copy jobs. It is hidden for move jobs,
-  where cleanup removes those copies; a failing cleanup is fixed by fixing its
-  cause, not by a second deletion path.
+- **Delete source files…** keeps today's rules for every job, move jobs
+  included. That covers cancelled move jobs, which never commit and so are
+  never cleaned up automatically, and move jobs while move mode is off. While
+  a confirmed pass is active, automatic cleanup skips the job; the busy marker
+  serializes the two otherwise. Both removals are identity-checked and
+  idempotent.
 - **Settings page:** shows "Move mode: on/off".
 - **Help:** a short paragraph on copy vs move.
 
@@ -147,8 +180,8 @@ Snapshot verification compares it, and history clear forgets its rows.
 - **History clear:** refused while a cleanup of the job is running (busy
   marker). Otherwise allowed as today; the dialog already says held copies stay
   untracked.
-- **Confirmed deletion passes:** cleanup skips a job with an active pass, and
-  manual source deletion is not offered for move jobs.
+- **Confirmed deletion passes:** cleanup skips a job with an active pass; a
+  copy removed by a pass is later recorded `Removed` after the sync.
 - **Automatic destination cleanup** (increment 160) is independent: it runs on
   the destination side only.
 - **NFS sources:** the same custody rules apply. Production NFS remains
@@ -164,8 +197,17 @@ Snapshot verification compares it, and history clear forgets its rows.
   - Failed with backoff, and retry timing;
   - setting off pauses, and re-enabling resumes;
   - migration 17 -> 18 with fault rollback and snapshot verification.
-- **mover-fs:** the existing discard tests, plus revalidation that refuses
-  when `COMMITTED.json` or a published final was replaced.
+- **mover-fs (set verification):**
+  - refuses a `COMMITTED.json` that was replaced, or rewritten in place with
+    the same inode and different bytes;
+  - refuses a published final truncated or rewritten through the same inode
+    (size or mtime);
+  - refuses a final that gained an extra link, and **another** file's final
+    that is missing;
+  - passes an intact set.
+- **file-mover worker:** a source removal is refused unless the full set was
+  verified in the same session (out of order, partial, or a new session).
+  Custody locks are revalidated after the unlink.
 - **Real service (`api.rs`):**
   - **Move job:** delivered, then every held copy is removed automatically.
     Files read `SourceRemoved`, the job `Committed`, and source reserved bytes
@@ -181,6 +223,13 @@ Snapshot verification compares it, and history clear forgets its rows.
     retried with backoff, and shown in Needs attention.
   - **Clear race:** cleanup holding the job refuses a clear; clear first
     leaves nothing touched.
+  - **Interruption after unlink, before persistence:** the copy is gone and
+    the row is `Intent`.
+    - With move mode on, restart records `Removed` after the sync.
+    - With move mode off, restart runs nothing, the job shows paused, and an
+      exact replay still returns 202.
+  - **Cancelled move job:** never cleaned up automatically, and **Delete
+    source files…** still removes its held copies.
 - **Admin HTTPS:** detail `source_cleanup`, the `CleanupPending` condition,
   and Delete source files hidden for move jobs.
 - **Dashboard node tests:** progress labels, activity wording, and Needs
