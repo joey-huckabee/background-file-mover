@@ -135,7 +135,9 @@ pub use custody::COORDINATOR_LOCK;
 pub use enrollment::{
     EnrollmentAuthorization, EnrollmentReceipt, SOURCE_RECEIPT, create_source_enrollment,
 };
+mod committed_set;
 mod destination_discard;
+pub use committed_set::{verify_committed_manifest, verify_published_exact};
 pub use destination_discard::{
     DestinationTarget, discard_unfinished_destination, published_identity,
 };

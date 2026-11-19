@@ -726,8 +726,31 @@
         "Retrying",
         "Ready",
         "CancellationPending",
-        "Cancelled"
-      ]
+        "Cancelled",
+        "CleanupPending"
+      ],
+      "x-status": "CleanupPending implemented increment162: a committed move job (delete_source_after_commit recorded at acceptance) whose held source copies are not all removed yet; Committed once they are"
+    },
+    "SourceCleanupStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Move-mode removal of the mover's held source copies after verified delivery (increment162). Present only for move jobs.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "The currently loaded delete_source_after_commit setting; false pauses cleanup."
+        },
+        "removed": {"type": "integer", "minimum": 0, "maximum": 256},
+        "pending": {"type": "integer", "minimum": 0, "maximum": 256},
+        "failed": {"type": "integer", "minimum": 0, "maximum": 256},
+        "next_attempt_at": {
+          "anyOf": [{"$ref": "#/$defs/Timestamp"}, {"type": "null"}]
+        },
+        "last_error": {
+          "anyOf": [{"type": "string", "minLength": 1, "maxLength": 240}, {"type": "null"}]
+        }
+      },
+      "required": ["enabled", "removed", "pending", "failed", "next_attempt_at", "last_error"]
     },
     "FilePhase": {
       "type": "string",
@@ -1125,6 +1148,9 @@
             }
           ]
         },
+        "source_cleanup": {
+          "$ref": "#/$defs/SourceCleanupStatus"
+        },
         "last_problem": {
           "$ref": "#/$defs/JobProblem"
         }
@@ -1282,6 +1308,10 @@
             "Copy",
             "Move"
           ]
+        },
+        "source_cleanup_failed": {
+          "type": "boolean",
+          "description": "Move mode: a held source copy removal has failed and is being retried (increment162)."
         }
       },
       "required": [

@@ -152,13 +152,24 @@
   var ATTENTION = {
     AwaitingClaims: ["Waiting for files", "blue"], Ready: ["Ready to deliver", "blue"],
     Retrying: ["Retrying delivery", "blue"], ReviewRequired: ["Needs review", "amber"],
-    CancellationPending: ["Cancelling", "amber"], Cancelled: ["Cancelled", "grey"]
+    CancellationPending: ["Cancelling", "amber"], Cancelled: ["Cancelled", "grey"],
+    CleanupPending: ["Removing source", "blue"]
   };
+  // Move mode: a delivered job still removing its held source copies; amber
+  // once a removal attempt has failed (retried automatically).
+  function attentionOf(item) {
+    if (item.condition === "CleanupPending" && item.source_cleanup_failed) { return ["Source cleanup retrying", "amber"]; }
+    return ATTENTION[item.condition];
+  }
+  function needsAttention(item) {
+    return item.condition === "ReviewRequired" || (item.condition === "CleanupPending" && !!item.source_cleanup_failed);
+  }
   var ACTIVITY = {
     Committed: "Delivered", AwaitingClaims: "Waiting for the source files",
     Ready: "Ready to deliver", Retrying: "Retrying delivery", ReviewRequired: "Needs review",
     CancellationPending: "Cancelling: stopping work on this job",
-    Cancelled: "Cancelled: no further work; files stay where they are"
+    Cancelled: "Cancelled: no further work; files stay where they are",
+    CleanupPending: "Delivered; removing the held source files (move)"
   };
   var FILE_STATUS = {
     Pending: "Waiting", Claimed: "Acquired", Verified: "Verified",
@@ -196,11 +207,17 @@
     return el("td", text, "mono folder-cell", text + " (" + FOLDER_HINT + ")");
   }
   function folder(value, side) { return value === "" ? "(" + side + " root)" : value + "/"; }
-  function finalStep(mode) { return mode === "Move" ? "Moved" : "Copied"; }
+  function finalStep(mode, item) {
+    if (mode !== "Move") { return "Copied"; }
+    if (item && item.condition === "CleanupPending") {
+      return item.source_cleanup_failed ? "Copied · source cleanup retrying" : "Copied · removing source…";
+    }
+    return "Moved";
+  }
   function progress(item, mode) {
     var wrap = el("span", null, "steps");
     var done = [true, item.source_paths_released, item.state === "Committed"];
-    var labels = ["Received", "Acquired", finalStep(mode)];
+    var labels = ["Received", "Acquired", finalStep(mode, item)];
     var tips = ["The mover accepted the request", "The mover has taken over the source files; the sender may let go",
       "All files are at the destination (" + (mode === "Move" ? "source removed" : "source kept") + ")"];
     labels.forEach(function (label, i) {
@@ -213,7 +230,7 @@
         wrap.appendChild(arrow);
       }
     });
-    var attention = ATTENTION[item.condition];
+    var attention = attentionOf(item);
     if (attention) {
       wrap.appendChild(el("span", attention[0], "badge " + attention[1], "condition: " + item.condition));
     }
@@ -288,7 +305,7 @@
     return "active";
   }
   function matches(item) {
-    if (filter === "attention" && item.condition !== "ReviewRequired") { return false; }
+    if (filter === "attention" && !needsAttention(item)) { return false; }
     if (filter !== "all" && filter !== "attention" && stateOf(item) !== filter) { return false; }
     if (!query) { return true; }
     var hay = [item.job_id, item.recording_id || "", item.submission_id || "", item.source_folder || "", item.destination_folder || ""]
@@ -323,7 +340,7 @@
   }
 
   function renderCounts() {
-    var attention = allItems.filter(function (i) { return i.condition === "ReviewRequired"; }).length;
+    var attention = allItems.filter(needsAttention).length;
     $("count-history").textContent = String(allItems.length);
     $("count-attention").textContent = String(attention);
     $("count-attention").hidden = attention === 0;
@@ -366,7 +383,8 @@
       else if (i.condition === "CancellationPending") { cancelling++; }
       else { delivering++; }
     });
-    var attention = review;
+    // Delivered move jobs whose source cleanup is failing need attention too.
+    var attention = review + allItems.filter(function (i) { return i.condition === "CleanupPending" && i.source_cleanup_failed; }).length;
     $("stat-active").textContent = String(active);
     $("stat-active-sub").textContent = delivering + " delivering · " + waiting + " waiting for files" +
       (review ? " · " + review + " need review" : "") + (cancelling ? " · " + cancelling + " cancelling" : "");
@@ -694,7 +712,9 @@
     box.appendChild(grid);
 
     var facts = el("dl", null, "facts");
-    var steps = ["Received", job.source_paths_released ? "Acquired" : null, job.state === "Committed" ? finalStep(mode) : null]
+    var cleanupFailed = !!(d.source_cleanup && String(d.source_cleanup.failed) !== "0");
+    var steps = ["Received", job.source_paths_released ? "Acquired" : null,
+      job.state === "Committed" ? finalStep(mode, { condition: d.condition, source_cleanup_failed: cleanupFailed }) : null]
       .filter(Boolean).join(" › ");
     fact(facts, "Progress", steps, "state: " + job.state);
     fact(facts, "Current activity", ACTIVITY[d.condition] || d.condition, "condition: " + d.condition);
@@ -773,6 +793,12 @@
     } else if (cst && !cst.proof && !cst.sending) {
       // The job's own status line says it now: drop the stale reply.
       delete actionState["cancel:" + job.job_id];
+    }
+    var sc = sourceCleanupText(d.source_cleanup, d.files.length, d.condition);
+    if (sc) {
+      quietJob = false;
+      activity.appendChild(el("p", sc, d.condition === "CleanupPending" && String(d.source_cleanup.failed) !== "0" ? "notice" : "muted",
+        "source_cleanup"));
     }
     if (d.deletion) {
       quietJob = false;
@@ -996,6 +1022,26 @@
     if (String(counts.accepted_count) !== "0") { return "Cancelling: the mover is stopping work on this job."; }
     if (String(counts.failed_count) !== "0") { return "A cancellation is already in progress for this job."; }
     return "Nothing to cancel: the job is already delivered, cancelled or no longer tracked.";
+  }
+  // Move mode progress for the Activity panel (null for copy jobs). Only a
+  // delivered move job (CleanupPending) is actually being cleaned up.
+  function sourceCleanupText(sc, total, condition) {
+    if (!sc) { return null; }
+    var removed = Number(sc.removed);
+    if (condition === "Cancelled" || condition === "CancellationPending") {
+      return "Move job cancelled: its held source copies are not removed automatically (Delete source files… removes them).";
+    }
+    if (condition !== "CleanupPending" && condition !== "Committed") {
+      return "Move: the held source copies are removed after verified delivery.";
+    }
+    if (removed === total) { return "Source files: all " + total + " removed after verified delivery (move)."; }
+    var text = "Source files: " + removed + " of " + total + " removed";
+    if (sc.enabled === false) { return text + "; paused: move mode is off. The held copies stay until it is turned back on."; }
+    if (String(sc.failed) !== "0") {
+      return text + "; " + sc.failed + " retrying " + (sc.next_attempt_at !== null ? "at " + time(sc.next_attempt_at) : "shortly") +
+        (sc.last_error ? " (last error: " + sc.last_error + ")" : "") + ". The delivered recording is not affected.";
+    }
+    return text + "; removing…";
   }
   function deleteOutcome(body, what) {
     what = what || "Source files";
@@ -1509,7 +1555,8 @@
     fact(dl, "Source root", t.source_root, "source_root");
     fact(dl, "Destination root", t.destination_root, "destination_root");
     fact(dl, "Sender (generator ID)", t.generator_id, "generator_id");
-    fact(dl, "Transfer mode", t.transfer_mode, "Copy keeps source files after delivery");
+    fact(dl, "Transfer mode", t.transfer_mode,
+      "Copy keeps the mover's held source copies after delivery; Move removes them after verified delivery (delete_source_after_commit)");
     fact(dl, "Check expected sizes", yesNo(t.check_expected_sizes), "check_expected_sizes");
     fact(dl, "Missing-file retry window", t.missing_file_retry_window_seconds.toString() + " s", "missing_file_retry_window_seconds");
     fact(dl, "Shutdown wait", t.shutdown_wait_seconds.toString() + " s", "shutdown_wait_seconds");

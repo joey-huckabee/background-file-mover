@@ -675,7 +675,8 @@ fn admin_history_pages_and_detail_match_operator_status() {
             "cancellation":{"state":"NotRequested","requested_at":null,"stopped_at":null},
             "deletion":null,
             "files_total":2,"files_delivered":2,"measured_bytes":"12","unmeasured_files":0,
-            "source_folder":"current","destination_folder":UUID,"transfer_mode":"Copy"})
+            "source_folder":"current","destination_folder":UUID,"transfer_mode":"Copy",
+            "source_cleanup_failed":false})
     );
     assert_eq!(items[1]["job_id"], "2");
     assert_eq!(items[1]["recording_id"], second_uuid);

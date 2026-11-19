@@ -1400,6 +1400,86 @@ fn delivery_session_checks_source_binding_and_rejects_authorization_downgrade() 
         b"source retained"
     );
 }
+#[test]
+fn source_removal_requires_the_full_set_verified_in_the_same_session() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    provision_destination(&f);
+    f.start();
+    f.write("data", b"held copy");
+    f.write("more", b"second file");
+    assert_eq!(
+        f.post(&f.input("verify-session", json!(["data", "more"])))
+            .0,
+        202
+    );
+    wait_manifest(&f, "1");
+    f.stop();
+    let guard = mover_fs::LocalClaimLock::acquire_bound(
+        f.root.join("source").to_str().unwrap(),
+        &binding(),
+    )
+    .unwrap();
+    let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    let m = store.manifest(1).unwrap().unwrap();
+    let assignment = |i: usize| {
+        let t = store.transfer(1, i).unwrap().unwrap();
+        let claim = store.claim_intent(1, i).unwrap().unwrap().0;
+        payload_assignment(&t, &claim)
+    };
+    let manifest = json!({"operation":"verify_manifest","anchor":assignment(0),"manifest":{
+        "job_id":m.job_id,"bytes":m.bytes,"sha256":m.sha256,"phase":m.phase,
+        "object":m.object.as_ref().map(mover_core::ObjectIdentity::encode)}});
+    let check = |i: usize| json!({"operation":"verify_final","assignment":assignment(i)});
+    let remove = |files: usize| json!({"operation":"remove_source","assignment":assignment(0),"files":files});
+    let held = f.root.join("source/.file-mover/1-0/data");
+    // Each run: the steps sent in one session; true = removal must succeed.
+    for (steps, removes) in [
+        (vec![remove(2)], false),
+        (vec![manifest.clone(), remove(2)], false),
+        (vec![check(0), remove(2)], false),
+        // The caller's count never decides: file 1 is still unverified.
+        (vec![manifest.clone(), check(0), remove(1)], false),
+        (vec![manifest.clone(), check(0), remove(2)], false),
+        // Out of order.
+        (vec![manifest.clone(), check(1)], false),
+        (vec![manifest.clone(), check(0), check(1), remove(2)], true),
+    ] {
+        let (mut child, mut channel) = effect_child(&guard, &guard, "--internal-delivery-worker");
+        let opened = session_authorized_reply(
+            &mut channel,
+            1,
+            json!({"operation":"open","job_id":1,"recording_directory":f.recording_directory("1"),"source_root":f.root.join("source"),"destination_root":f.root.join("destination"),"destination_binding":destination_binding()}),
+            guard.source_authorization(),
+        );
+        assert!(opened["error"].is_null(), "{opened}");
+        let mut last = Value::Null;
+        for (i, step) in steps.iter().enumerate() {
+            last = session_authorized_reply(
+                &mut channel,
+                i as u64 + 2,
+                step.clone(),
+                guard.source_authorization(),
+            );
+            if last["error"].is_string() {
+                break; // A refused step ends the session.
+            }
+        }
+        drop(channel);
+        assert!(child.wait().unwrap().success());
+        assert_eq!(last["error"].is_null(), removes, "{steps:?}: {last}");
+        assert_eq!(held.exists(), !removes, "{steps:?}");
+    }
+    // The delivered recording is untouched throughout.
+    assert_eq!(
+        std::fs::read(f.destination("1", "data")).unwrap(),
+        b"held copy"
+    );
+    assert_eq!(
+        std::fs::read(f.destination("1", "more")).unwrap(),
+        b"second file"
+    );
+}
 fn transfer_from_wire(t: &Value) -> mover_core::Transfer {
     let object = |i: usize| {
         mover_core::ObjectIdentity::decode(t["transfer_objects"][i].as_str().unwrap()).unwrap()
@@ -2212,6 +2292,16 @@ impl Fixture {
             .join(self.recording_directory(id))
             .join(relative)
     }
+    fn set_move_mode(&self, enabled: bool) {
+        assert!(
+            self.child.is_none(),
+            "startup policy changes require a stopped service"
+        );
+        let path = self.root.join("config.json");
+        let mut config: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        config["delete_source_after_commit"] = json!(enabled);
+        std::fs::write(path, serde_json::to_vec(&config).unwrap()).unwrap();
+    }
     fn set_size_check(&self, enabled: bool) {
         assert!(
             self.child.is_none(),
@@ -2447,6 +2537,7 @@ fn unsafe_startup_configuration_is_rejected() {
         native_ingress: None,
         admin_ingress: None,
         check_expected_sizes: false,
+        delete_source_after_commit: false,
         bind: "0.0.0.0:8080".parse().unwrap(),
         generator_id: "g".into(),
         source_root: "/source".into(),
@@ -5126,7 +5217,7 @@ fn offline_history_epoch_helper() {
 #[test]
 fn incompatible_database_refuses_before_bootstrap_for_every_effect_entry_point() {
     let exe = std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap();
-    for case in (1..=16).chain([18, 99, 100, 101]) {
+    for case in (1..=17).chain([19, 99, 100, 101]) {
         let f = Fixture::uninitialized(300);
         let database = f.root.join("state/jobs.sqlite");
         drop(mover_store::Store::open(&database).unwrap());
@@ -5181,7 +5272,7 @@ fn incompatible_database_refuses_before_bootstrap_for_every_effect_entry_point()
             assert!(
                 log.contains(if case == 101 {
                     "file is not a database"
-                } else if (11..=16).contains(&case) {
+                } else if (11..=17).contains(&case) {
                     "MigrationRequired"
                 } else {
                     "UnsupportedSchema"
@@ -5255,7 +5346,7 @@ fn offline_inspection_and_backup_preserve_original_recovery_without_payload_root
     let result = check.wait_with_output().unwrap();
     assert!(result.status.success(), "{result:?}");
     let report: Value = serde_json::from_slice(&result.stdout).unwrap();
-    assert_eq!(report["schema_version"], 17);
+    assert_eq!(report["schema_version"], 18);
     assert_eq!(report["retained_jobs"], 1);
     assert_eq!(report["pairing_state"], "RecordedActive");
     let epoch: Value =
@@ -5430,7 +5521,7 @@ fn migration_cli_refuses_live_owner_bad_arguments_and_missing_state_then_validat
         assert!(result.status.success(), "{result:?}");
         let value: Value = serde_json::from_slice(&result.stdout).unwrap();
         assert_eq!(value["converted"], false);
-        assert_eq!(value["schema_version"], 17);
+        assert_eq!(value["schema_version"], 18);
         assert!(!backup.exists());
     }
     for args in [
@@ -6425,6 +6516,160 @@ fn partial_destination_files_are_deleted_on_confirmation_and_leftovers_after_del
     // their destination leftovers are gone.
     assert_eq!(f.post(&retried).0, 202);
     assert_eq!(f.post(&partial).0, 202);
+    f.stop();
+}
+
+/// Deliver jobs offline with the real effects, as the service would, but
+/// without any source cleanup running (the service is stopped).
+fn deliver_offline(f: &Fixture, ids: &[i64]) {
+    let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    let destination = f.root.join("destination");
+    let lock = mover_fs::LocalClaimLock::acquire_destination(
+        destination.to_str().unwrap(),
+        &destination_binding(),
+        None,
+    )
+    .unwrap();
+    let observation = lock
+        .destination_authorization()
+        .unwrap()
+        .observation
+        .clone();
+    for &id in ids {
+        s.pin_destination(id, &destination_binding().encode(), &observation)
+            .unwrap();
+        let t = mover_fs::prepare_transfer_file(&s, id, 0).unwrap();
+        let t = mover_fs::authorize_publication(
+            &s,
+            &mover_fs::verify_stage(&s, &mover_fs::copy_stage(&s, &t).unwrap()).unwrap(),
+        )
+        .unwrap();
+        mover_fs::publish_stage(&s, &t).unwrap();
+        mover_fs::commit_manifest(&s, id).unwrap();
+    }
+}
+
+#[test]
+fn move_mode_removes_held_copies_only_after_verified_delivery() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    provision_destination(&f);
+    f.set_move_mode(true);
+    f.start();
+    // Job 1, a move: delivered, then its held copy is removed automatically.
+    f.write("data", b"abc");
+    let moved = f.input("move-1", json!(["data"]));
+    assert_eq!(f.post(&moved).0, 202);
+    f.write("data", b"producer reuse"); // the sender reuses its released path
+    wait_manifest(&f, "1");
+    let done = wait_condition(&f, "1", "Committed");
+    assert_eq!(done["details"]["files"][0]["phase"], "SourceRemoved");
+    assert_eq!(done["details"]["source_cleanup_enabled"], true);
+    assert_eq!(done["details"]["source_cleanup"]["removed"], 1);
+    assert!(!f.root.join("source/.file-mover/1-0").exists());
+    assert_eq!(
+        std::fs::read(f.root.join("source/current/data")).unwrap(),
+        b"producer reuse",
+        "the sender's path is never touched"
+    );
+    assert_eq!(std::fs::read(f.destination("1", "data")).unwrap(), b"abc");
+    assert!(f.destination("1", "COMMITTED.json").exists());
+    assert_eq!(
+        retention(&f, Some("1")).1["details"]["source_reserved_bytes"],
+        "0"
+    );
+    assert_eq!(f.post(&moved).0, 202, "replay keeps its meaning");
+
+    // Job 2, accepted as a copy: later enabling move mode never converts it.
+    f.stop();
+    f.set_move_mode(false);
+    f.start();
+    f.write("copy", b"kept");
+    let copied = f.input("move-2", json!(["copy"]));
+    assert_eq!(f.post(&copied).0, 202);
+    wait_manifest(&f, "2");
+    wait_condition(&f, "2", "Committed");
+    f.stop();
+    f.set_move_mode(true);
+    f.start();
+    std::thread::sleep(Duration::from_millis(800));
+    assert!(f.root.join("source/.file-mover/2-0/data").exists());
+    let (_, copy) = status(&f, "2");
+    assert_eq!(copy["details"]["condition"], "Committed");
+    assert_eq!(copy["details"]["source_cleanup_enabled"], false);
+    assert_eq!(copy["details"]["source_cleanup"], Value::Null);
+
+    // Jobs 3-5, moves accepted while the destination is away, then delivered
+    // offline so that no cleanup has run yet.
+    f.stop();
+    std::fs::rename(f.root.join("destination"), f.root.join("destination-away")).unwrap();
+    f.start();
+    let mut inputs = Vec::new();
+    for (n, name) in ["paused", "verify", "interrupted"].into_iter().enumerate() {
+        f.write(name, name.as_bytes());
+        let input = f.input(&format!("move-{}", n + 3), json!([name]));
+        assert_eq!(f.post(&input).0, 202);
+        inputs.push(input);
+    }
+    let (paths, removed): (Vec<_>, Vec<_>) = (3..=5)
+        .map(|id| f.recording_directory(&id.to_string()))
+        .map(|d| (d.clone(), d))
+        .unzip();
+    f.stop();
+    std::fs::rename(f.root.join("destination-away"), f.root.join("destination")).unwrap();
+    deliver_offline(&f, &[3, 4, 5]);
+    // Job 4: its delivered file is rewritten in place (same inode).
+    let tampered = f.root.join("destination").join(&paths[1]).join("verify");
+    std::fs::set_permissions(&tampered, std::fs::Permissions::from_mode(0o600)).unwrap();
+    std::fs::write(&tampered, b"VERIFY").unwrap();
+    std::fs::set_permissions(&tampered, std::fs::Permissions::from_mode(0o400)).unwrap();
+    // Job 5: interrupted after its removal was authorized and applied, before
+    // the result was saved.
+    {
+        let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        s.authorize_source_cleanup(5, 0, 1).unwrap();
+    }
+    std::fs::remove_dir_all(f.root.join("source/.file-mover/5-0")).unwrap();
+    drop(removed);
+
+    // Move mode off: nothing runs; jobs wait as CleanupPending.
+    f.set_move_mode(false);
+    f.start();
+    std::thread::sleep(Duration::from_millis(800));
+    let (_, paused) = status(&f, "3");
+    assert_eq!(paused["details"]["condition"], "CleanupPending");
+    assert_eq!(paused["details"]["source_cleanup"]["enabled"], false);
+    assert!(f.root.join("source/.file-mover/3-0/data").exists());
+    // The authorized-but-unrecorded removal keeps its 202 on replay.
+    assert_eq!(f.post(&inputs[2]).0, 202);
+    f.stop();
+
+    // Move mode on: job 3 completes; job 4 fails verification before any
+    // authorization and keeps its copy; job 5 is recorded after the sync.
+    f.set_move_mode(true);
+    f.start();
+    wait_condition(&f, "3", "Committed");
+    assert!(!f.root.join("source/.file-mover/3-0").exists());
+    wait_condition(&f, "5", "Committed");
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let failed = loop {
+        let (_, body) = status(&f, "4");
+        if body["details"]["source_cleanup"]["failed"] == 1 {
+            break body;
+        }
+        assert!(Instant::now() < deadline, "{body}");
+        std::thread::sleep(Duration::from_millis(20));
+    };
+    assert_eq!(failed["details"]["condition"], "CleanupPending");
+    assert!(failed["details"]["source_cleanup"]["next_attempt_at"].is_i64());
+    assert!(failed["details"]["source_cleanup"]["last_error"].is_string());
+    assert_eq!(
+        std::fs::read(f.root.join("source/.file-mover/4-0/data")).unwrap(),
+        b"verify",
+        "a changed delivery never costs the good source copy"
+    );
+    // Not authorized: replay still validates the intact held copy.
+    assert_eq!(f.post(&inputs[1]).0, 202);
     f.stop();
 }
 

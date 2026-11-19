@@ -199,7 +199,7 @@ mover should remove retained data, that separate deletion feature must be
 implemented/qualified and used before clear; no payload deletion is provided
 by this command. Old private source/destination files still consume real space.
 
-The original database must exist in the supported current schema 17. This command never initializes
+The original database must exist in the supported current schema 18. This command never initializes
 or migrates state and never acquires source/destination roots, so unavailable
 payload mounts do not block its database-only work. Shared instance identity,
 source enrollment and the monotonically increasing job sequence stay intact.
@@ -635,6 +635,33 @@ New submissions can be refused with `retention_capacity`; exact submission
 replays remain possible. Raising configured limits does not add physical space,
 remove retained attempts or qualify sustained shortage admission. Preserve state
 and data if safe capacity cannot be provided; offline repair/cleanup is deferred.
+
+## Move mode: removing the source after delivery
+
+`delete_source_after_commit` (top-level boolean, default `false`) chooses
+between copy and move ([design](MOVE-MODE-DESIGN.md)):
+
+```json
+"delete_source_after_commit": true
+```
+
+- **Copy** (`false`): after delivery the mover keeps the copy of each file
+  it took over on the source disk (`<source root>/.file-mover/…`). Remove them
+  by hand with **Delete source files…** in the dashboard if wanted.
+- **Move** (`true`): once a recording is delivered and committed, the mover
+  checks the whole delivered set exactly. That means `COMMITTED.json` against
+  the saved manifest, and every delivered file's identity, size, mtime and
+  link count. Only then does it remove its held source copies, one at a time,
+  each recorded before it happens. The sender's original paths are never
+  touched; they were released at 202.
+- Each job records the mode it was accepted under. A copy job never becomes
+  a move. Turning move mode off pauses cleanup (jobs show *Removing source*
+  paused) and keeps every held copy; turning it back on resumes.
+- A failed check or removal leaves the delivered recording untouched and the
+  held copy in place. It is retried automatically: after 30 s, then doubling up
+  to one hour. The job appears under **Needs attention** with the last error.
+- Enabling move mode on a production host deletes source data; it is a
+  deliberate decision for that host and is off by default.
 
 ## Delivery speed settings: parallel delivery and copy buffer
 

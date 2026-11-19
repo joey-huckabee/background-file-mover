@@ -65,6 +65,9 @@ Open `https://AUTHORITY/` and sign in with the account username and password.
   - Delivered files and `COMMITTED.json` are never deleted. Leftover partial
     copies from a retried file are removed automatically after a successful
     delivery, with no button.
+  - In move mode (`delete_source_after_commit`), the source copies of a
+    delivered job are removed automatically; progress shows **Moved** once they
+    are gone. See the operator guide, "Move mode".
 - Sessions end after the inactivity timeout. Background page loads do not extend
   a session; only deliberate activity does.
 - Restarting the service ends every session.

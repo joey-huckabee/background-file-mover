@@ -159,7 +159,7 @@ fn expected(store: &Store, id: i64) -> ManifestResult<(String, OwnedFd, OwnedFd)
     let (area, staging) = shared.ok_or("empty recording")?;
     Ok((bytes, area, staging))
 }
-fn read_exact_manifest(fd: &mut File, m: &ManifestRecord) -> ManifestResult<()> {
+pub(super) fn read_exact_manifest(fd: &mut File, m: &ManifestRecord) -> ManifestResult<()> {
     let before = source(fd)?;
     if Some(before.clone()) != m.object {
         return Err("manifest object changed".into());
