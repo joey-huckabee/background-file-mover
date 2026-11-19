@@ -1253,7 +1253,8 @@
         "files_delivered": {
           "type": "integer",
           "minimum": 0,
-          "maximum": 256
+          "maximum": 256,
+          "description": "Files delivered to consumers: the published files of a committed job; 0 until the job commits (a cancelled job's published files were never delivered)."
         },
         "measured_bytes": {
           "$ref": "#/$defs/LedgerBytes"

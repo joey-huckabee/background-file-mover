@@ -164,6 +164,24 @@
     Pending: "Waiting", Claimed: "Acquired", Verified: "Verified",
     Published: "Delivered", SourceRemoved: "Delivered, source removed"
   };
+  // A published file of a job that never committed was recorded at its final
+  // name, but delivery was never confirmed (and the file may since have been
+  // deleted): not "Delivered".
+  var UNCONFIRMED = "Placed, delivery not confirmed";
+  function fileStatus(f, committed) {
+    if (!committed && (f.phase === "Published" || f.phase === "SourceRemoved")) { return UNCONFIRMED; }
+    return FILE_STATUS[f.phase] || f.phase;
+  }
+  // What to show for the cancel action's last reply once its form is gone:
+  // a refusal or no-op stays useful; an acknowledgement is superseded by the
+  // job's own status, unless delivery committed first (the cancellation was
+  // then dropped). Null: show nothing.
+  function cancelReplyText(st, job, cancellation) {
+    if (!st || !st.message || st.proof || st.sending) { return null; }
+    if (!st.ack) { return st.message; } // Refusals and no-ops always stay.
+    if (cancellation.state !== "NotRequested") { return null; }
+    return job.state === "Committed" ? "The job was delivered before the cancellation took effect." : null;
+  }
   function identityLabel(item) {
     return item.recording_id !== undefined ? ["Request ID", item.recording_id] : ["Legacy submission", item.submission_id];
   }
@@ -750,8 +768,11 @@
     if (actionPending("cancel", job.job_id) ||
         (job.state !== "Committed" && cancellation.state === "NotRequested")) {
       activity.appendChild(actionForm("cancel", job.job_id, job));
-    } else if (cst && cst.message) {
-      activity.appendChild(el("p", cst.message, "muted"));
+    } else if (cancelReplyText(cst, job, cancellation) !== null) {
+      activity.appendChild(el("p", cancelReplyText(cst, job, cancellation), "muted"));
+    } else if (cst && !cst.proof && !cst.sending) {
+      // The job's own status line says it now: drop the stale reply.
+      delete actionState["cancel:" + job.job_id];
     }
     if (d.deletion) {
       quietJob = false;
@@ -784,13 +805,17 @@
     placeholder.appendChild(el("p", "Loading…", "muted"));
     reserved.appendChild(placeholder);
 
-    var delivered = 0, known = 0n, unknown = 0;
+    // A file is delivered only once the job is (its COMMITTED.json makes the
+    // set visible); before that a published file is merely in place.
+    var committed = job.state === "Committed";
+    var delivered = 0, placed = 0, known = 0n, unknown = 0;
     d.files.forEach(function (f) {
-      if (f.phase === "Published" || f.phase === "SourceRemoved") { delivered++; }
+      if (f.phase === "Published" || f.phase === "SourceRemoved") { if (committed) { delivered++; } else { placed++; } }
       if (f.size_bytes === null) { unknown++; } else { known += BigInt(f.size_bytes); }
     });
     var files = el("div", null, "panel wide");
-    files.appendChild(el("h3", "Files · " + delivered + " of " + d.files.length + " delivered · " +
+    files.appendChild(el("h3", "Files · " + delivered + " of " + d.files.length + " delivered" +
+      (placed ? " · " + placed + " placed, delivery not confirmed" : "") + " · " +
       (unknown ? short(known) + " + " + unknown + " unmeasured" : short(known))));
     var table = el("table");
     var head = el("tr");
@@ -802,7 +827,9 @@
     d.files.forEach(function (f) {
       var tr = el("tr");
       tr.appendChild(el("td", f.name, "mono"));
-      tr.appendChild(el("td", FILE_STATUS[f.phase] || f.phase, null,
+      tr.appendChild(el("td", fileStatus(f, committed), null,
+        (fileStatus(f, committed) === UNCONFIRMED
+          ? "Recorded at its final name, but the job never confirmed delivery; it may since have been deleted. " : "") +
         "phase: " + f.phase + "; transfer: " + (f.transfer_phase === null ? "none" : f.transfer_phase)));
       tr.appendChild(el("td", f.size_bytes === null ? "Not measured" : short(f.size_bytes), null,
         f.size_bytes === null ? "Size unknown; not counted as zero" : f.size_bytes.toString() + " bytes"));
@@ -991,7 +1018,9 @@
           "Original files it already took over stay held on the source disk, and any partly delivered files stay at the destination. " +
           "This cannot be undone.";
       },
-      done: function (b) { return b && b.accepted_count !== undefined; }, outcome: cancelOutcome
+      done: function (b) { return b && b.accepted_count !== undefined; }, outcome: cancelOutcome,
+      // Accepted, or already in progress: an acknowledgement, not a refusal.
+      acknowledged: function (b) { return String(b.accepted_count) !== "0" || String(b.failed_count) !== "0"; }
     },
     "delete-data": {
       route: "/api/v2/admin/jobs/delete-data", ask: "Delete source files…", confirm: "Delete source files", keep: "Keep them",
@@ -1070,7 +1099,7 @@
   function askAction(action, jobId, job) {
     var key = action + ":" + jobId;
     var st = actionState[key] = actionState[key] || {};
-    st.sending = true; st.message = "Preparing confirmation…";
+    st.sending = true; st.message = "Preparing confirmation…"; st.ack = false;
     redrawAction(action, jobId, job);
     fetch("/api/v2/admin/jobs?confirm_action=" + action + "&job_ids=" + encodeURIComponent(jobId), {
       credentials: "same-origin", cache: "no-store",
@@ -1098,7 +1127,7 @@
       st.proof = null; st.message = "The confirmation expired. Start again.";
       redrawAction(action, jobId, job); return;
     }
-    st.sending = true; st.message = "Sending…";
+    st.sending = true; st.message = "Sending…"; st.ack = false;
     redrawAction(action, jobId, job);
     fetch(cfg.route, {
       method: "POST", credentials: "same-origin", cache: "no-store",
@@ -1115,6 +1144,7 @@
       st.proof = null;
       if (ok) {
         st.message = cfg.outcome(r.body);
+        st.ack = !!cfg.acknowledged && cfg.acknowledged(r.body);
       } else if (r.body && r.body.error === "invalid_confirmation") {
         st.message = "The confirmation expired or no longer matches. Start again.";
       } else if (r.body && r.body.error === "stale_confirmation") {
@@ -1348,7 +1378,7 @@
     fact(facts, "Files with unknown size", d.unmeasured_files.toString(), "unmeasured_files");
     var a = d.destination_attempts_by_phase;
     fact(facts, "Destination attempts", "Started " + a.Intent + " · Copied " + a.Copied + " · Verified " + a.Verified +
-      " · Publishing " + a.PublishIntent + " · Delivered " + a.Published, "destination_attempts_by_phase");
+      " · Publishing " + a.PublishIntent + " · In place " + a.Published, "destination_attempts_by_phase");
     target.appendChild(facts);
     target.appendChild(el("p", "When a job is accepted the mover takes over the sender's original files and holds them " +
       "on the source disk. It then delivers copies to the destination folder. Deleting the source files never touches the " +
@@ -1414,7 +1444,7 @@
       "confirmed_claims / source_claims: per-file acquisitions the mover recorded and confirmed");
     var a = d.destination_attempts_by_phase;
     fact(facts, "Destination attempts", "Started " + a.Intent + " · Copied " + a.Copied + " · Verified " + a.Verified +
-      " · Publishing " + a.PublishIntent + " · Delivered " + a.Published, "destination_attempts_by_phase");
+      " · Publishing " + a.PublishIntent + " · In place " + a.Published, "destination_attempts_by_phase");
     fact(facts, "Automatic space reclamation", d.automatic_reclamation_enabled ? "On" : "Off", "automatic_reclamation_enabled");
     var s = d.source_space_admission;
     if (s) {
