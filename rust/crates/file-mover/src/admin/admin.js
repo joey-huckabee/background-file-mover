@@ -164,6 +164,12 @@
     Pending: "Waiting", Claimed: "Acquired", Verified: "Verified",
     Published: "Delivered", SourceRemoved: "Delivered, source removed"
   };
+  // Published files of a job that never committed are at the destination but
+  // were never made visible to consumers: not "Delivered".
+  function fileStatus(f, committed) {
+    if (!committed && (f.phase === "Published" || f.phase === "SourceRemoved")) { return "In place, not delivered"; }
+    return FILE_STATUS[f.phase] || f.phase;
+  }
   function identityLabel(item) {
     return item.recording_id !== undefined ? ["Request ID", item.recording_id] : ["Legacy submission", item.submission_id];
   }
@@ -750,8 +756,12 @@
     if (actionPending("cancel", job.job_id) ||
         (job.state !== "Committed" && cancellation.state === "NotRequested")) {
       activity.appendChild(actionForm("cancel", job.job_id, job));
-    } else if (cst && cst.message) {
+    } else if (cst && cst.message && cancellation.state === "NotRequested") {
+      // e.g. "Nothing to cancel": the job was delivered meanwhile.
       activity.appendChild(el("p", cst.message, "muted"));
+    } else if (cst && !cst.proof && !cst.sending) {
+      // Pending/Cancelled: the status line above says it; drop the stale reply.
+      delete actionState["cancel:" + job.job_id];
     }
     if (d.deletion) {
       quietJob = false;
@@ -784,13 +794,17 @@
     placeholder.appendChild(el("p", "Loading…", "muted"));
     reserved.appendChild(placeholder);
 
-    var delivered = 0, known = 0n, unknown = 0;
+    // A file is delivered only once the job is (its COMMITTED.json makes the
+    // set visible); before that a published file is merely in place.
+    var committed = job.state === "Committed";
+    var delivered = 0, placed = 0, known = 0n, unknown = 0;
     d.files.forEach(function (f) {
-      if (f.phase === "Published" || f.phase === "SourceRemoved") { delivered++; }
+      if (f.phase === "Published" || f.phase === "SourceRemoved") { if (committed) { delivered++; } else { placed++; } }
       if (f.size_bytes === null) { unknown++; } else { known += BigInt(f.size_bytes); }
     });
     var files = el("div", null, "panel wide");
-    files.appendChild(el("h3", "Files · " + delivered + " of " + d.files.length + " delivered · " +
+    files.appendChild(el("h3", "Files · " + delivered + " of " + d.files.length + " delivered" +
+      (placed ? " · " + placed + " in place, not delivered" : "") + " · " +
       (unknown ? short(known) + " + " + unknown + " unmeasured" : short(known))));
     var table = el("table");
     var head = el("tr");
@@ -802,7 +816,7 @@
     d.files.forEach(function (f) {
       var tr = el("tr");
       tr.appendChild(el("td", f.name, "mono"));
-      tr.appendChild(el("td", FILE_STATUS[f.phase] || f.phase, null,
+      tr.appendChild(el("td", fileStatus(f, committed), null,
         "phase: " + f.phase + "; transfer: " + (f.transfer_phase === null ? "none" : f.transfer_phase)));
       tr.appendChild(el("td", f.size_bytes === null ? "Not measured" : short(f.size_bytes), null,
         f.size_bytes === null ? "Size unknown; not counted as zero" : f.size_bytes.toString() + " bytes"));
@@ -1348,7 +1362,7 @@
     fact(facts, "Files with unknown size", d.unmeasured_files.toString(), "unmeasured_files");
     var a = d.destination_attempts_by_phase;
     fact(facts, "Destination attempts", "Started " + a.Intent + " · Copied " + a.Copied + " · Verified " + a.Verified +
-      " · Publishing " + a.PublishIntent + " · Delivered " + a.Published, "destination_attempts_by_phase");
+      " · Publishing " + a.PublishIntent + " · In place " + a.Published, "destination_attempts_by_phase");
     target.appendChild(facts);
     target.appendChild(el("p", "When a job is accepted the mover takes over the sender's original files and holds them " +
       "on the source disk. It then delivers copies to the destination folder. Deleting the source files never touches the " +
@@ -1414,7 +1428,7 @@
       "confirmed_claims / source_claims: per-file acquisitions the mover recorded and confirmed");
     var a = d.destination_attempts_by_phase;
     fact(facts, "Destination attempts", "Started " + a.Intent + " · Copied " + a.Copied + " · Verified " + a.Verified +
-      " · Publishing " + a.PublishIntent + " · Delivered " + a.Published, "destination_attempts_by_phase");
+      " · Publishing " + a.PublishIntent + " · In place " + a.Published, "destination_attempts_by_phase");
     fact(facts, "Automatic space reclamation", d.automatic_reclamation_enabled ? "On" : "Off", "automatic_reclamation_enabled");
     var s = d.source_space_admission;
     if (s) {

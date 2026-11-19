@@ -131,6 +131,17 @@ console.log('byte formatting ok');
   console.log('clear confirmation wording ok');
 }
 
+// A published file is "Delivered" only once its job committed.
+{
+  const fsSrc = src.slice(src.indexOf('  var FILE_STATUS = '), src.indexOf('  function identityLabel('));
+  const fileStatus = new Function(fsSrc + '; return fileStatus;')();
+  assert.strictEqual(fileStatus({ phase: 'Published' }, true), 'Delivered');
+  assert.strictEqual(fileStatus({ phase: 'Published' }, false), 'In place, not delivered');
+  assert.strictEqual(fileStatus({ phase: 'SourceRemoved' }, false), 'In place, not delivered');
+  assert.strictEqual(fileStatus({ phase: 'Claimed' }, false), 'Acquired');
+  console.log('file status wording ok');
+}
+
 // Delete confirmation lists the files and warns for undelivered (only) copies.
 {
   const aSrc = src.slice(src.indexOf('  function cancelOutcome('), src.indexOf('  function readReply('));

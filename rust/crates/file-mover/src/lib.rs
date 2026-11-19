@@ -1189,10 +1189,16 @@ fn page_response(store: &Store, request: PageRequest) -> Response {
             // Dashboard row extension (approved 2026-11-12): file progress,
             // measured size, relative folders and the effective transfer mode.
             let files = view.details["files"].as_array().map(Vec::as_slice).unwrap_or(&[]);
-            let delivered = files
-                .iter()
-                .filter(|f| matches!(f["phase"].as_str(), Some("Published" | "SourceRemoved")))
-                .count();
+            // Delivered means visible to consumers: only once the job committed
+            // (a cancelled job's published files were never delivered).
+            let delivered = if status.job.recording.is_committed() {
+                files
+                    .iter()
+                    .filter(|f| matches!(f["phase"].as_str(), Some("Published" | "SourceRemoved")))
+                    .count()
+            } else {
+                0
+            };
             let measured: u128 = files.iter().filter_map(|f| f["size_bytes"].as_u64()).map(u128::from).sum();
             let unmeasured = files.iter().filter(|f| f["size_bytes"].is_null()).count();
             item["files_total"] = files.len().into();
