@@ -177,10 +177,17 @@ console.log('byte formatting ok');
   assert.strictEqual(needsAttention(cleaning), false);
   assert.strictEqual(needsAttention(failing), true);
   assert.strictEqual(needsAttention({ condition: 'ReviewRequired' }), true);
-  assert.strictEqual(sourceCleanupText(null, 2), null);
-  assert.match(sourceCleanupText({ removed: 2, failed: 0, enabled: true }, 2), /all 2 removed after verified delivery/);
-  assert.match(sourceCleanupText({ removed: 0, failed: 0, enabled: false }, 2), /0 of 2 removed; paused: move mode is off/);
-  assert.match(sourceCleanupText({ removed: 1, failed: 1, enabled: true, next_attempt_at: 90, last_error: 'discard.unlink errno=5' }, 2),
+  assert.strictEqual(sourceCleanupText(null, 2, 'CleanupPending'), null);
+  assert.match(sourceCleanupText({ removed: 2, failed: 0, enabled: true }, 2, 'Committed'), /all 2 removed after verified delivery/);
+  assert.match(sourceCleanupText({ removed: 0, failed: 0, enabled: false }, 2, 'CleanupPending'), /0 of 2 removed; paused: move mode is off/);
+  // Not delivered or cancelled: nothing is being removed.
+  for (const c of ['Cancelled', 'CancellationPending']) {
+    assert.match(sourceCleanupText({ removed: 0, failed: 0, enabled: true }, 2, c), /cancelled: its held source copies are not removed automatically/);
+  }
+  for (const c of ['Ready', 'Retrying', 'AwaitingClaims', 'ReviewRequired']) {
+    assert.match(sourceCleanupText({ removed: 0, failed: 0, enabled: true }, 2, c), /removed after verified delivery\.$/);
+  }
+  assert.match(sourceCleanupText({ removed: 1, failed: 1, enabled: true, next_attempt_at: 90, last_error: 'discard.unlink errno=5' }, 2, 'CleanupPending'),
     /1 of 2 removed; 1 retrying at T90 \(last error: discard\.unlink errno=5\)\. The delivered recording is not affected/);
   console.log('move mode wording ok');
 }

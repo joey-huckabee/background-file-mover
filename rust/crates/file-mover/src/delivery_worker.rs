@@ -1150,7 +1150,9 @@ pub fn worker() -> Result<()> {
     // Published finals verified in this session (file index, device, inode).
     let mut verified: Vec<(usize, (u64, u64))> = Vec::new();
     // Move mode set verification in this session: manifest, then files 0..
-    let mut manifest_verified = false;
+    // The verified manifest's required paths, in file order (None until a
+    // manifest was verified in this session).
+    let mut manifest_paths: Option<Vec<String>> = None;
     let mut finals_verified: usize = 0;
     let mut sequence = 0;
     while let Some(bytes) = child_frame(&mut channel)? {
@@ -1346,17 +1348,23 @@ pub fn worker() -> Result<()> {
                     };
                     let command = match command {
                         Operation::VerifyManifest { anchor, manifest } => {
-                            manifest_verified = false;
+                            manifest_paths = None;
                             finals_verified = 0;
                             let anchor = in_scope(*anchor)?;
                             let m = manifest.decode()?;
-                            mover_fs::verify_committed_manifest(&anchor, &m)?;
-                            manifest_verified = true;
+                            manifest_paths =
+                                Some(mover_fs::verify_committed_manifest(&anchor, &m)?);
                             return after(&mut checking_destination);
                         }
                         Operation::VerifyFinal { assignment } => {
                             let p = in_scope(*assignment)?;
-                            if !manifest_verified || p.file_index != finals_verified {
+                            // Exactly the manifest's next listed file.
+                            if manifest_paths
+                                .as_ref()
+                                .and_then(|paths| paths.get(p.file_index))
+                                != Some(&p.relative_name)
+                                || p.file_index != finals_verified
+                            {
                                 return Err("delivered set verified out of order".into());
                             }
                             mover_fs::verify_published_exact(&p)?;
@@ -1365,12 +1373,14 @@ pub fn worker() -> Result<()> {
                         }
                         Operation::RemoveSource { assignment, files } => {
                             let (t, c) = in_scope_claim(*assignment)?;
-                            // Only after the complete delivered set was verified
-                            // in this session, with custody held since.
-                            if !manifest_verified
-                                || files == 0
-                                || finals_verified != files
-                                || t.file_index >= files
+                            // Only after every file the verified manifest lists
+                            // was verified in this session, with custody held
+                            // since; the caller's count must agree, never decide.
+                            let required = manifest_paths.as_ref().map_or(0, Vec::len);
+                            if required == 0
+                                || finals_verified != required
+                                || files != required
+                                || t.file_index >= required
                             {
                                 return Err("delivered set not verified".into());
                             }

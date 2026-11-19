@@ -72,7 +72,9 @@ production host is a separate authorization (AGENTS.md).
   - The final step reads **Moved**, **Copied · removing source…** or
     **Copied · source cleanup retrying**, with a badge.
   - Activity shows "Source files: N of M removed" with paused or retrying
-    detail.
+    detail, only for a delivered move job. A cancelled move job says its
+    copies are not removed automatically; an undelivered one says removal
+    happens after verified delivery.
   - **Needs attention** includes move jobs whose cleanup has failed.
   - **Delete source files…** keeps today's rules (cancelled move jobs, move
     mode off).
@@ -105,10 +107,14 @@ production host is a separate authorization (AGENTS.md).
   - **another** file missing.
 
   An intact set passes, and verification changes nothing.
-- **Worker session** (`source_removal_requires_the_full_set_verified_in_the_same_session`):
-  removal alone, after the manifest only, or after the file only is refused
-  and the held copy stays. After the manifest and every file are verified it
-  succeeds, and the delivered file is untouched.
+- **Worker session** (`source_removal_requires_the_full_set_verified_in_the_same_session`),
+  on a two-file recording: the required set comes from the verified
+  manifest's own list, never the caller's count.
+  - Refused, held copy kept: removal alone; after the manifest only; after a
+    file only; after the manifest and file 0 with a claimed count of 1 or 2;
+    files out of order.
+  - Succeeds after the manifest and both files are verified; the delivered
+    files are untouched.
 - **Real service** (`move_mode_removes_held_copies_only_after_verified_delivery`):
   - **Move job:** delivered, then its held copy is removed automatically. The
     file reads `SourceRemoved`, the job `Committed`, and source reserved bytes
@@ -116,10 +122,12 @@ production host is a separate authorization (AGENTS.md).
     `COMMITTED.json` remain, and replay returns 202.
   - **Copy job:** restarted with move mode on, it keeps its copy.
   - **Move mode off:** a delivered move job waits as `CleanupPending` with
-    `enabled: false`, and a removal interrupted after authorization still
-    replays 202.
-  - **Move mode back on:** the paused job completes, and the interrupted one
-    is recorded Removed after the sync.
+    `enabled: false`. For a seeded recovery state (authorization recorded
+    directly in the store and the held copy removed, as an interruption
+    between unlink and result persistence would leave it), an exact replay
+    still returns 202.
+  - **Move mode back on:** the paused job completes, and the seeded one is
+    recorded Removed after the sync.
   - **Changed delivery:** a job whose delivered file was rewritten in place
     fails verification, keeps its good source copy, shows the failure with a
     retry time, and still replays 202.
@@ -129,6 +137,11 @@ production host is a separate authorization (AGENTS.md).
 - fmt and workspace clippy; contract checker.
 
 ## Not covered
+
+- No test interrupts a live cleanup worker between unlink and persistence.
+  The real-service test seeds the state such an interruption leaves
+  (authorized intent, copy gone), and the store tests cover each persisted
+  transition.
 
 - Production enablement and source cleanup on NFS sources (unqualified).
 - The retry itself is covered at store level (backoff, rediscovery after the

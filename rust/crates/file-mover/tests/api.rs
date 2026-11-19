@@ -1407,7 +1407,12 @@ fn source_removal_requires_the_full_set_verified_in_the_same_session() {
     provision_destination(&f);
     f.start();
     f.write("data", b"held copy");
-    assert_eq!(f.post(&f.input("verify-session", json!(["data"]))).0, 202);
+    f.write("more", b"second file");
+    assert_eq!(
+        f.post(&f.input("verify-session", json!(["data", "more"])))
+            .0,
+        202
+    );
     wait_manifest(&f, "1");
     f.stop();
     let guard = mover_fs::LocalClaimLock::acquire_bound(
@@ -1416,25 +1421,29 @@ fn source_removal_requires_the_full_set_verified_in_the_same_session() {
     )
     .unwrap();
     let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
-    let t = store.transfer(1, 0).unwrap().unwrap();
-    let claim = store.claim_intent(1, 0).unwrap().unwrap().0;
     let m = store.manifest(1).unwrap().unwrap();
-    let assignment = payload_assignment(&t, &claim);
-    let manifest = json!({"operation":"verify_manifest","anchor":assignment,"manifest":{
+    let assignment = |i: usize| {
+        let t = store.transfer(1, i).unwrap().unwrap();
+        let claim = store.claim_intent(1, i).unwrap().unwrap().0;
+        payload_assignment(&t, &claim)
+    };
+    let manifest = json!({"operation":"verify_manifest","anchor":assignment(0),"manifest":{
         "job_id":m.job_id,"bytes":m.bytes,"sha256":m.sha256,"phase":m.phase,
         "object":m.object.as_ref().map(mover_core::ObjectIdentity::encode)}});
-    let final_check = json!({"operation":"verify_final","assignment":assignment});
-    let remove = json!({"operation":"remove_source","assignment":assignment,"files":1});
+    let check = |i: usize| json!({"operation":"verify_final","assignment":assignment(i)});
+    let remove = |files: usize| json!({"operation":"remove_source","assignment":assignment(0),"files":files});
     let held = f.root.join("source/.file-mover/1-0/data");
     // Each run: the steps sent in one session; true = removal must succeed.
     for (steps, removes) in [
-        (vec![remove.clone()], false),
-        (vec![manifest.clone(), remove.clone()], false),
-        (vec![final_check.clone(), remove.clone()], false),
-        (
-            vec![manifest.clone(), final_check.clone(), remove.clone()],
-            true,
-        ),
+        (vec![remove(2)], false),
+        (vec![manifest.clone(), remove(2)], false),
+        (vec![check(0), remove(2)], false),
+        // The caller's count never decides: file 1 is still unverified.
+        (vec![manifest.clone(), check(0), remove(1)], false),
+        (vec![manifest.clone(), check(0), remove(2)], false),
+        // Out of order.
+        (vec![manifest.clone(), check(1)], false),
+        (vec![manifest.clone(), check(0), check(1), remove(2)], true),
     ] {
         let (mut child, mut channel) = effect_child(&guard, &guard, "--internal-delivery-worker");
         let opened = session_authorized_reply(
@@ -1465,6 +1474,10 @@ fn source_removal_requires_the_full_set_verified_in_the_same_session() {
     assert_eq!(
         std::fs::read(f.destination("1", "data")).unwrap(),
         b"held copy"
+    );
+    assert_eq!(
+        std::fs::read(f.destination("1", "more")).unwrap(),
+        b"second file"
     );
 }
 fn transfer_from_wire(t: &Value) -> mover_core::Transfer {

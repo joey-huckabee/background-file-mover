@@ -794,7 +794,7 @@
       // The job's own status line says it now: drop the stale reply.
       delete actionState["cancel:" + job.job_id];
     }
-    var sc = sourceCleanupText(d.source_cleanup, d.files.length);
+    var sc = sourceCleanupText(d.source_cleanup, d.files.length, d.condition);
     if (sc) {
       quietJob = false;
       activity.appendChild(el("p", sc, d.condition === "CleanupPending" && String(d.source_cleanup.failed) !== "0" ? "notice" : "muted",
@@ -1023,10 +1023,17 @@
     if (String(counts.failed_count) !== "0") { return "A cancellation is already in progress for this job."; }
     return "Nothing to cancel: the job is already delivered, cancelled or no longer tracked.";
   }
-  // Move mode progress for the Activity panel (null for copy jobs).
-  function sourceCleanupText(sc, total) {
+  // Move mode progress for the Activity panel (null for copy jobs). Only a
+  // delivered move job (CleanupPending) is actually being cleaned up.
+  function sourceCleanupText(sc, total, condition) {
     if (!sc) { return null; }
     var removed = Number(sc.removed);
+    if (condition === "Cancelled" || condition === "CancellationPending") {
+      return "Move job cancelled: its held source copies are not removed automatically (Delete source files… removes them).";
+    }
+    if (condition !== "CleanupPending" && condition !== "Committed") {
+      return "Move: the held source copies are removed after verified delivery.";
+    }
     if (removed === total) { return "Source files: all " + total + " removed after verified delivery (move)."; }
     var text = "Source files: " + removed + " of " + total + " removed";
     if (sc.enabled === false) { return text + "; paused: move mode is off. The held copies stay until it is turned back on."; }
