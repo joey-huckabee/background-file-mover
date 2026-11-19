@@ -134,12 +134,24 @@ console.log('byte formatting ok');
 // A published file is "Delivered" only once its job committed.
 {
   const fsSrc = src.slice(src.indexOf('  var FILE_STATUS = '), src.indexOf('  function identityLabel('));
-  const fileStatus = new Function(fsSrc + '; return fileStatus;')();
+  const { fileStatus, cancelReplyText } = new Function(fsSrc + '; return { fileStatus: fileStatus, cancelReplyText: cancelReplyText };')();
   assert.strictEqual(fileStatus({ phase: 'Published' }, true), 'Delivered');
-  assert.strictEqual(fileStatus({ phase: 'Published' }, false), 'In place, not delivered');
-  assert.strictEqual(fileStatus({ phase: 'SourceRemoved' }, false), 'In place, not delivered');
+  assert.strictEqual(fileStatus({ phase: 'Published' }, false), 'Placed, delivery not confirmed');
+  assert.strictEqual(fileStatus({ phase: 'SourceRemoved' }, false), 'Placed, delivery not confirmed');
   assert.strictEqual(fileStatus({ phase: 'Claimed' }, false), 'Acquired');
   console.log('file status wording ok');
+  // Cancel reply: refusals stay; acknowledgements yield to the job's status.
+  const ack = { message: 'Cancelling: the mover is stopping work on this job.', ack: true };
+  const noop = { message: 'Nothing to cancel: the job is already delivered, cancelled or no longer tracked.', ack: false };
+  const none = { state: 'NotRequested' };
+  assert.strictEqual(cancelReplyText(ack, { state: 'Claimed' }, { state: 'Cancelled' }), null);
+  assert.strictEqual(cancelReplyText(ack, { state: 'Claimed' }, { state: 'Pending' }), null);
+  // Delivery committed first: the cancellation was dropped.
+  assert.strictEqual(cancelReplyText(ack, { state: 'Committed' }, none), 'The job was delivered before the cancellation took effect.');
+  assert.strictEqual(cancelReplyText(noop, { state: 'Committed' }, none), noop.message);
+  assert.strictEqual(cancelReplyText({ message: 'x', proof: 'p' }, { state: 'Claimed' }, none), null);
+  assert.strictEqual(cancelReplyText(undefined, { state: 'Claimed' }, none), null);
+  console.log('cancel reply ok');
 }
 
 // Delete confirmation lists the files and warns for undelivered (only) copies.
