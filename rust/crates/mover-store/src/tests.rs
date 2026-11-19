@@ -1911,8 +1911,13 @@ fn sqlite_native_open_refuses_database_symlink() {
 }
 
 fn history_job(store: &Store, name: &str, phase: i64) -> Accepted {
+    history_job_with(store, name, phase, false)
+}
+/// `moving`: accepted in move mode (`delete_source_after_commit`).
+fn history_job_with(store: &Store, name: &str, phase: i64, moving: bool) -> Accepted {
     let mut c = context();
     c.policy.group_by_generator = false;
+    c.policy.delete_source_after_commit = moving;
     c.destination_binding = Some("history-destination".into());
     let submission = Submission::new(
         "g",
@@ -2217,7 +2222,7 @@ fn compatibility_checks_all_unsupported_versions_without_initializing() {
     );
     std::fs::remove_file(recovery).unwrap();
     drop(Store::open(f.db()).unwrap());
-    for version in (1..=16).chain([18, 99]) {
+    for version in (1..=17).chain([19, 99]) {
         let c = Connection::open(f.db()).unwrap();
         c.pragma_update(None, "user_version", version).unwrap();
         drop(c);
@@ -2369,6 +2374,10 @@ fn schema_twelve_rebuilt_fixture_preserves_legacy_rows_indices_and_next_id() {
         .unwrap()
         .upgrade_destination_deletions(f.db(), |_| Ok(()))
         .unwrap();
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_source_cleanups(f.db(), |_| Ok(()))
+        .unwrap();
     Store::check_compatibility(f.db(), false).unwrap();
     let store = Store::open(f.db()).unwrap();
     let job = store.get(7).unwrap().unwrap();
@@ -2444,6 +2453,10 @@ fn schema_twelve_empty_rebuild_preserves_unallocated_and_cleared_sequences() {
         StateInspection::open(f.db())
             .unwrap()
             .upgrade_destination_deletions(f.db(), |_| Ok(()))
+            .unwrap();
+        StateInspection::open(f.db())
+            .unwrap()
+            .upgrade_source_cleanups(f.db(), |_| Ok(()))
             .unwrap();
         let store = Store::open(f.db()).unwrap();
         assert_eq!(
@@ -2714,6 +2727,7 @@ fn migration_history_fixture(path: &Path) {
             || table == "cancellations"
             || table.starts_with("deletion_")
             || table.starts_with("destination_deletion_")
+            || table == "source_cleanups"
         {
             assert!(
                 values.is_empty(),
@@ -2777,6 +2791,10 @@ fn explicit_migration_preserves_all_tables_manifest_phases_replay_and_high_water
     StateInspection::open(f.db())
         .unwrap()
         .upgrade_destination_deletions(f.db(), |_| Ok(()))
+        .unwrap();
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_source_cleanups(f.db(), |_| Ok(()))
         .unwrap();
     assert_eq!(summary.schema_version, 13);
     let target = Connection::open(f.db()).unwrap();
@@ -2874,6 +2892,10 @@ fn explicit_migration_preserves_empty_sequence_absence_and_cleared_high_water() 
         StateInspection::open(f.db())
             .unwrap()
             .upgrade_destination_deletions(f.db(), |_| Ok(()))
+            .unwrap();
+        StateInspection::open(f.db())
+            .unwrap()
+            .upgrade_source_cleanups(f.db(), |_| Ok(()))
             .unwrap();
         assert_eq!(
             Store::open(f.db())
@@ -3318,7 +3340,7 @@ fn schema_twelve_requires_the_guarded_receipt_upgrade() {
     // Reconstruct a schema-12 database: same rows, no receipt tables.
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
-        "DROP TABLE destination_deletion_targets; DROP TABLE deletion_targets; DROP TABLE deletion_passes; DROP TABLE cancellations; DROP TABLE job_problems; DROP TABLE retry_outcomes; DROP TABLE retry_contexts; PRAGMA user_version=12;",
+        "DROP TABLE source_cleanups; DROP TABLE destination_deletion_targets; DROP TABLE deletion_targets; DROP TABLE deletion_passes; DROP TABLE cancellations; DROP TABLE job_problems; DROP TABLE retry_outcomes; DROP TABLE retry_contexts; PRAGMA user_version=12;",
     )
     .unwrap();
     drop(c);
@@ -3367,6 +3389,10 @@ fn schema_twelve_requires_the_guarded_receipt_upgrade() {
         .unwrap()
         .upgrade_destination_deletions(f.db(), |_| Ok(()))
         .unwrap();
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_source_cleanups(f.db(), |_| Ok(()))
+        .unwrap();
     assert_eq!(summary.schema_version, 14);
     let s = Store::open(f.db()).unwrap();
     assert_eq!(s.status(j.job_id).unwrap().unwrap().delivery.unwrap().0, 3);
@@ -3374,7 +3400,7 @@ fn schema_twelve_requires_the_guarded_receipt_upgrade() {
     drop(s);
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
-        "DROP TABLE destination_deletion_targets; DROP TABLE deletion_targets; DROP TABLE deletion_passes; DROP TABLE cancellations; DROP TABLE job_problems; DROP TABLE retry_outcomes; DROP TABLE retry_contexts; PRAGMA user_version=12;",
+        "DROP TABLE source_cleanups; DROP TABLE destination_deletion_targets; DROP TABLE deletion_targets; DROP TABLE deletion_passes; DROP TABLE cancellations; DROP TABLE job_problems; DROP TABLE retry_outcomes; DROP TABLE retry_contexts; PRAGMA user_version=12;",
     )
     .unwrap();
     drop(c);
@@ -3578,7 +3604,7 @@ fn schema_thirteen_requires_the_guarded_problem_upgrade_and_snapshots_cover_it()
     drop(state);
     // Reconstruct schema 13: same rows, no problem table.
     let c = Connection::open(f.db()).unwrap();
-    c.execute_batch("DROP TABLE destination_deletion_targets; DROP TABLE deletion_targets; DROP TABLE deletion_passes; DROP TABLE cancellations; DROP TABLE job_problems; PRAGMA user_version=13;")
+    c.execute_batch("DROP TABLE source_cleanups; DROP TABLE destination_deletion_targets; DROP TABLE deletion_targets; DROP TABLE deletion_passes; DROP TABLE cancellations; DROP TABLE job_problems; PRAGMA user_version=13;")
         .unwrap();
     drop(c);
     assert!(matches!(
@@ -3635,6 +3661,10 @@ fn schema_thirteen_requires_the_guarded_problem_upgrade_and_snapshots_cover_it()
     StateInspection::open(f.db())
         .unwrap()
         .upgrade_destination_deletions(f.db(), |_| Ok(()))
+        .unwrap();
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_source_cleanups(f.db(), |_| Ok(()))
         .unwrap();
     let s = Store::open(f.db()).unwrap();
     let status = s.status(j.job_id).unwrap().unwrap();
@@ -3888,7 +3918,7 @@ fn schema_fourteen_requires_the_guarded_cancellation_upgrade_and_snapshots_cover
     drop(state);
     // Reconstruct schema 14 without any cancellation.
     let c = Connection::open(f.db()).unwrap();
-    c.execute_batch("DROP TABLE destination_deletion_targets; DROP TABLE deletion_targets; DROP TABLE deletion_passes; DELETE FROM cancellations; DROP TABLE cancellations; PRAGMA user_version=14;")
+    c.execute_batch("DROP TABLE source_cleanups; DROP TABLE destination_deletion_targets; DROP TABLE deletion_targets; DROP TABLE deletion_passes; DELETE FROM cancellations; DROP TABLE cancellations; PRAGMA user_version=14;")
         .unwrap();
     drop(c);
     assert!(matches!(
@@ -3931,6 +3961,10 @@ fn schema_fourteen_requires_the_guarded_cancellation_upgrade_and_snapshots_cover
     StateInspection::open(f.db())
         .unwrap()
         .upgrade_destination_deletions(f.db(), |_| Ok(()))
+        .unwrap();
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_source_cleanups(f.db(), |_| Ok(()))
         .unwrap();
     let s = Store::open(f.db()).unwrap();
     assert_eq!(cancel_state(&s, j.job_id), None);
@@ -4317,7 +4351,7 @@ fn schema_fifteen_requires_the_guarded_deletion_upgrade_and_snapshots_cover_it()
     drop(state);
     let c = Connection::open(f.db()).unwrap();
     c.execute_batch(
-        "DROP TABLE destination_deletion_targets; DROP TABLE deletion_targets; DROP TABLE deletion_passes; PRAGMA user_version=15;",
+        "DROP TABLE source_cleanups; DROP TABLE destination_deletion_targets; DROP TABLE deletion_targets; DROP TABLE deletion_passes; PRAGMA user_version=15;",
     )
     .unwrap();
     drop(c);
@@ -4342,6 +4376,10 @@ fn schema_fifteen_requires_the_guarded_deletion_upgrade_and_snapshots_cover_it()
     StateInspection::open(f.db())
         .unwrap()
         .upgrade_destination_deletions(f.db(), |_| Ok(()))
+        .unwrap();
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_source_cleanups(f.db(), |_| Ok(()))
         .unwrap();
     let s = Store::open(f.db()).unwrap();
     assert_eq!(s.status(j.job_id).unwrap().unwrap().deletion, None);
@@ -4387,7 +4425,7 @@ fn schema_sixteen_requires_the_guarded_destination_deletion_upgrade_and_snapshot
     assert!(state.verify_snapshot(&backup).is_err());
     drop(state);
     let c = Connection::open(f.db()).unwrap();
-    c.execute_batch("DROP TABLE destination_deletion_targets; PRAGMA user_version=16;")
+    c.execute_batch("DROP TABLE source_cleanups; DROP TABLE destination_deletion_targets; PRAGMA user_version=16;")
         .unwrap();
     drop(c);
     assert!(matches!(
@@ -4410,6 +4448,10 @@ fn schema_sixteen_requires_the_guarded_destination_deletion_upgrade_and_snapshot
         .upgrade_destination_deletions(f.db(), |_| Ok(()))
         .unwrap();
     assert_eq!(summary.schema_version, 17);
+    StateInspection::open(f.db())
+        .unwrap()
+        .upgrade_source_cleanups(f.db(), |_| Ok(()))
+        .unwrap();
     // The source pass survived; the new table starts empty, so the
     // superseded attempt is offered for automatic cleanup again.
     let s = Store::open(f.db()).unwrap();
@@ -4601,4 +4643,223 @@ fn an_older_confirmation_never_starts_a_later_pass() {
             ..
         })
     ));
+}
+
+#[test]
+fn move_mode_cleans_committed_move_jobs_with_intent_before_effect() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt")
+        .unwrap();
+    let copy = history_job(&s, "move-copy", 4);
+    let unfinished = history_job_with(&s, "move-unfinished", 3, true);
+    let moving = history_job_with(&s, "move-done", 4, true);
+    // Only the committed move job is offered (copy jobs and jobs whose
+    // manifest is not committed never are).
+    let work = s.next_source_cleanup(100, 16).unwrap().unwrap();
+    assert_eq!((work.job_id, work.files.clone()), (moving.job_id, vec![0]));
+    assert_eq!(work.published.len(), 1);
+    assert_eq!(work.manifest.phase, 4);
+    assert!(s.source_cleanup_eligible(&work, 100).unwrap());
+    let status = s.status(moving.job_id).unwrap().unwrap();
+    assert_eq!(
+        status.source_cleanup,
+        Some(SourceCleanupView {
+            removed: 0,
+            pending: 1,
+            failed: 0,
+            next_attempt_at: None,
+            last_error: None
+        })
+    );
+    assert_eq!(s.status(copy.job_id).unwrap().unwrap().source_cleanup, None);
+    // Intent before effect: replay treats the copy as released from then on.
+    assert!(!s.retained_copy_released(moving.job_id, 0).unwrap());
+    // Removed cannot be recorded without authorized intent.
+    assert!(
+        s.finish_source_cleanup(moving.job_id, &[(0, None)], 101)
+            .is_err()
+    );
+    s.authorize_source_cleanup(moving.job_id, 0, 101).unwrap();
+    assert!(s.retained_copy_released(moving.job_id, 0).unwrap());
+    let before = s
+        .retention(Some(moving.job_id))
+        .unwrap()
+        .unwrap()
+        .source_reserved_bytes;
+    assert!(before > 0);
+    s.finish_source_cleanup(moving.job_id, &[(0, None)], 102)
+        .unwrap();
+    let job = s.get(moving.job_id).unwrap().unwrap();
+    assert_eq!(
+        job.recording.file_phase(0),
+        Some(mover_core::FilePhase::SourceRemoved)
+    );
+    assert_eq!(
+        s.retention(Some(moving.job_id))
+            .unwrap()
+            .unwrap()
+            .source_reserved_bytes,
+        0
+    );
+    assert_eq!(
+        s.status(moving.job_id)
+            .unwrap()
+            .unwrap()
+            .source_cleanup
+            .unwrap()
+            .removed,
+        1
+    );
+    // Done: nothing more offered; recording a result twice is refused.
+    assert!(s.next_source_cleanup(200, 16).unwrap().is_none());
+    assert!(
+        s.finish_source_cleanup(moving.job_id, &[(0, None)], 103)
+            .is_err()
+    );
+    // The manual action no longer offers the removed copy.
+    let (manual, _) = s
+        .deletion_preview(moving.job_id, DeletionScope::Source)
+        .unwrap()
+        .unwrap();
+    assert!(manual.is_empty());
+    drop(unfinished);
+}
+
+#[test]
+fn move_mode_failures_keep_authorization_distinct_and_back_off() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt")
+        .unwrap();
+    let j = history_job_with(&s, "move-fail", 4, true);
+    assert_eq!(
+        (1..=9).map(backoff_seconds).collect::<Vec<_>>(),
+        vec![30, 60, 120, 240, 480, 960, 1920, 3600, 3600]
+    );
+    // Failure before authorization (set verification): custody still required.
+    s.finish_source_cleanup(
+        j.job_id,
+        &[(0, Some("delivered recording changed".into()))],
+        100,
+    )
+    .unwrap();
+    assert!(!s.retained_copy_released(j.job_id, 0).unwrap());
+    let view = s.status(j.job_id).unwrap().unwrap().source_cleanup.unwrap();
+    assert_eq!((view.failed, view.next_attempt_at), (1, Some(130)));
+    assert_eq!(
+        view.last_error.as_deref(),
+        Some("delivered recording changed")
+    );
+    assert!(
+        s.next_source_cleanup(129, 16).unwrap().is_none(),
+        "backing off"
+    );
+    let work = s.next_source_cleanup(130, 16).unwrap().unwrap();
+    // Failure after authorization: the copy may be gone, replay must not
+    // require it; the flag never goes back.
+    s.authorize_source_cleanup(work.job_id, 0, 130).unwrap();
+    s.finish_source_cleanup(j.job_id, &[(0, Some("discard.unlink errno=5".into()))], 131)
+        .unwrap();
+    assert!(s.retained_copy_released(j.job_id, 0).unwrap());
+    let view = s.status(j.job_id).unwrap().unwrap().source_cleanup.unwrap();
+    assert_eq!(view.next_attempt_at, Some(131 + 60));
+    s.finish_source_cleanup(j.job_id, &[(0, Some("again".into()))], 200)
+        .unwrap();
+    assert!(s.retained_copy_released(j.job_id, 0).unwrap(), "monotonic");
+    // A confirmed deletion pass blocks automatic cleanup while active.
+    let digest = digest_of(&s, j.job_id);
+    s.start_deletion(
+        j.job_id,
+        DeletionScope::Source,
+        "op",
+        &"a".repeat(64),
+        &digest,
+        300,
+    )
+    .unwrap();
+    assert!(s.next_source_cleanup(10_000, 16).unwrap().is_none());
+}
+
+#[test]
+fn move_mode_admission_recheck_loses_to_history_clear() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt")
+        .unwrap();
+    // Clear first: discovered, then forgotten before the worker starts.
+    let raced = history_job_with(&s, "move-raced", 4, true);
+    let work = s.next_source_cleanup(100, 16).unwrap().unwrap();
+    assert_eq!(work.job_id, raced.job_id);
+    assert_eq!(
+        s.admin_clear(raced.job_id, |_| false).unwrap(),
+        ClearOutcome::Cleared
+    );
+    assert!(!s.source_cleanup_eligible(&work, 100).unwrap());
+    assert!(s.authorize_source_cleanup(raced.job_id, 0, 100).is_err());
+    // Cleanup first: while the job is busy, clear is refused.
+    let held = history_job_with(&s, "move-held", 4, true);
+    let work = s.next_source_cleanup(100, 16).unwrap().unwrap();
+    assert!(s.source_cleanup_eligible(&work, 100).unwrap());
+    s.authorize_source_cleanup(held.job_id, 0, 100).unwrap();
+    let busy = held.job_id;
+    assert_eq!(
+        s.admin_clear(held.job_id, move |j| j == busy).unwrap(),
+        ClearOutcome::Busy
+    );
+    s.finish_source_cleanup(held.job_id, &[(0, None)], 101)
+        .unwrap();
+    assert_eq!(
+        s.admin_clear(held.job_id, |_| false).unwrap(),
+        ClearOutcome::Cleared
+    );
+}
+
+#[test]
+fn schema_seventeen_requires_the_guarded_source_cleanup_upgrade_and_snapshots_cover_it() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt")
+        .unwrap();
+    let j = history_job_with(&s, "move-upgrade", 4, true);
+    s.authorize_source_cleanup(j.job_id, 0, 100).unwrap();
+    drop(s);
+    let state = StateInspection::open(f.db()).unwrap();
+    let backup = f.0.join("source-cleanups.sqlite");
+    state.snapshot_into(backup.to_str().unwrap()).unwrap();
+    state.verify_snapshot(&backup).unwrap();
+    let c = Connection::open(&backup).unwrap();
+    assert_eq!(
+        c.execute("UPDATE source_cleanups SET attempts=7", [])
+            .unwrap(),
+        1
+    );
+    drop(c);
+    assert!(state.verify_snapshot(&backup).is_err());
+    drop(state);
+    let c = Connection::open(f.db()).unwrap();
+    c.execute_batch("DROP TABLE source_cleanups; PRAGMA user_version=17;")
+        .unwrap();
+    drop(c);
+    assert!(matches!(
+        Store::open(f.db()),
+        Err(StoreError::MigrationRequired)
+    ));
+    let state = StateInspection::open(f.db()).unwrap();
+    assert!(
+        state
+            .upgrade_source_cleanups(f.db(), |stage| if stage == "before_commit" {
+                Err(std::io::Error::other("injected"))
+            } else {
+                Ok(())
+            })
+            .is_err()
+    );
+    let state = StateInspection::open(f.db()).unwrap();
+    assert_eq!(state.summary().schema_version, 17);
+    let summary = state.upgrade_source_cleanups(f.db(), |_| Ok(())).unwrap();
+    assert_eq!(summary.schema_version, 18);
+    // The table starts empty: the file is offered again.
+    let s = Store::open(f.db()).unwrap();
+    assert!(s.next_source_cleanup(100, 16).unwrap().is_some());
 }

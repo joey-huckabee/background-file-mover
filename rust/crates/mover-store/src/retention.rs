@@ -23,7 +23,9 @@ pub(crate) fn reserved_bytes(c: &Connection, destination: bool, id: Option<i64>)
         // Deliberately deleted retained copies no longer occupy source space.
         "SELECT c.source_identity FROM claims c WHERE (?1 IS NULL OR c.job_id=?1) AND NOT EXISTS(\
          SELECT 1 FROM deletion_targets d WHERE d.job_id=c.job_id AND d.file_index=c.file_index \
-         AND d.kind='RetainedSource' AND d.state='Deleted')"
+         AND d.kind='RetainedSource' AND d.state='Deleted') AND NOT EXISTS(\
+         SELECT 1 FROM source_cleanups s WHERE s.job_id=c.job_id AND s.file_index=c.file_index \
+         AND s.state='Removed')"
     };
     let mut s = c.prepare(sql)?;
     let mut total = 0_u128;

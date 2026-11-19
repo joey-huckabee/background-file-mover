@@ -156,6 +156,8 @@ fn source_targets(tx: &Connection, id: i64) -> Result<Vec<(DeleteTarget, String)
          JOIN files f ON f.job_id=c.job_id AND f.file_index=c.file_index \
          WHERE c.job_id=?1 AND c.done=1 AND NOT EXISTS(SELECT 1 FROM deletion_targets d \
          WHERE d.job_id=c.job_id AND d.file_index=c.file_index AND d.kind='RetainedSource' AND d.state='Deleted') \
+         AND NOT EXISTS(SELECT 1 FROM source_cleanups s WHERE s.job_id=c.job_id AND s.file_index=c.file_index \
+         AND s.state='Removed') \
          ORDER BY c.file_index",
     )?;
     let rows = s
@@ -744,9 +746,12 @@ impl Store {
     /// after an uncertain failure, so replay validation must not require it.
     pub fn retained_copy_released(&self, job_id: i64, file_index: usize) -> Result<bool> {
         self.call(move |db| {
+            // A confirmed deletion targeted it, or move mode authorized its
+            // removal (monotonic `authorized`; schema 18).
             Ok(db.connection.query_row(
                 "SELECT EXISTS(SELECT 1 FROM deletion_targets WHERE job_id=?1 AND file_index=?2 \
-                 AND kind='RetainedSource')",
+                 AND kind='RetainedSource') OR EXISTS(SELECT 1 FROM source_cleanups \
+                 WHERE job_id=?1 AND file_index=?2 AND authorized=1)",
                 params![job_id, file_index as i64],
                 |r| r.get(0),
             )?)

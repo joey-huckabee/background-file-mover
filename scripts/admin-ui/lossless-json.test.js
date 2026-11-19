@@ -158,6 +158,33 @@ console.log('byte formatting ok');
   console.log('cancel reply ok');
 }
 
+// Move mode wording: progress step, attention and activity text.
+{
+  const head = src.slice(src.indexOf('  var ATTENTION = '), src.indexOf('  var ACTIVITY = '));
+  const fs2 = src.slice(src.indexOf('  function finalStep('), src.indexOf('  function progress('));
+  const sct = src.slice(src.indexOf('  // Move mode progress for the Activity panel'), src.indexOf('  function deleteOutcome('));
+  const time = t => 'T' + t;
+  const { attentionOf, needsAttention, finalStep, sourceCleanupText } = new Function('time',
+    head + fs2 + sct + '; return { attentionOf: attentionOf, needsAttention: needsAttention, finalStep: finalStep, sourceCleanupText: sourceCleanupText };')(time);
+  const cleaning = { condition: 'CleanupPending', source_cleanup_failed: false };
+  const failing = { condition: 'CleanupPending', source_cleanup_failed: true };
+  assert.strictEqual(finalStep('Copy', cleaning), 'Copied');
+  assert.strictEqual(finalStep('Move', { condition: 'Committed' }), 'Moved');
+  assert.strictEqual(finalStep('Move', cleaning), 'Copied · removing source…');
+  assert.strictEqual(finalStep('Move', failing), 'Copied · source cleanup retrying');
+  assert.deepStrictEqual(attentionOf(cleaning), ['Removing source', 'blue']);
+  assert.deepStrictEqual(attentionOf(failing), ['Source cleanup retrying', 'amber']);
+  assert.strictEqual(needsAttention(cleaning), false);
+  assert.strictEqual(needsAttention(failing), true);
+  assert.strictEqual(needsAttention({ condition: 'ReviewRequired' }), true);
+  assert.strictEqual(sourceCleanupText(null, 2), null);
+  assert.match(sourceCleanupText({ removed: 2, failed: 0, enabled: true }, 2), /all 2 removed after verified delivery/);
+  assert.match(sourceCleanupText({ removed: 0, failed: 0, enabled: false }, 2), /0 of 2 removed; paused: move mode is off/);
+  assert.match(sourceCleanupText({ removed: 1, failed: 1, enabled: true, next_attempt_at: 90, last_error: 'discard.unlink errno=5' }, 2),
+    /1 of 2 removed; 1 retrying at T90 \(last error: discard\.unlink errno=5\)\. The delivered recording is not affected/);
+  console.log('move mode wording ok');
+}
+
 // Delete confirmation lists the files and warns for undelivered (only) copies.
 {
   const aSrc = src.slice(src.indexOf('  function cancelOutcome('), src.indexOf('  function readReply('));

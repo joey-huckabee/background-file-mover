@@ -48,7 +48,7 @@ fn same_object(fd: &OwnedFd, expected: &ObjectIdentity) -> Result<()> {
 }
 
 /// Open an existing name, or `None` when absent.
-fn open_existing(dir: &OwnedFd, name: &str) -> Result<Option<OwnedFd>> {
+pub(super) fn open_existing(dir: &OwnedFd, name: &str) -> Result<Option<OwnedFd>> {
     match fs::openat(dir, name, FILE, Mode::empty()) {
         Ok(fd) => Ok(Some(fd)),
         Err(Errno::NOENT) => Ok(None),
@@ -56,7 +56,7 @@ fn open_existing(dir: &OwnedFd, name: &str) -> Result<Option<OwnedFd>> {
     }
 }
 
-fn open_directory(dir: &OwnedFd, name: &str) -> Result<Option<OwnedFd>> {
+pub(super) fn open_directory(dir: &OwnedFd, name: &str) -> Result<Option<OwnedFd>> {
     match fs::openat(dir, name, DIRECTORY, Mode::empty()) {
         Ok(fd) => Ok(Some(fd)),
         Err(Errno::NOENT) => Ok(None),
@@ -90,7 +90,7 @@ fn ancestors(area: &OwnedFd, t: &Transfer) -> Result<Option<Chain>> {
 }
 
 /// The final name's parent folder (the area itself for a top-level name).
-fn final_parent(area: &OwnedFd, t: &Transfer) -> Result<Option<OwnedFd>> {
+pub(super) fn final_parent(area: &OwnedFd, t: &Transfer) -> Result<Option<OwnedFd>> {
     match ancestors(area, t)? {
         None => Ok(None),
         Some(chain) => match chain.into_iter().last() {
@@ -104,7 +104,7 @@ fn final_parent(area: &OwnedFd, t: &Transfer) -> Result<Option<OwnedFd>> {
     }
 }
 
-fn final_name(t: &Transfer) -> &str {
+pub(super) fn final_name(t: &Transfer) -> &str {
     t.relative_name.rsplit('/').next().unwrap_or_default()
 }
 

@@ -1,4 +1,10 @@
-# Offline state migration (schema 11-16 to schema 17)
+# Offline state migration (schema 11-17 to schema 18)
+
+**Update, [increment 162](RUST-INCREMENT-162.md):** the current schema is 18. The
+same `--migrate-state` command converts 17 -> 18 (it adds the empty
+`source_cleanups` table for move mode) and chains 11 -> ... -> 18. Preview
+reports `target_schema: 18`; checkpoint names for the new step are
+`source_cleanups_*`.
 
 **Update, [increment 160](RUST-INCREMENT-160.md):** the current schema is 17. The
 same `--migrate-state` command converts 16 -> 17 (it adds the empty
@@ -68,7 +74,7 @@ See [increment 115](RUST-INCREMENT-115.md) for actual qualification and limits.
 
    No backup directory or job-data changes are made. Local guard/lifetime
    metadata may be written. Schemas 11 and 12 report conversion_required:true;
-   current schema 17 reports false (13-16 report true). Preview does not prove free capacity,
+   current schema 18 reports false (13-17 report true). Preview does not prove free capacity,
    output-parent permissions or successful writes; apply checks these again.
 5. Apply explicitly, using that same unused directory:
 

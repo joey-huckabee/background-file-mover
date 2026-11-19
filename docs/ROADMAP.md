@@ -57,10 +57,11 @@ dashboard remain unfinished. Packaging is not the next dashboard milestone.
   unfinished destination data ([design](dashboard/DESTINATION-DELETION-DESIGN.md);
   [160](RUST-INCREMENT-160.md)). Remaining: UI revisit against the original
   mockup.
-- [ ] **Move mode (user request 2026-11-18):** a recording submitted as a move
-  deletes the mover's held source copy after verified delivery; a copy keeps
-  it. Needs its own design, approval and separate authorization for source
-  deletion (today `delete_source_after_commit` stays false).
+- [x] **Move mode (user request 2026-11-18):** a move removes the mover's held
+  source copies after verified delivery; a copy keeps them. Service setting
+  `delete_source_after_commit`, default off ([design](MOVE-MODE-DESIGN.md),
+  [increment 162](RUST-INCREMENT-162.md)). Enabling it on a production host
+  remains a separate authorization.
 - [x] **Multiple admin browser connections (user request 2026-11-12, soon):**
   done in [increment135](RUST-INCREMENT-135.md): four admin connections, one
   global slot always reserved for the private operator.
@@ -186,9 +187,11 @@ Encode the required UUID recording_id; finalize lexical canonicalization. Preser
 - [ ] P06-07: Close remaining capacity and shipping-profile lifecycle cells;
   preserve existing-job retries, bounded queues/workers, default-off admission,
   configurable default-60 shutdown and exclusion through actual worker exit.
-- [ ] P08: Implement independently recoverable postcommit source cleanup after
+- [x] P08: Implement independently recoverable postcommit source cleanup after
   its safety prerequisites pass. Require job policy/current authorization and
-  verified receipts; default off, production deletion still disabled.
+  verified receipts; default off, production deletion still disabled. Done in
+  [increment 162](RUST-INCREMENT-162.md) (move mode); production enablement and
+  NFS-source qualification remain separate.
 - [ ] P09: Deliver shipping package/unit/account/confinement, disconnected build,
   provisioning and state-preserving upgrade/rollback/cutover procedures.
 - [ ] P10-11: Complete Rust L1/L2/L3/test traceability and DOC-01-05 user guides;

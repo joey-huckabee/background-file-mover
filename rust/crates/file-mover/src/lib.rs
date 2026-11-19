@@ -57,6 +57,11 @@ pub struct Config {
     pub generator_id: String,
     #[serde(default)]
     pub check_expected_sizes: bool,
+    /// Move mode (docs/MOVE-MODE-DESIGN.md): remove the mover's held source
+    /// copies after verified delivery. Recorded per job at acceptance; cleanup
+    /// also needs this loaded setting. Default off.
+    #[serde(default)]
+    pub delete_source_after_commit: bool,
     pub source_root: String,
     pub source_binding: mover_fs::SourceBinding,
     pub destination_root: String,
@@ -252,7 +257,7 @@ fn decode(body: &[u8], c: &Config) -> Result<(Submission, AcceptanceContext), Re
             policy: DeliveryPolicy {
                 destination_id: c.destination_binding.root_id.clone(),
                 group_by_generator: false,
-                delete_source_after_commit: false,
+                delete_source_after_commit: c.delete_source_after_commit,
             },
         },
     ))
@@ -453,6 +458,8 @@ impl Worker {
         // Shared destination custody whenever more than one delivery child can
         // run at once: several jobs, or several files of one job.
         let parallel = c.delivery_concurrency > 1 || c.delivery_file_concurrency > 1;
+        let move_mode = c.delete_source_after_commit;
+        MOVE_MODE.store(move_mode, Ordering::Relaxed);
         let tuning = delivery_worker::Tuning {
             files: c.delivery_file_concurrency as usize,
             copy_buffer: c.copy_buffer_bytes as usize,
@@ -625,6 +632,85 @@ impl Worker {
                         };
                         if let Err(error) = recorded {
                             eprintln!("Deletion result persistence failed: {error}");
+                            delivery_stop.store(true, Ordering::Relaxed);
+                            break;
+                        }
+                    }
+                    // Move mode: remove held source copies of delivered move
+                    // jobs (design: MOVE-MODE-DESIGN), one job per round,
+                    // under the job's destination custody lane.
+                    for _ in 0..4 {
+                        if !move_mode || delivery_stop.load(Ordering::Relaxed) {
+                            break;
+                        }
+                        let work = match delivery_store.next_source_cleanup(now(), 16) {
+                            Ok(Some(work)) => work,
+                            Ok(None) => break,
+                            Err(error) => {
+                                eprintln!("Source cleanup discovery failed: {error}");
+                                delivery_stop.store(true, Ordering::Relaxed);
+                                break;
+                            }
+                        };
+                        // Held through the worker's reaping and the results'
+                        // persistence: history clear refuses a busy job.
+                        let Some(_working) = delivering.enter(work.job_id) else {
+                            break; // Another worker is on this job; next tick.
+                        };
+                        // No pass protects discovery: recheck now that the job
+                        // is marked busy (clear or a deletion pass may have won).
+                        match delivery_store.source_cleanup_eligible(&work, now()) {
+                            Ok(true) => (),
+                            Ok(false) => continue,
+                            Err(error) => {
+                                eprintln!("Source cleanup discovery failed: {error}");
+                                delivery_stop.store(true, Ordering::Relaxed);
+                                break;
+                            }
+                        }
+                        let lane = custody.lane(
+                            &delivery_store,
+                            work.job_id,
+                            &delivery_guard,
+                            &delivery_stop,
+                            parallel,
+                        );
+                        let shared = match &lane {
+                            Lane::Shared(lock) => Some(lock.clone()),
+                            Lane::Serialized(_) => None,
+                            Lane::Wait => break, // Next tick.
+                        };
+                        let outcomes = delivery_worker::clean_sources(
+                            &delivery_store,
+                            &delivery_guard,
+                            shared.as_deref(),
+                            &delivery_stop,
+                            &work,
+                            now(),
+                        );
+                        if delivery_stop.load(Ordering::Relaxed) {
+                            break; // Stopping: authorized intent stays, rerun later.
+                        }
+                        let outcomes: Vec<_> = outcomes
+                            .into_iter()
+                            .map(|(i, d)| {
+                                (i, d.map(|d| {
+                                    let d: String = d.chars().filter(|c| c.is_ascii_graphic() || *c == ' ').take(240).collect();
+                                    if d.is_empty() { "blocked_or_uncertain".to_owned() } else { d }
+                                }))
+                            })
+                            .collect();
+                        for (i, d) in &outcomes {
+                            if let Some(d) = d {
+                                eprintln!("Source cleanup of job {} file {i} failed: {d}", work.job_id);
+                            }
+                        }
+                        // Still holding the busy marker and the lane.
+                        let recorded =
+                            delivery_store.finish_source_cleanup(work.job_id, &outcomes, now());
+                        drop(lane);
+                        if let Err(error) = recorded {
+                            eprintln!("Source cleanup result persistence failed: {error}");
                             delivery_stop.store(true, Ordering::Relaxed);
                             break;
                         }
@@ -1022,6 +1108,9 @@ fn status_response(store: &Store, id: i64) -> Response {
     }
 }
 
+/// The loaded move-mode setting (`delete_source_after_commit`), for status.
+static MOVE_MODE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
 /// One derivation of state/condition/details shared by operator status and
 /// admin history, so list rows and detail can never disagree.
 struct JobView {
@@ -1045,8 +1134,17 @@ fn job_view(snapshot: &mover_store::JobStatus) -> JobView {
         "file_id":i.to_string(),"deadline":deadline,"blocked":blocked,"deadline_elapsed":now()>=*deadline
     })).collect();
     let cancel_state = snapshot.cancellation.as_ref().map(|c| c.state);
+    let moving = recording.policy().delete_source_after_commit;
     let condition = if committed {
-        "Committed"
+        // A move job is complete once every held source copy is removed.
+        if moving
+            && (0..recording.submission().files().len())
+                .any(|i| recording.file_phase(i) != Some(mover_core::FilePhase::SourceRemoved))
+        {
+            "CleanupPending"
+        } else {
+            "Committed"
+        }
     } else if cancel_state == Some(mover_store::CancelState::Cancelled) {
         "Cancelled"
     } else if cancel_state == Some(mover_store::CancelState::Pending) {
@@ -1063,7 +1161,7 @@ fn job_view(snapshot: &mover_store::JobStatus) -> JobView {
         "Ready"
     };
     let mut details = serde_json::json!({"generator_id":recording.submission().generator_id(),"submission_id":recording.submission().submission_id(),
-        "condition":condition,"review_epoch":snapshot.review_epoch,"missing_review_epoch":snapshot.missing_review_epoch,"manifest_phase":snapshot.manifest_phase,"source_cleanup_enabled":false,
+        "condition":condition,"review_epoch":snapshot.review_epoch,"missing_review_epoch":snapshot.missing_review_epoch,"manifest_phase":snapshot.manifest_phase,"source_cleanup_enabled":recording.policy().delete_source_after_commit,
         "latest_missing_reset":snapshot.latest_missing_reset.as_ref().map(|a|serde_json::json!({"command_id":a.request.command_id,"review_epoch":a.request.review_epoch,"file_id":a.request.file_index.to_string(),"retry_window_seconds":a.request.retry_window_seconds,"actor":a.request.actor,"reason":a.request.reason,"recorded_at":a.recorded_at,"prior_deadline":a.prior_deadline,"prior_blocked":a.prior_blocked,"new_deadline":a.new_deadline})),
         "latest_resume":snapshot.latest_resume.as_ref().map(|a|serde_json::json!({"command_id":a.command_id,"review_epoch":a.review_epoch,"actor":a.actor,"reason":a.reason,"recorded_at":a.recorded_at,"prior_retry_after":a.prior_retry_after,"prior_code":a.prior_code})),
         "files":files,"missing":missing,"delivery_retry":snapshot.delivery.as_ref().map(|(failures,retry_after,code)|serde_json::json!({"failures":failures,"retry_after":retry_after,"code":code}))});
@@ -1072,6 +1170,19 @@ fn job_view(snapshot: &mover_store::JobStatus) -> JobView {
             .as_object_mut()
             .expect("status object")
             .insert("deletion".into(), deletion_view(d));
+    }
+    if let Some(s) = &snapshot.source_cleanup {
+        details.as_object_mut().expect("status object").insert(
+            "source_cleanup".into(),
+            serde_json::json!({
+                "enabled": MOVE_MODE.load(Ordering::Relaxed),
+                "removed": s.removed,
+                "pending": s.pending,
+                "failed": s.failed,
+                "next_attempt_at": s.next_attempt_at,
+                "last_error": s.last_error,
+            }),
+        );
     }
     if let Some(c) = &snapshot.cancellation {
         details
@@ -1203,6 +1314,12 @@ fn page_response(store: &Store, request: PageRequest) -> Response {
             let unmeasured = files.iter().filter(|f| f["size_bytes"].is_null()).count();
             item["files_total"] = files.len().into();
             item["files_delivered"] = delivered.into();
+            // Move mode: a failing source cleanup needs attention.
+            item["source_cleanup_failed"] = status
+                .source_cleanup
+                .as_ref()
+                .is_some_and(|s| s.failed > 0)
+                .into();
             item["measured_bytes"] = measured.to_string().into();
             item["unmeasured_files"] = unmeasured.into();
             item["source_folder"] = status.job.context.source_relative_directory.clone().into();

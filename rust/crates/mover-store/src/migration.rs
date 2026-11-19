@@ -147,6 +147,14 @@ impl StateInspection {
     ) -> Result<InspectionSummary> {
         self.additive_upgrade(path, 16, create_destination_deletion_tables, checkpoint)
     }
+    /// 17 -> 18: add the empty move-mode source cleanup table.
+    pub fn upgrade_source_cleanups(
+        self,
+        path: impl AsRef<Path>,
+        checkpoint: impl FnMut(&'static str) -> std::io::Result<()>,
+    ) -> Result<InspectionSummary> {
+        self.additive_upgrade(path, 17, create_source_cleanup_tables, checkpoint)
+    }
     /// One guarded additive step `from` -> `from + 1` that only creates new,
     /// empty tables, validating schema, identities, sequence and contents on
     /// both sides in one immediate transaction.

@@ -125,6 +125,23 @@ enum Operation {
     VerifyPublished {
         assignment: Box<Assignment>,
     },
+    /// Move mode: verify `COMMITTED.json` is exactly the persisted manifest
+    /// (anchor: file 0's published attempt). Starts a set verification.
+    VerifyManifest {
+        anchor: Box<Assignment>,
+        manifest: Box<ManifestWire>,
+    },
+    /// Move mode: verify one listed file is exactly its recorded published
+    /// object (files 0.., in order, after `VerifyManifest`).
+    VerifyFinal {
+        assignment: Box<Assignment>,
+    },
+    /// Move mode: remove one held source copy, only after the complete set of
+    /// `files` was verified in this session (custody held throughout).
+    RemoveSource {
+        assignment: Box<Assignment>,
+        files: usize,
+    },
     /// Delete one unfinished destination target: `staging`, `payload`,
     /// `manifest` (confirmed), or `superseded` (automatic cleanup; requires
     /// `published_files` verified finals, files 0.., in this session).
@@ -388,6 +405,98 @@ impl Session {
 /// Delete one confirmed unfinished destination target through a supervised
 /// worker under destination custody (`shared`, or acquired by the child). Ok
 /// when the object is gone; Err carries the worker's bounded diagnostic.
+/// Move mode: one cleanup round for one job in one supervised session that
+/// holds source and destination custody throughout (`shared`, or acquired by
+/// the child): verify the exact delivered set, then for each file record
+/// authorized intent and remove its held copy. Returns the outcomes to persist
+/// after this function has returned (the child is reaped): `None` removed,
+/// `Some(diagnostic)` failed. Files never attempted are left out.
+pub(crate) fn clean_sources(
+    store: &Store,
+    guard: &LocalClaimLock,
+    shared: Option<&LocalClaimLock>,
+    stop: &AtomicBool,
+    work: &mover_store::CleanupWork,
+    now: i64,
+) -> Vec<(usize, Option<String>)> {
+    let mut outcomes: Vec<(usize, Option<String>)> = Vec::new();
+    let mut verified = false;
+    let mut current: Option<usize> = None;
+    let mut slot: Option<Session> = None;
+    let result = (|| -> Result<()> {
+        let job = store.get(work.job_id)?.ok_or("unknown job")?;
+        let opened = open_session(
+            store,
+            work.job_id,
+            &job,
+            guard,
+            shared,
+            mover_fs::DEFAULT_COPY_BUFFER,
+            stop,
+        )?
+        .ok_or("destination_unavailable")?;
+        let session = slot.insert(opened);
+        let wire = |t: &Transfer| -> Result<Assignment> {
+            Ok(Assignment::new(t, &claim(store, t.job_id, t.file_index)?))
+        };
+        let ok = |r: Reply| -> Result<()> {
+            if r.error.is_some() || r.transfer.is_some() || r.manifest.is_some() {
+                return Err("source cleanup blocked".into());
+            }
+            Ok(())
+        };
+        let anchor = work.published.first().ok_or("empty recording")?;
+        ok(session.call(
+            Operation::VerifyManifest {
+                anchor: Box::new(wire(anchor)?),
+                manifest: Box::new(ManifestWire::new(&work.manifest)),
+            },
+            stop,
+        )?)?;
+        for p in &work.published {
+            ok(session.call(
+                Operation::VerifyFinal {
+                    assignment: Box::new(wire(p)?),
+                },
+                stop,
+            )?)?;
+        }
+        verified = true;
+        for &index in &work.files {
+            let t = work.published.get(index).ok_or("unknown file")?;
+            // Durable, authorized intent before the removal is sent.
+            store.authorize_source_cleanup(work.job_id, index, now)?;
+            current = Some(index);
+            ok(session.call(
+                Operation::RemoveSource {
+                    assignment: Box::new(wire(t)?),
+                    files: work.published.len(),
+                },
+                stop,
+            )?)?;
+            outcomes.push((index, None));
+            current = None;
+        }
+        Ok(())
+    })();
+    if let Err(e) = result {
+        let diagnostic = slot
+            .as_mut()
+            .and_then(|s| s.diagnostic.take())
+            .unwrap_or_else(|| super::diagnostic::describe(e.as_ref()));
+        if !verified {
+            // Set verification (or the session) failed: nothing was sent.
+            for &index in &work.files {
+                outcomes.push((index, Some(diagnostic.clone())));
+            }
+        } else if let Some(index) = current {
+            outcomes.push((index, Some(diagnostic)));
+        }
+    }
+    drop(slot); // Reap the child (custody released) before results persist.
+    outcomes
+}
+
 pub(crate) fn discard(
     store: &Store,
     guard: &LocalClaimLock,
@@ -1040,6 +1149,9 @@ pub fn worker() -> Result<()> {
     let mut source_authorization: Option<Option<mover_fs::SourceAuthorization>> = None;
     // Published finals verified in this session (file index, device, inode).
     let mut verified: Vec<(usize, (u64, u64))> = Vec::new();
+    // Move mode set verification in this session: manifest, then files 0..
+    let mut manifest_verified = false;
+    let mut finals_verified: usize = 0;
     let mut sequence = 0;
     while let Some(bytes) = child_frame(&mut channel)? {
         _instance.validate()?;
@@ -1052,7 +1164,9 @@ pub fn worker() -> Result<()> {
         // both are fixed-size otherwise and bounded by the frame limit.
         if !matches!(
             request.command,
-            Operation::Manifest { .. } | Operation::Discard { .. }
+            Operation::Manifest { .. }
+                | Operation::Discard { .. }
+                | Operation::VerifyManifest { .. }
         ) && bytes.len() > 32768
         {
             return Err("delivery assignment too large".into());
@@ -1206,6 +1320,64 @@ pub fn worker() -> Result<()> {
                             return Err("delivery assignment scope changed".into());
                         }
                         Ok(t)
+                    };
+                    let in_scope_claim = |a: Assignment| -> Result<(Transfer, ClaimIntent)> {
+                        let (t, c, embedded) = a.decode()?;
+                        if t.recording_directory != *component
+                            || t.job_id != *id
+                            || c.job_id != *id
+                            || t.file_index != c.file_index
+                            || c.root_path != *source
+                            || !destination.matches_path(&t.destination_root)
+                            || embedded.is_some()
+                        {
+                            return Err("delivery assignment scope changed".into());
+                        }
+                        Ok((t, c))
+                    };
+                    let after = |checking: &mut bool| -> Result<()> {
+                        mover_fs::validate_worker_source(
+                            source,
+                            request.source_authorization.as_ref(),
+                        )?;
+                        source_locks(source)?;
+                        *checking = true;
+                        Ok(destination_locks()?)
+                    };
+                    let command = match command {
+                        Operation::VerifyManifest { anchor, manifest } => {
+                            manifest_verified = false;
+                            finals_verified = 0;
+                            let anchor = in_scope(*anchor)?;
+                            let m = manifest.decode()?;
+                            mover_fs::verify_committed_manifest(&anchor, &m)?;
+                            manifest_verified = true;
+                            return after(&mut checking_destination);
+                        }
+                        Operation::VerifyFinal { assignment } => {
+                            let p = in_scope(*assignment)?;
+                            if !manifest_verified || p.file_index != finals_verified {
+                                return Err("delivered set verified out of order".into());
+                            }
+                            mover_fs::verify_published_exact(&p)?;
+                            finals_verified += 1;
+                            return after(&mut checking_destination);
+                        }
+                        Operation::RemoveSource { assignment, files } => {
+                            let (t, c) = in_scope_claim(*assignment)?;
+                            // Only after the complete delivered set was verified
+                            // in this session, with custody held since.
+                            if !manifest_verified
+                                || files == 0
+                                || finals_verified != files
+                                || t.file_index >= files
+                            {
+                                return Err("delivered set not verified".into());
+                            }
+                            mover_fs::discard_retained_source(&c)?;
+                            return after(&mut checking_destination);
+                        }
+                        command => command,
                     };
                     if let Operation::VerifyPublished { assignment } = command {
                         let p = in_scope(*assignment)?;

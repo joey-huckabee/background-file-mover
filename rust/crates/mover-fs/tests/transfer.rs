@@ -1063,3 +1063,77 @@ fn manifest_staging_is_deleted_and_publication_intent_offers_no_destination_targ
         assert_eq!(std::fs::read(f.claimed()).unwrap(), b"abc");
     }
 }
+
+// ---- Move mode: exact delivered-set verification (increment 162) ----
+
+#[test]
+fn committed_set_verification_detects_every_change_to_the_delivered_recording() {
+    use std::io::Write;
+    for case in [
+        "intact",
+        "manifest_replaced",
+        "manifest_rewritten",
+        "final_truncated",
+        "final_rewritten",
+        "final_extra_link",
+        "other_missing",
+    ] {
+        let f = Fixture::new(false);
+        f.accept_multi();
+        let s = f.store();
+        mover_fs::deliver_recording(&s, 1).unwrap();
+        let m = s.manifest(1).unwrap().unwrap();
+        let published: Vec<_> = (0..3).map(|i| s.transfer(1, i).unwrap().unwrap()).collect();
+        let area = f.destination.join("1");
+        let manifest = area.join("COMMITTED.json");
+        let alpha = area.join("sub/alpha");
+        // Tamper as an owner would: make writable, change, restore the mode.
+        let tamper = |p: &std::path::Path, change: &dyn Fn(&mut std::fs::File)| {
+            let mode = std::fs::metadata(p).unwrap().permissions();
+            std::fs::set_permissions(p, std::fs::Permissions::from_mode(0o600)).unwrap();
+            change(&mut std::fs::OpenOptions::new().write(true).open(p).unwrap());
+            std::fs::set_permissions(p, mode).unwrap();
+        };
+        std::thread::sleep(std::time::Duration::from_millis(20)); // distinct mtime
+        match case {
+            "intact" => (),
+            "manifest_replaced" => {
+                let bytes = std::fs::read(&manifest).unwrap();
+                std::fs::rename(&manifest, area.join("old.json")).unwrap();
+                std::fs::write(&manifest, bytes).unwrap(); // same bytes, other inode
+            }
+            "manifest_rewritten" => {
+                let mut bytes = std::fs::read(&manifest).unwrap();
+                let last = bytes.len() - 1;
+                bytes[last] ^= 0x20; // same inode and size, different bytes
+                tamper(&manifest, &|f| f.write_all(&bytes).unwrap());
+            }
+            "final_truncated" => tamper(&alpha, &|f| f.set_len(1).unwrap()),
+            "final_rewritten" => tamper(&alpha, &|f| f.write_all(b"xyz").unwrap()), // same size
+            "final_extra_link" => std::fs::hard_link(&alpha, area.join("alias")).unwrap(),
+            "other_missing" => std::fs::remove_file(area.join("sub/beta")).unwrap(),
+            _ => unreachable!(),
+        }
+        let manifest_ok = mover_fs::verify_committed_manifest(&published[0], &m).is_ok();
+        let finals_ok = published
+            .iter()
+            .all(|p| mover_fs::verify_published_exact(p).is_ok());
+        match case {
+            "intact" => assert!(manifest_ok && finals_ok, "{case}"),
+            "manifest_replaced" | "manifest_rewritten" => {
+                assert!(!manifest_ok, "{case}");
+                assert!(finals_ok, "{case}");
+            }
+            _ => {
+                assert!(manifest_ok, "{case}");
+                assert!(!finals_ok, "{case}");
+            }
+        }
+        // Verification never changes anything.
+        assert_eq!(
+            std::fs::read(f.base.join("source/.file-mover/1-0/data")).unwrap(),
+            b"abc",
+            "{case}"
+        );
+    }
+}

@@ -1,6 +1,7 @@
-# Move mode: source cleanup after verified delivery (design proposal)
+# Move mode: source cleanup after verified delivery
 
-Status: proposal for review before implementation. Roadmap items "Move mode"
+Status: approved (independent review, 2026-11-18); implemented in
+[increment 162](RUST-INCREMENT-162.md). Roadmap items "Move mode"
 (user request 2026-11-18) and P08 (independently recoverable postcommit source
 cleanup). Implements the cleanup policy already agreed in
 [REST-API-DRAFT](REST-API-DRAFT.md) ("Completion and errors") and
