@@ -177,8 +177,9 @@
   // job's own status, unless delivery committed first (the cancellation was
   // then dropped). Null: show nothing.
   function cancelReplyText(st, job, cancellation) {
-    if (!st || !st.message || st.proof || st.sending || cancellation.state !== "NotRequested") { return null; }
-    if (!st.ack) { return st.message; }
+    if (!st || !st.message || st.proof || st.sending) { return null; }
+    if (!st.ack) { return st.message; } // Refusals and no-ops always stay.
+    if (cancellation.state !== "NotRequested") { return null; }
     return job.state === "Committed" ? "The job was delivered before the cancellation took effect." : null;
   }
   function identityLabel(item) {
@@ -1098,7 +1099,7 @@
   function askAction(action, jobId, job) {
     var key = action + ":" + jobId;
     var st = actionState[key] = actionState[key] || {};
-    st.sending = true; st.message = "Preparing confirmation…";
+    st.sending = true; st.message = "Preparing confirmation…"; st.ack = false;
     redrawAction(action, jobId, job);
     fetch("/api/v2/admin/jobs?confirm_action=" + action + "&job_ids=" + encodeURIComponent(jobId), {
       credentials: "same-origin", cache: "no-store",
@@ -1126,7 +1127,7 @@
       st.proof = null; st.message = "The confirmation expired. Start again.";
       redrawAction(action, jobId, job); return;
     }
-    st.sending = true; st.message = "Sending…";
+    st.sending = true; st.message = "Sending…"; st.ack = false;
     redrawAction(action, jobId, job);
     fetch(cfg.route, {
       method: "POST", credentials: "same-origin", cache: "no-store",

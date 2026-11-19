@@ -149,6 +149,10 @@ console.log('byte formatting ok');
   // Delivery committed first: the cancellation was dropped.
   assert.strictEqual(cancelReplyText(ack, { state: 'Committed' }, none), 'The job was delivered before the cancellation took effect.');
   assert.strictEqual(cancelReplyText(noop, { state: 'Committed' }, none), noop.message);
+  // A refusal stays even after another request made the cancellation Pending.
+  const refused = { message: 'The confirmation expired or no longer matches. Start again.', ack: false };
+  assert.strictEqual(cancelReplyText(refused, { state: 'Claimed' }, { state: 'Pending' }), refused.message);
+  assert.strictEqual(cancelReplyText(refused, { state: 'Claimed' }, { state: 'Cancelled' }), refused.message);
   assert.strictEqual(cancelReplyText({ message: 'x', proof: 'p' }, { state: 'Claimed' }, none), null);
   assert.strictEqual(cancelReplyText(undefined, { state: 'Claimed' }, none), null);
   console.log('cancel reply ok');
