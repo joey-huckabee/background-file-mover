@@ -7,6 +7,7 @@ The application is implemented in Rust. Use these current sources:
 - [Consumer guide](CONSUMER-GUIDE.md) (DOC-02): the destination layout, when a
   recording is complete and how to check it against its manifest.
 - [Implemented behavior and operator actions](RUST-OPERATOR-GUIDE.md).
+- [Restart and shutdown recovery runbook](RUST-RESTART-RUNBOOK.md) (DOC-04).
 - [Stable user situations, evidence and limits](RUST-SCENARIOS.md).
 - [Release closure](RUST-RELEASE-CLOSURE.md) and
   [first-release scope](RUST-FIRST-RELEASE.md).

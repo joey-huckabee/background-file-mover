@@ -1,10 +1,14 @@
 # Restart and shutdown recovery runbook
 
-Updated 2026-11-08. Use this guide for the Rust mover, with the same host,
-service account, configuration and original local database. It consolidates the
-known restart scenarios; it does not claim every failure combination is tested.
-Production NFS, source deletion and automatic cleanup remain disabled. All eight
-release gates remain open. No runtime behavior changes accompany this guide.
+Updated 2026-11-21 ([increment 168](RUST-INCREMENT-168.md)). This is DOC-04.
+Use it for the Rust mover, with the same host, service account, configuration
+and original local database. It consolidates the known restart scenarios; it
+does not claim every failure combination is tested.
+- Production NFS remains disabled.
+- Source removal after delivery (move mode) and confirmed data deletion exist
+  but are off by default. Enabling them on a host is a separate decision.
+- All eight release gates remain open.
+- No runtime behavior changes accompany this guide.
 
 ## What restart does
 
@@ -77,12 +81,17 @@ an invented repair command. Transfer phases are covered in the next table.
 | Invalid config, wrong account, unsafe database/sidecar/lifetime file, or unreadable local control | Keep the original state and capture the exact diagnostic. Correct the known configuration/provisioning problem under the approved account. Do not delete WAL, locks, epochs or create replacement state. An IPC error alone does not prove an orphan exists. | SC-095; [44](RUST-INCREMENT-44.md), [47](RUST-INCREMENT-47.md). |
 | Root marker, enrollment, destination policy or filesystem identity no longer matches | Leave refused work stopped/reviewed. Investigate the original mount/binding and restore only its authorized scope. Do not reinitialize, edit receipts or rebind populated state. | SC-058-065; [23](RUST-INCREMENT-23.md), [24](RUST-INCREMENT-24.md), [27](RUST-INCREMENT-27.md). |
 | Crash leaves valid SQLite WAL/recovery files | After confirmed old exit, use normal startup with the original database and sidecars; SQLite performs its normal recovery. Corrupt/foreign state stays refused; no general database repair is supplied. | SC-033/095; retained-WAL [44](RUST-INCREMENT-44.md). |
-| Upgrade or attempted downgrade | Stop old binaries and all workers first. The schema-12 foundation binary accepts legacy jobs in its supported target layout; existing schema 11 returns MigrationRequired while the current UUID/mixed runtime is supported by increments118/119. Incomplete legacy handoff refuses before payload bootstrap; finish it with the compatible predecessor. Incompatible predecessors refuse UUID state. Use the explicit [offline schema migration](OFFLINE-STATE-MIGRATION.md) for validated schema 11, with a fresh verified backup under continuous exclusion; normal startup never converts it. Keep the original state and inspect after any migration error; a failed response may be postcommit. Old executables do not gain this check retroactively. Do not mix worker protocols or restore a stale database to force rollback. Deployment/cutover and reverse migration remain unqualified; see [increment 115](RUST-INCREMENT-115.md) for actual migration results. | SC-033/063; [33](RUST-INCREMENT-33.md), [47](RUST-INCREMENT-47.md), [release gaps](RUST-RELEASE-CLOSURE.md). |
+| Upgrade or attempted downgrade | Stop old binaries and all workers first. The current binary uses state schema 18; normal startup returns MigrationRequired for schemas 11-17 and leaves them untouched. Incomplete legacy handoff refuses before payload bootstrap (UnsupportedIdentity); finish it with the compatible predecessor. Incompatible predecessors refuse UUID state. Use the explicit [offline schema migration](OFFLINE-STATE-MIGRATION.md) for validated schemas 11-17 (it chains to 18), with a fresh verified backup under continuous exclusion; normal startup never converts them. Keep the original state and inspect after any migration error; a failed response may be postcommit. Old executables do not gain this check retroactively. Do not mix worker protocols or restore a stale database to force rollback. Deployment/cutover and reverse migration remain unqualified; see [increment 115](RUST-INCREMENT-115.md) for actual migration results. | SC-033/063; [33](RUST-INCREMENT-33.md), [47](RUST-INCREMENT-47.md), [release gaps](RUST-RELEASE-CLOSURE.md). |
 | First initialization was interrupted | Preserve any created receipt/database and inspect the exact stage. Matching activated enrollment restarts normally; created-but-unactivated or inconsistent state is not permission to repair/reinitialize. Use the documented enrollment diagnosis; stop on uncertainty. | SC-065; [27](RUST-INCREMENT-27.md), [28](RUST-INCREMENT-28.md), [29](RUST-INCREMENT-29.md). |
 | Host reboot, power loss, or NAS restart | Preserve persistent original state, mount identity and receipts. Inspect storage and service diagnostics before recovery; host reboot removes local workers but does not prove remote RPC settlement or disk durability. Do not clear epochs or initialize fresh state to make startup pass. If continuity/effects cannot be established, keep the scope stopped and seek review. | Physical power-loss, arbitrary NAS restart and full deployment persistence are **not qualified**; [testing limits](TESTING-LIMITATIONS.md), SC-094. |
 | Old local workers are gone, but remote effects/ownership remain uncertain | Do not infer safety from `NoActiveOwner` alone. Retain evidence and keep uncertain work stopped/reviewed; no general delayed-RPC settlement or cross-host takeover procedure is supplied. | SC-094 and SH-10-12 remain pending; [ownership contract](NFS-OWNERSHIP-FENCING-CONTRACT.md). |
 | Offline clear/initialization/single-file command holds the instance | Wait for that command and its associated threads/workers to finish. It may have no daemon controller, so `OwnerUnavailable` is possible. Do not use systemd restart as a force-unlock. | Shared guard [42](RUST-INCREMENT-42.md), offline clear [107](RUST-INCREMENT-107.md). |
 | A committed job was explicitly cleared before restart | Its files remain unmanaged and its old job/replay records stay forgotten. Restart does not scan/adopt them. A repeated submission is new work under current identity/no-clobber rules. | Group 50, SC-181-183; bounded offline implementation [107](RUST-INCREMENT-107.md). |
+| Dashboard after any restart | Every dashboard session is signed out: sign in again. Transfers do not depend on sessions and recover normally. | [129](RUST-INCREMENT-129.md), [130](RUST-INCREMENT-130.md). |
+| A job was cancelled before the restart | It stays cancelled: its claims stay refused (`recording_cancelled`) and delivery does not resume. Files already taken over stay where they are. Restart is never a way to revive it. | [140](RUST-INCREMENT-140.md). |
+| A job was waiting for missing files | Its saved deadline is unchanged. After restart the mover resumes checking for the late files on its own. A deadline block saved before the restart stays until an operator resets it (`reset-missing`). | [163](RUST-INCREMENT-163.md); [missing-file retries](RUST-OPERATOR-GUIDE.md#missing-files-automatic-retries). |
+| Move mode: source cleanup was in progress | Cleanup resumes from its saved records, one file at a time. A removal that happened but was not yet recorded is reconciled after restart, not repeated blindly. With move mode turned off, cleanup stays paused and every remaining held copy is kept. | [162](RUST-INCREMENT-162.md); [move mode](RUST-OPERATOR-GUIDE.md#move-mode-removing-the-source-after-delivery). |
+| A confirmed data deletion was in progress | The pass continues from its saved targets; it is not restarted or widened. A job with an active pass cannot be cleared until the pass finishes. | [143](RUST-INCREMENT-143.md), [160](RUST-INCREMENT-160.md). |
 | Protected Unix ingress stops cleanly | The daemon closes both listeners and removes only the exact socket inodes it created. Start with the same original state and preprovisioned private parent directories. Verify the private operator endpoint and independent control.sock; protected mode has no TCP listener or fallback. | Bounded development implementation and actual validation limits: [121](RUST-INCREMENT-121.md). |
 | Protected Unix ingress crashes or refuses an existing/replaced endpoint | Preserve the socket/name, parents, configuration and original state. Stop new ingress, confirm old daemon/worker exit through the usual ownership checks, then seek review. Do not blindly unlink endpoints, locks or lifetime files, adopt a replacement name, reset state or force a competing service. An old socket can block restart even when workers are gone. | Conservative stale/foreign-name refusal; automatic stale cleanup and shipping crash-restart workflow remain unqualified. [Protected ingress guide](RUST-OPERATOR-GUIDE.md#opt-in-protected-local-http-ingress). |
 
@@ -176,16 +185,19 @@ documentation; newer-manager manuals do not qualify SLES vendor patches.
   affected job IDs and local status. Keep original state/custody intact and
   obtain review instead of repeatedly restarting or changing identifiers.
 
-## Approved future behavior that is not implemented
+## Formerly pending behavior, now implemented
 
-- Dashboard sessions must be invalidated on mover restart (SC-157); dashboard
-  authentication/session implementation is still pending.
-- Restart must not revive a safely cancelled job (SC-162/165). Cancellation is
-  not implemented by the offline completed-job clear. Stop/restart is not cancel.
-- Current expected-size policy must apply to unfinished jobs after restart
-  (SC-140); this approved producer-policy change is not implemented yet.
-- General cross-host takeover, stale/cloned-state recovery, repair, production
-  deployment/rollback and physical deletion are not supplied by this runbook.
+- Restart signs out all dashboard sessions (SC-157): increments 129/130.
+- Restart does not revive a safely cancelled job (SC-162/165): increment 140.
+  Stop/restart is still not cancellation.
+- The current `check_expected_sizes` setting applies to unfinished jobs after
+  restart (SC-140): see
+  [UUID producer runtime](RUST-OPERATOR-GUIDE.md#uuid-producer-runtime-and-supported-upgrades).
+
+## Not supplied
+
+General cross-host takeover, stale/cloned-state recovery, repair and production
+deployment/rollback are not supplied by this runbook.
 
 ## Coverage and evidence
 
@@ -197,3 +209,5 @@ and linked increment reports as the evidence record. Historical reports retain
 their actual source versions and finite scope; no new Rust, systemd, NFS, reboot
 or power-loss tests were run for this documentation change. DOC-04 now has this
 consolidated runbook; remaining release/deployment qualification is still open.
+The 2026-11-21 refresh (increment 168) cites the existing tests of the linked
+increments for the new rows; it adds no new tests.
