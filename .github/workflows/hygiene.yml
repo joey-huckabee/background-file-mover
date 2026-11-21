@@ -29,5 +29,7 @@ jobs:
         run: node scripts/admin-ui/history-loading.test.js
       - name: File-name search (debounce, cursors, generations)
         run: node scripts/admin-ui/file-search.test.js
+      - name: L2 traceability references
+        run: python3 scripts/check_trace.py
       - name: Embedded retry-context vectors match the contract copy
         run: cmp docs/api/retry-context.candidate.vectors.json rust/crates/file-mover/src/retry_context.vectors.json
