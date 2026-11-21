@@ -13,9 +13,11 @@ does not promise a fixed quality percentage or replace executable validation.
   explicit, already authorized and have exclusive file ownership.
 - Review agents (user decision 2026-11-21), defined once at user level in
   `~/.claude/agents/` and started as Cloudroom child threads with
-  `~/.claude/agents/spawn-agent.sh <name> "<task>"` (Cloudroom blocks Claude
-  Code's native subagents):
-  - **Repository Review Agent** (`repository-review`): Claude Opus 5.5 1M, high
+  `~/.claude/agents/spawn-agent.sh <name> "<task>"` (a Cloudroom hook refuses
+  Claude Code's native subagents). Child threads are titled with the agent's
+  display name. The definitions are at user level on purpose, so the same
+  agents serve every repository:
+  - **Repository Review Agent** (`repository-review-agent`): Claude Opus 5.5 1M, high
     effort, read-only. Used as needed, for example on every PR. It replaces the
     Codex reviewer `thr_xnjapdndei` for new reviews.
   - **Repository Mega Review Agent** (`repository-mega-review`): Claude Fable
@@ -37,7 +39,7 @@ pushed GitHub commits; uncommitted Windows changes do not arrive there. Commit
 and push delegated inputs first, using `git pull --rebase` before every push.
 Cloud work returns on its own branch; review and integrate explicitly without
 overwriting concurrent local work. Start a review with `~/.claude/agents/spawn-agent.sh
-repository-review "<task>"`, or continue a running one with `room-cli thread
+repository-review-agent "<task>"`, or continue a running one with `room-cli thread
 tell <thread>`. When the bundled PowerShell
 launcher returns no output, invoke its adjacent `room-cli` script through Node.
 
