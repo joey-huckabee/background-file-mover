@@ -29,6 +29,8 @@ jobs:
         run: node scripts/admin-ui/history-loading.test.js
       - name: File-name search (debounce, cursors, generations)
         run: node scripts/admin-ui/file-search.test.js
+      - name: Dashboard has no HTML sinks or inline handlers
+        run: node scripts/admin-ui/no-html-sinks.test.js
       - name: L2 traceability references
         run: python3 scripts/check_trace.py
       - name: Embedded retry-context vectors match the contract copy

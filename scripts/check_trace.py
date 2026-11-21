@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Check docs/TRACE-L2.md: IDs exist in L2-REQ.md, cited files exist, each cited
 `file::name` is a function marked #[test], dispositions are allowed and no L2 ID
-is mapped twice. Prints a summary. It checks references only; whether a test
+is mapped twice. `scripts/...` references (CI tests in other languages) are
+checked for existence only. Prints a summary. It checks references only; whether a test
 really demonstrates its row is a review question."""
 import pathlib
 import re
@@ -55,6 +56,12 @@ def main() -> int:
             errors.append(f"line {number}: {disposition} needs evidence")
         for ref in refs:
             path, _, test = ref.partition("::")
+            if path.startswith("scripts/"):
+                # Repository scripts (for example dashboard JavaScript tests):
+                # existence only; they run in the hygiene CI job.
+                if test or not (ROOT / path).is_file():
+                    errors.append(f"line {number}: no script {path} (no ::name allowed)")
+                continue
             file = CRATES / path
             if not file.is_file():
                 errors.append(f"line {number}: no file {path}")

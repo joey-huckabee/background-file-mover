@@ -134,6 +134,28 @@ These families describe features of the earlier design.
   - MGR-003: deadline, ownership and exit are tested; draining an in-flight
     transfer is by inspection and historical evidence.
 
+## Follow-up: STO, ENV, DASH and JSON (2026-11-21)
+
+- **Tested:** DASH-002 (the inlined-assets unit test and the live CSP),
+  JSON-002 and JSON-004.
+- **Partly tested:** DASH-003. A new CI check,
+  `scripts/admin-ui/no-html-sinks.test.js`, is a lexical regression check
+  covering whitespace variants; it tests its own pattern set. Text-only
+  rendering is by inspection.
+- **Also partly tested:** STO-002 (NFS only in qualification builds), JSON-003
+  (fractions and NUL are refused by the schema and field rules, not the
+  parser).
+- **Inspection:** STO-005 (locked dependencies, SLES gate).
+- **Open:** JSON-005 (no conformance corpus or fuzzing).
+- **Deviation (needs approval):**
+  - STO-001, 003 and 004: direct POSIX, no storage interfaces;
+  - ENV-001: startup refusal, no diagnostic report;
+  - DASH-001: SSE and `/api/v2/admin` reads, no `/api/status` polling;
+  - JSON-001: `serde_json` with project strictness rules.
+- **Not applicable (needs approval), proposed:** ENV-002 and 003.
+- **Checker:** `scripts/...` evidence (CI tests in other languages) is now
+  accepted, checked for existence only.
+
 ## Decisions for the user (all families so far)
 
 - **L2-DPR-005:** accept the no-clobber link fallback, or reword the
@@ -172,6 +194,16 @@ These families describe features of the earlier design.
 - **L2-XFR-004:** accept errno numbers plus dashboard labels instead of errno
   text, or reword.
 - **L2-XFR-002, L2-MGR-002:** settled by the DPR-005 and CORE-002 decisions.
+- **L2-STO-001/003/004:** accept direct POSIX storage without an adapter
+  interface or object-storage identity, or keep it as future product work.
+- **L2-ENV-001 to 003:** accept startup refusal instead of a capability
+  diagnostic (002 and 003 proposed not applicable), or reword.
+- **L2-DASH-001:** accept SSE plus admin reads instead of polling
+  `/api/status`, or reword.
+- **L2-JSON-001:** accept the approved `serde_json` dependency with project
+  strictness rules, or reword.
+- **L2-JSON-005 (Open):** whether to add a JSON conformance corpus and fuzzing
+  (product and test work, possibly new tooling).
 
 ## Not covered
 

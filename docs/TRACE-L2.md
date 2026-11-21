@@ -18,7 +18,8 @@ every disposition is allowed.
 - **Open:** no evidence found yet.
 
 Evidence is written `path::test_name` for tests and `path` for inspected code,
-relative to `rust/crates/`. A test listed here shows behavior in the build and
+relative to `rust/crates/`. A `scripts/...` path is a repository CI test in
+another language (for example dashboard JavaScript). A test listed here shows behavior in the build and
 storage it runs on; it does not qualify NFS, systemd or physical faults (see
 the [deployment matrix](SUPPORTED-DEPLOYMENT.md)).
 
@@ -172,3 +173,39 @@ The Rust mover has no throughput limit. The copy buffer size
 | L2-MGR-001 | Deviation (needs approval) | file-mover/tests/api.rs::parallel_delivery_commits_every_job_exactly_once | A configured number of delivery worker threads (`delivery_concurrency`) take runnable jobs from the store. `ActiveJobs` keeps two workers off one job. There is no mutex and condition-variable queue. The behavior is covered by L2-REC-004 (partly tested). **Decision:** accept the mechanism, or reword. |
 | L2-MGR-002 | Deviation (needs approval) | mover-core/tests/protocol.rs::publication_and_commit_require_all_prior_evidence | Recording transitions go through `mover-core`. Cancellation, retry and cleanup state change in the store. Same decision as L2-CORE-002. |
 | L2-MGR-003 | Partly tested | file-mover/tests/api.rs::default_sixty_second_stop_returns_incomplete_while_delayed_drain_retains_ownership | **Tested:** every service test stops the service normally and checks a clean exit. The qualification-build test pauses shutdown with no job in flight. It shows the 60 s deadline, the `ShutdownIncomplete` report, ownership kept while the drain is held, and a clean exit with the instance freed once released. **Not tested here:** draining or failing an in-flight transfer and joining its workers. That is by inspection of the shutdown path (`file-mover/src/lib.rs`) and the historical blocked-worker evidence in the [restart runbook](RUST-RESTART-RUNBOOK.md) (increments 43, 45, 60 and 61). |
+
+## STO — Storage abstraction (parents L1-SYS-001, L1-SYS-007, L1-SYS-009)
+
+| L2 | Disposition | Evidence | Notes |
+|---|---|---|---|
+| L2-STO-001 | Deviation (needs approval) | mover-fs/src/transfer.rs | Storage work is done in `mover-fs` through direct POSIX calls (`rustix`), run by supervised worker children. There is no capability-interface layer between the workflow and POSIX. **Decision:** accept the direct POSIX design, or reword. |
+| L2-STO-002 | Partly tested | mover-fs/tests/transfer.rs::cross_filesystem_copy_large_file_retains_source_and_preserves_names | Local POSIX source and destination are tested. NFS runs only in NFS-qualification builds and labs, and **production NFS is disabled** ([deployment matrix](SUPPORTED-DEPLOYMENT.md)). |
+| L2-STO-003 | Deviation (needs approval) | mover-fs/src/transfer.rs | There is no storage interface for a future object-storage adapter; one would change the workflow. **Decision:** accept, or keep as future product work. |
+| L2-STO-004 | Deviation (needs approval) | mover-fs/tests/claim.rs::identity_changes_and_recovery_with_reappeared_original_block | The recorded identity (`ObjectIdentity`: device, inode, owner, size, mtime, links) is POSIX-only. It has no object-storage form. Same decision as L2-STO-003. |
+| L2-STO-005 | Inspection | ../Cargo.lock | No optional storage adapters exist. All dependencies are locked and built offline in the SLES gate, which also audits the ELF files ([SLES gate](RUST-SLES-GATE.md)); new dependencies need approval (AGENTS.md). |
+
+## ENV — Environment capability diagnostics (parents L1-SYS-008, L1-ROB-001)
+
+| L2 | Disposition | Evidence | Notes |
+|---|---|---|---|
+| L2-ENV-001 | Deviation (needs approval) | mover-store/src/tests.rs::qualified_sqlite_options_and_durable_settings; file-mover/tests/api.rs::unsafe_startup_configuration_is_rejected | There is no separate capability diagnostic. The Rust service checks what it needs at startup and refuses if it is missing: SQLite build options and WAL settings, local state filesystem types and permissions, locks, and configuration. The Python items (interpreter version, hash library) do not apply. **Decision:** accept startup refusal in place of a diagnostic report, or reword. |
+| L2-ENV-002 | Not applicable (needs approval) |  | Proposed: there are no optional capabilities to report. No kernel-assisted copy is used, and no-follow opening is mandatory, not optional. |
+| L2-ENV-003 | Not applicable (needs approval) |  | Proposed, with L2-ENV-001: there is no capability probe. Startup checks return typed refusals rather than crashing. |
+
+## DASH — Operator dashboard (parent L1-OBS-001)
+
+| L2 | Disposition | Evidence | Notes |
+|---|---|---|---|
+| L2-DASH-001 | Deviation (needs approval) | file-mover/tests/tls_listener/admin.rs::admin_https_login_session_logout_and_boundary_precedence | The dashboard is one embedded HTML, CSS and JavaScript page on a separate signed-in HTTPS listener. It reads `/api/v2/admin/…` routes and receives live updates by server-sent events, not by polling `GET /api/status`. **Decision:** accept, or reword. |
+| L2-DASH-002 | Tested | file-mover/src/admin.rs::document_inlines_assets_and_csp_admits_only_them; file-mover/tests/tls_listener/admin.rs::admin_https_login_session_logout_and_boundary_precedence | **Unit test:** the served document inlines the page's style and script, contains no `http://`, `https://`, `src="` or external `href`, and its CSP admits exactly those two inline assets by hash, with nothing `unsafe`. **Service test:** the live page's CSP starts with `default-src 'none'` and contains nothing `unsafe`. **Inspection:** the full CSP has no external sources (`admin.rs`). |
+| L2-DASH-003 | Partly tested | scripts/admin-ui/no-html-sinks.test.js; file-mover/src/admin.rs::document_inlines_assets_and_csp_admits_only_them | **Automated (regression checks on spelling):** the CI check fails on common HTML-parsing sinks and dynamic-code calls in `admin.js`, including whitespace variants (`innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`, `eval (`, `new Function`, string `setTimeout`/`setInterval`, `setAttribute("on…")`, and others), and on inline handlers in the page. The Rust unit test also refuses `innerHTML` and `insertAdjacentHTML`. These checks are lexical, so aliased or computed access could evade them. **Inspection:** every dynamic value is inserted with `textContent` or text nodes. |
+
+## JSON — Request and response codec (parents L1-SYS-009, L1-ROB-001, L1-ROB-002)
+
+| L2 | Disposition | Evidence | Notes |
+|---|---|---|---|
+| L2-JSON-001 | Deviation (needs approval) | mover-fs/src/recording_codec/tests.rs::strict_raw_json_and_original_map_rules_before_policy | The producer codec tokenizes with `serde_json`, an approved pinned dependency. It adds project rules on top: duplicate keys rejected at any depth, BOM refused, no trailing data, exact field shapes. The dashboard has its own lossless parser. **Decision:** accept the approved library with project strictness, or reword. |
+| L2-JSON-002 | Tested | mover-fs/src/recording_codec/tests.rs::strict_raw_json_and_original_map_rules_before_policy; file-mover/tests/api.rs::malformed_json_scope_and_http_framing_never_claim | Malformed input returns a typed error (`invalid_json` / `invalid_submission`, HTTP 400) and the service keeps running. |
+| L2-JSON-003 | Partly tested | mover-fs/src/recording_codec/tests.rs::strict_raw_json_and_original_map_rules_before_policy; mover-fs/src/recording_codec/tests.rs::malformed_manifest_fields_and_duplicate_keys_are_refused | **Tested:** trailing bytes, duplicate members (including escape-equivalent keys), BOM, lone surrogates, invalid UTF-8, NaN, unknown fields and non-string sizes are refused. **Not at the parser:** JSON numbers with fractions are not rejected by the parser itself, but by the schema (every number field is a string or an integer). An embedded NUL in a string is refused by the field rules (control characters), not the parser. |
+| L2-JSON-004 | Tested | mover-fs/src/recording_codec/tests.rs::strict_raw_json_and_original_map_rules_before_policy; mover-fs/src/recording_codec/tests.rs::byte_limits_and_maximum_integer_manifest_are_bounded; file-mover/tests/api.rs::malformed_json_scope_and_http_framing_never_claim | The total size is checked before parsing (64 KiB request, 413; 128 KiB manifest). 2,000-deep nesting is refused (the parser's recursion limit). String length and member count are bounded by the total size. |
+| L2-JSON-005 | Open |  | No third-party conformance corpus and no fuzzing. Fixtures and contract vectors are tested, but that is not this requirement. |
