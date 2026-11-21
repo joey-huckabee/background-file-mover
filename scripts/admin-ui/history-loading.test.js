@@ -6,7 +6,11 @@ const start = src.indexOf('  var pageBudget = 40, olderCursor = null;');
 const end = src.indexOf('  function stateOf(item)');
 assert.ok(start > 0 && end > start, 'history loading code not found');
 
-// A fake list route: jobs 1..total, newest first, 256 per page, exact cursors.
+// A fake list route: jobs 1..total, newest first, 256 per page. Cursors are
+// opaque tokens bound to the instance and order, as lib.rs history_cursor()
+// emits them (c1.<instance>.d.<last returned job>); anything else is refused.
+const INSTANCE = '0123456789abcdef0123456789abcdef';
+const token = (last) => 'c1.' + INSTANCE + '.d.' + last;
 function server(total, options = {}) {
   const calls = [];
   const request = (path, deliberate, kind) => {
@@ -17,7 +21,12 @@ function server(total, options = {}) {
     const limit = Number(url.searchParams.get('limit'));
     const cursor = url.searchParams.get('cursor');
     calls.push({ cursor, deliberate });
-    const from = cursor === null ? total : Number(cursor) - 1;
+    let from = total;
+    if (cursor !== null) {
+      const m = /^c1\.([0-9a-f]{32})\.d\.([1-9][0-9]*)$/.exec(cursor);
+      if (!m || m[1] !== INSTANCE) { return Promise.resolve({ status: 400, body: { error: 'invalid_cursor' }, current: true }); }
+      from = Number(m[2]) - 1; // Results exclude the last returned job.
+    }
     const items = [];
     for (let id = from; id >= 1 && items.length < limit; id--) { items.push({ job_id: String(id) }); }
     const last = items.length ? Number(items[items.length - 1].job_id) : 1;
@@ -25,7 +34,7 @@ function server(total, options = {}) {
     if (options.status && options.status(page)) { return Promise.resolve({ status: 503, body: null, current: true }); }
     return Promise.resolve({
       status: 200,
-      body: { items, next_cursor: last > 1 ? String(last) : null },
+      body: { items, next_cursor: last > 1 ? token(last) : null },
       current: !(options.stale && options.stale(page)),
     });
   };
@@ -60,7 +69,7 @@ const ascending = (from, to) => Array.from({ length: to - from + 1 }, (_, k) => 
     const items = await api.load(true);
     assert.strictEqual(fake.calls.length, 40);
     assert.deepStrictEqual(ids(items), ascending(301, 10540));
-    assert.strictEqual(api.cursor(), '301');
+    assert.strictEqual(api.cursor(), token(301), 'the token is passed back unchanged');
     assert.deepStrictEqual(fake.calls.map((c) => c.deliberate), [true].concat(Array(39).fill(false)),
       'only the first page of a deliberate load counts as interaction');
     assert.strictEqual($('older').hidden, false);
@@ -92,7 +101,7 @@ const ascending = (from, to) => Array.from({ length: to - from + 1 }, (_, k) => 
   {
     const { api, $ } = page(server(10241));
     assert.deepStrictEqual(ids(await api.load(false)), ascending(2, 10241));
-    assert.strictEqual(api.cursor(), '2');
+    assert.strictEqual(api.cursor(), token(2));
     assert.strictEqual($('older').hidden, false);
   }
   // Storage and Settings keep the Load older button but hide the notice.
