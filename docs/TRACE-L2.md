@@ -128,3 +128,47 @@ Policy: [delivery retry policy](DELIVERY-RETRY-POLICY.md).
 | L2-CORE-002 | Deviation (needs approval) | mover-core/tests/protocol.rs::replay_preserves_handoff_and_pinned_policy | The core `Recording` holds identity, the file list, per-file phases, measured sizes and the pinned delivery policy. Timestamps, retry counters and failure causes live in separate SQLite records, combined in job status. There are no byte-progress counters in the core; live progress is reported separately. **Decision:** accept the split model, or reword. |
 | L2-CORE-003 | Tested | mover-core/tests/protocol.rs::publication_and_commit_require_all_prior_evidence; mover-core/tests/protocol.rs::repeated_claim_cannot_change_recorded_size; mover-core/tests/protocol.rs::expected_size_mismatch_does_not_confirm_claim; mover-core/tests/protocol.rs::empty_requests_and_unknown_files_do_not_advance | An invalid transition returns an error and leaves the phase, recorded size and authorization unchanged. |
 | L2-CORE-004 | Inspection | mover-core/Cargo.toml | `mover-core` reads no clock: it has no dependencies and uses no `std::time`, `std::fs` or `std::net`. Times are supplied by callers (the store and service). No test isolates this. |
+
+## BWL — Bandwidth limiting (parents L1-SYS-001, L1-SYS-008)
+
+The Rust mover has no throughput limit. The copy buffer size
+(`copy_buffer_bytes`) and parallelism settings change speed but do not cap it.
+
+| L2 | Disposition | Evidence | Notes |
+|---|---|---|---|
+| L2-BWL-001 | Not applicable (needs approval) |  | Proposed: no configurable bytes-per-second limit exists in the Rust first release. If kept in scope, Open (a product change). |
+| L2-BWL-002 | Not applicable (needs approval) |  | Proposed, with L2-BWL-001: no runtime throughput adjustment. |
+| L2-BWL-003 | Not applicable (needs approval) |  | Proposed, with L2-BWL-001: no aggregate limit. |
+| L2-BWL-004 | Not applicable (needs approval) |  | Proposed, with L2-BWL-001: no limit setting, so there is no zero-means-unlimited value. Copies are always unthrottled. |
+
+## RSM — Partial-file byte-offset resume (parents L1-SYS-003, L1-SYS-005)
+
+| L2 | Disposition | Evidence | Notes |
+|---|---|---|---|
+| L2-RSM-001 | Not applicable (needs approval) |  | Proposed: there is no byte-offset resume. An interrupted copy restarts as a new attempt from byte zero, and its partial is kept until delivery ([restart runbook](RUST-RESTART-RUNBOOK.md): "byte-offset resume is not promised"). If kept in scope, Open. |
+| L2-RSM-002 | Not applicable (needs approval) |  | Proposed, with L2-RSM-001: no resume setting and no pause. Partials are always kept, and new attempts use new names, so they never collide (see L2-REC-002). |
+| L2-RSM-003 | Not applicable (needs approval) | mover-fs/tests/transfer.rs::corrupted_staging_with_restored_metadata_fails_independent_hash | Proposed, with L2-RSM-001, since there are no resumed partials. Its safety clause holds anyway: unverified bytes are never published (L2-DPR-004). |
+
+## REN — Rename engine (parent L1-SYS-013)
+
+| L2 | Disposition | Evidence | Notes |
+|---|---|---|---|
+| L2-REN-001 | Not applicable (needs approval) |  | Proposed: files keep the producer's relative paths. There is no rename template; the recording folder name is the recording UUID (or the job number for legacy jobs). |
+| L2-REN-002 | Not applicable (needs approval) | mover-fs/tests/transfer.rs::foreign_equal_content_final_is_never_overwritten | Proposed, with L2-REN-001: no configurable collision policy. The only policy is no-clobber: an existing name is never replaced (L2-DST-001 and 002). |
+| L2-REN-003 | Inspection | mover-fs/src/relocate.rs | The mover's own same-filesystem moves (claiming into the private area, and publication) refuse unless the file and both folders are on the recorded device. This is the same check as L2-FS-003; no cross-device test. |
+
+## XFR — Transfer strategies (parents L1-SYS-014, L1-SYS-015, L1-SYS-023)
+
+| L2 | Disposition | Evidence | Notes |
+|---|---|---|---|
+| L2-XFR-001 | Deviation (needs approval) | mover-fs/tests/transfer.rs::cross_filesystem_copy_large_file_retains_source_and_preserves_names | There is one copy strategy, run by supervised worker children through fixed steps (prepare, copy, verify, publish) rather than a pluggable interface with a progress callback. Live progress is reported separately (dashboard transfer speed). **Decision:** accept the step model, or reword. |
+| L2-XFR-002 | Deviation (needs approval) | mover-fs/tests/transfer.rs::abrupt_exit_at_each_durable_copy_and_publication_boundary; mover-fs/tests/transfer.rs::foreign_equal_content_final_is_never_overwritten; mover-fs/src/relocate.rs::collision_at_the_link_transition_never_clobbers_or_removes_original | Temporary name, sync, then publication: see L2-DPR-001, 002 and 005. Publication is `RENAME_NOREPLACE`, with the no-clobber link fallback. Same decision as L2-DPR-005. |
+| L2-XFR-004 | Deviation (needs approval) | mover-fs/src/payload_io.rs::payload_diagnostics_keep_operation_errno_and_safe_actions_without_error_text | A failure records the operation, the numeric errno and a safe action (at most 240 characters), deliberately **without** OS error text. The dashboard shows plain-language labels for known errno values. **Decision:** accept errno numbers plus labels instead of errno text, or reword. |
+
+## MGR — Job manager and worker pool (parents L1-SYS-017, L1-SYS-018, L1-SYS-022)
+
+| L2 | Disposition | Evidence | Notes |
+|---|---|---|---|
+| L2-MGR-001 | Deviation (needs approval) | file-mover/tests/api.rs::parallel_delivery_commits_every_job_exactly_once | A configured number of delivery worker threads (`delivery_concurrency`) take runnable jobs from the store. `ActiveJobs` keeps two workers off one job. There is no mutex and condition-variable queue. The behavior is covered by L2-REC-004 (partly tested). **Decision:** accept the mechanism, or reword. |
+| L2-MGR-002 | Deviation (needs approval) | mover-core/tests/protocol.rs::publication_and_commit_require_all_prior_evidence | Recording transitions go through `mover-core`. Cancellation, retry and cleanup state change in the store. Same decision as L2-CORE-002. |
+| L2-MGR-003 | Tested | file-mover/tests/api.rs::default_sixty_second_stop_returns_incomplete_while_delayed_drain_retains_ownership | Stop ends intake and dispatch, asks workers to exit and waits for them, within the stop deadline. If workers are still running at the deadline, stop reports `ShutdownIncomplete` and keeps ownership until they exit. When the drain is released, the process exits cleanly and the instance is free again. The delayed-drain test runs in qualification builds (fault point). Normal stops are exercised by every service test. |

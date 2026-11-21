@@ -114,6 +114,23 @@ L2-LIF-001 to 005 and L2-CORE-001 to 004, in the same file:
     refused with a typed error.
 - **Not applicable (needs approval), proposed:** LIF-004 (pause and resume).
 
+## Follow-up: BWL, RSM, REN, XFR and MGR (2026-11-21)
+
+These families describe features of the earlier design.
+- **Not applicable (needs approval), proposed:**
+  - BWL-001 to 004: no throughput limit;
+  - RSM-001 to 003: no byte-offset resume (RSM-003's safety clause holds);
+  - REN-001 and 002: no rename templates or collision policies (no-clobber
+    only).
+- **Inspection:** REN-003 (same-filesystem moves).
+- **Deviation (needs approval):**
+  - XFR-001: a fixed step model, not a strategy interface;
+  - XFR-002: the same publication decision as DPR-005;
+  - XFR-004: errno numbers and labels, not errno text;
+  - MGR-001: worker threads without a condition-variable queue;
+  - MGR-002: the same split as CORE-002.
+- **Tested:** MGR-003 (bounded stop; the drain case in qualification builds).
+
 ## Decisions for the user (all families so far)
 
 - **L2-DPR-005:** accept the no-clobber link fallback, or reword the
@@ -144,6 +161,14 @@ L2-LIF-001 to 005 and L2-CORE-001 to 004, in the same file:
   scope of L2-CORE-001.
 - **L2-LIF-005:** reword the requirement to match the approved behavior:
   unknown or finished jobs are skipped in bulk cancel, not refused.
+- **BWL, RSM, REN-001/002:** confirm bandwidth limiting, byte-offset resume and
+  rename templates/collision policies are out of the first-release scope, or
+  keep any of them (Open; product work).
+- **L2-XFR-001, L2-MGR-001:** accept the Rust mechanisms (fixed copy steps;
+  worker threads without a condition-variable queue), or reword.
+- **L2-XFR-004:** accept errno numbers plus dashboard labels instead of errno
+  text, or reword.
+- **L2-XFR-002, L2-MGR-002:** settled by the DPR-005 and CORE-002 decisions.
 
 ## Not covered
 
