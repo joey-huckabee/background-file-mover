@@ -34,6 +34,19 @@ Documentation only; no behavior change.
 - **Move mode:** a failed delivered-set check keeps the source copy and
   retries, with the job under Needs attention (operator guide, increment 162).
 
+## Review corrections
+
+- Presence of `COMMITTED.json` only makes a folder a candidate. It can be
+  visible before the publication syncs and the coordinator's commitment
+  finish, so completion means a validated manifest and file set.
+- The checks now validate the manifest's file IDs and paths before any file is
+  opened, and refuse symbolic links at every path level.
+- After a recording validates, only its listed files and `COMMITTED.json` are
+  guaranteed unchanged; `.staging/` leftovers may still be removed.
+- In move mode, a consumer may move or delete a folder only after confirmed
+  source-cleanup completion (every file `SourceRemoved`). Removing it during
+  cleanup can leave no complete copy.
+
 ## Not covered
 
 - How consumer accounts get read access is a deployment decision (DOC-05).
