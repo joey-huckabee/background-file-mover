@@ -20,9 +20,10 @@ does not promise a fixed quality percentage or replace executable validation.
     Codex reviewer `thr_xnjapdndei` for new reviews.
   - **Repository Mega Review Agent** (`repository-mega-review`): Claude Fable
     5.2, max effort, whole-repository and read-only. It runs **only when the
-    user explicitly asks**. For a pinned cloud run, pass
-    `-- --machine cloud --base-branch <pushed-branch>` and name the commit in
-    the task.
+    user explicitly asks**. For a cloud run, pass
+    `-- --machine cloud --base-branch <pushed-branch>`. The launcher then pins
+    the branch's current commit and tells the child to check out and verify
+    exactly that commit, stopping if it cannot.
 - Development baseline: `main` after the reviewed 2026-11-07 integration.
 - New work: one short-lived `feature/<increment-name>` or `fix/<issue-name>`
   branch per bounded objective, from current `main`; integrate through a reviewed
@@ -199,8 +200,9 @@ Recorded 2026-11-11 from the retired model handoff.
   `FILE_MOVER_TLS_FIXTURES`) and fail outside the gate. PR CI runs both full modes.
 - Cloudroom: use `room-cli` (bundled fallback: Node plus
   `C:/Users/Joey/AppData/Local/Programs/Cloudroom/resources/app.asar.unpacked/node_modules/bb-app/host-daemon/dist/room-cli`).
-  Review agents cannot run the SLES gates (they need the gate's container
-  toolchain); PR CI runs them.
+  Review agents must not run the SLES gates: the coordinator owns the single
+  WSL build queue, and cloud children (ARM64, no Podman) cannot run them. PR CI
+  runs both modes.
 - Avoid nested PowerShell/WSL/bash quoting and outer-shell command substitution;
   one once ran Git in the Windows mount as Linux root (dubious-ownership warning).
   Do not add a global `safe.directory` exception. Use small scripts with explicit cwd.
