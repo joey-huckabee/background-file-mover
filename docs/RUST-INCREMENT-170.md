@@ -74,7 +74,18 @@ verified before any removal is authorized
 (`authorize_source_cleanup`). Then `discard_retained_source` in
 `mover-fs/src/lib.rs` re-checks identities and confirms a zero link count.
 
-## Decisions for the user (from DPR, DST, DEL and CLN)
+## Follow-up: SUB and FS (2026-11-21)
+
+L2-SUB-001 to 005 and L2-FS-001 to 005, in the same file:
+- **Tested:** SUB-001, 002, 003 and 005; FS-001, 004 and 005.
+- **Partly tested:** FS-002. Recovery matches the recorded identity; the
+  check right after a normal move is by inspection.
+- **Inspection:** FS-003 (the same-device refusal in `relocate.rs`; no
+  cross-filesystem test).
+- **Deviation (needs approval):** SUB-004. There is no submission manifest
+  file; the claimed set is recorded in SQLite.
+
+## Decisions for the user (from DPR, DST, DEL, CLN, SUB and FS)
 
 - **L2-DPR-005:** accept the no-clobber link fallback, or reword the
   requirement to "atomic, no-clobber publication".
@@ -83,6 +94,9 @@ verified before any removal is authorized
 - **L2-CLN-004:** whether the mover should report (route to an operator) an
   unexpected extra file left in a private folder after removing its copy.
   Today it is kept silently.
+- **L2-SUB-004:** accept the durable SQLite job, file list and claim records as
+  the submission manifest (the written manifest is `COMMITTED.json` at
+  delivery), or reword the requirement.
 
 ## Not covered
 
