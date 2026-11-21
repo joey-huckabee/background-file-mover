@@ -44,7 +44,7 @@ authorized by this page.
 |---|---|---|---|
 | Offline bundle | A verified bundle with the production executable, sources and checksums; installs without changing service state. | **Tested** | [Offline install](OFFLINE-INSTALL.md), [increment 109](RUST-INCREMENT-109.md). The shipping package, account and confinement are open (P09). |
 | systemd | A candidate unit (`Restart=no`, no automatic SIGKILL); start by hand. | **Open** (P09) | Do not enable at boot until the unit, account and storage profile are qualified: [offline install](OFFLINE-INSTALL.md#optional-systemd-activation). |
-| Restart and shutdown | Bounded stop (default 60 s), recovery from saved state, no adoption of old workers. | **Tested** | [Restart runbook](RUST-RESTART-RUNBOOK.md) (DOC-04). |
+| Restart and shutdown | A stop deadline (default 60 s), recovery from saved state, no adoption of old workers. The deadline does not bound actual worker exit: when it expires with workers still running (for example in blocked storage I/O), stop reports `ShutdownIncomplete` and the service keeps custody until they really exit. | **Tested** | [Restart runbook](RUST-RESTART-RUNBOOK.md) (DOC-04). |
 | Upgrade | Schemas 11-17 migrate offline to 18; unfinished legacy handoffs must finish first. | **Tested** | [Offline migration](OFFLINE-STATE-MIGRATION.md). Rollback and reverse migration are not qualified. |
 | Cutover from the old service | Planned. | **Open** (P09, P12) | [Release closure](RUST-RELEASE-CLOSURE.md). |
 
@@ -52,7 +52,7 @@ authorized by this page.
 
 | Feature | Default | Status | Notes |
 |---|---|---|---|
-| Move mode (`delete_source_after_commit`) | Off | **Tested** (P08 done) | Enabling it on a production host deletes source copies and needs a separate decision: [operator guide](RUST-OPERATOR-GUIDE.md#move-mode-removing-the-source-after-delivery). NFS sources are not qualified. |
+| Move mode (`delete_source_after_commit`) | Off | **Tested** (implementation) | Enabling it on a production host deletes source copies and needs a separate decision: [operator guide](RUST-OPERATOR-GUIDE.md#move-mode-removing-the-source-after-delivery). NFS sources are not qualified, and the release closure still lists RC-18/19 cleanup obligations as open. |
 | Confirmed data deletion from the dashboard (`admin_ingress.allow_data_deletion`) | Off | **Tested** | One job per confirmed request; see increments [143](RUST-INCREMENT-143.md) and [160](RUST-INCREMENT-160.md). |
 | History clear | Available | **Tested** | Forgets job records and leaves files in place. |
 | Expected-size checking (`check_expected_sizes`) | Off | **Tested** | [Producer quickstart](PRODUCER-QUICKSTART.md). |
