@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""Check docs/TRACE-L2.md: IDs exist in L2-REQ.md, cited tests and files exist,
-dispositions are allowed, and no L2 ID is mapped twice. Prints a summary."""
+"""Check docs/TRACE-L2.md: IDs exist in L2-REQ.md, cited files exist, each cited
+`file::name` is a function marked #[test], dispositions are allowed and no L2 ID
+is mapped twice. Prints a summary. It checks references only; whether a test
+really demonstrates its row is a review question."""
 import pathlib
 import re
 import sys
@@ -13,14 +15,27 @@ ALLOWED = {
 }
 
 
+def is_test(source: str, name: str) -> bool:
+    """True when `fn name(` exists and its attribute block includes #[test]."""
+    lines = source.splitlines()
+    for i, line in enumerate(lines):
+        if re.match(rf"\s*(pub(\([^)]*\))?\s+)?fn {re.escape(name)}\s*\(", line):
+            j = i - 1
+            while j >= 0 and re.match(r"\s*(#\[|///|//)", lines[j]):
+                if re.match(r"\s*#\[test\]", lines[j]):
+                    return True
+                j -= 1
+    return False
+
+
 def main() -> int:
     requirements = set(re.findall(r"^#### (L2-[A-Z]+-\d{3})$",
                                   (ROOT / "docs" / "L2-REQ.md").read_text(encoding="utf-8"), re.M))
     errors, seen, counts = [], set(), {}
     for number, line in enumerate((ROOT / "docs" / "TRACE-L2.md").read_text(encoding="utf-8").splitlines(), 1):
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
         if not line.startswith("| L2-"):
             continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
         if len(cells) != 4:
             errors.append(f"line {number}: expected 4 cells, got {len(cells)}")
             continue
@@ -44,12 +59,11 @@ def main() -> int:
             if not file.is_file():
                 errors.append(f"line {number}: no file {path}")
                 continue
-            if test and not re.search(rf"\bfn {re.escape(test)}\s*\(", file.read_text(encoding="utf-8")):
-                errors.append(f"line {number}: no fn {test} in {path}")
+            if test and not is_test(file.read_text(encoding="utf-8"), test):
+                errors.append(f"line {number}: no #[test] fn {test} in {path}")
     for e in errors:
         print("ERROR:", e)
-    total = len(requirements)
-    print(f"{len(seen)} of {total} L2 requirements mapped: " +
+    print(f"{len(seen)} of {len(requirements)} L2 requirements mapped: " +
           ", ".join(f"{k} {v}" for k, v in sorted(counts.items())))
     return 1 if errors else 0
 
