@@ -27,10 +27,28 @@ enforced only when `check_expected_sizes` is on and the sender supplied one
 
 ## What changes
 
-**Retry pass.** The `mover-local-claim` thread wakes on a short timer between
-producer requests (`recv_timeout`) and runs a retry pass. Retries are
-therefore serialized with producer claims on the same thread, and
-`claim_active` is set exactly as for a request.
+**Retry pass.** Retries run on the `mover-local-claim` thread, serialized with
+producer claims, with `claim_active` set as for a request. The thread waits for
+a request with `recv_timeout` until the next pass is due. It also checks for
+due passes **after every request it handles**, so a continuous request stream
+can never starve retries, and the at most one pass between two requests is
+bounded (see Scheduling).
+
+**One shared path for requests and retries.** The per-job claim logic of a
+producer request moves into one function, used unchanged by both. In order:
+1. cancellation check;
+2. `claim_blocked` (persists an expired deadline);
+3. `validate_existing` (revalidates every completed claim's custody);
+4. the whole-job size policy: with `check_expected_sizes` on, a request
+   without a complete expected-size map is refused (`400 invalid_submission`);
+5. then each file in order, where a completed claim still gets its recorded
+   size checked against the expected size, as today.
+
+A retry adds conditions; it never skips one. If any job-level check would
+refuse the request, the retry claims nothing for that job this pass. Example:
+file A was claimed with checking off and B is missing; after a restart with
+checking on and a mismatching size for A, the retry stops at A's mismatch
+exactly as a resend would.
 
 **Eligible jobs:**
 - handoff not complete (`Handoff` not `Ready202`);
@@ -39,52 +57,75 @@ therefore serialized with producer claims on the same thread, and
 - no cancellation requested;
 - the job's source root is still the configured one.
 
-**Each due pass on a job,** for every still-unclaimed file in order:
-1. **Observe** it through the supervised claim worker, exactly as a claim's
-   first step: the same `Observe` assignment, custody, expected-size rule and
-   diagnostics. Observing changes nothing.
-   - Absent: continue to the next file. An absent file with no `missing` row
-     gets its first-absence row (`note_missing`), so its own deadline starts as
-     it would on a request.
-   - Present: compare with the previous observation of that file, kept in
-     memory: device, inode, size, mtime (seconds and nanoseconds) and link
-     count. If it changed, or there is none yet, remember this one and wait at
-     least `missing_file_settle_seconds` (new setting, default 5, 1–300).
-2. **Stable** means the same identity in two observations at least the settle
-   time apart. The pass then claims it through the normal claim path, with one
-   extra condition: the claim's own `Observe` must return **that same
-   identity**. A file that changed in between is not claimed; its new identity
-   starts a new settle period. Claiming, receipts, accounting, the
-   expected-size check and problem recording are otherwise unchanged.
-3. When every file is claimed, the handoff completes. Delivery proceeds
-   normally, and the sender's next resend gets 202 (the existing replay path,
-   which revalidates custody). A sender that never resends still has its
-   recording delivered.
+**Per file, in order** (resuming at the job's cursor; see Scheduling):
+- **Completed claim:** the size check above, nothing else.
+- **Unfinished claim intent** (recorded, receipt not complete; for example
+  Apply succeeded but its receipt was lost, or a crash left both names): the
+  **normal claim recovery path** reconciles it, exactly as a resend would. It
+  is never observed as a fresh file, never classified as absent, and needs no
+  settle period: its identity is already recorded.
+- **No intent yet:**
+  1. **Observe** through the supervised claim worker, as a claim's first step:
+     the same `Observe` assignment, custody, expected-size rule and
+     diagnostics. Observing changes nothing.
+     - Absent: an absent file with no `missing` row gets its first-absence row
+       (`note_missing`), so its own deadline starts as on a request; then
+       continue with the next file.
+     - Present: compare with the previous observation of that file, kept in
+       memory: device, inode, size, mtime (seconds and nanoseconds) and link
+       count. If it changed, or there is none yet, remember it and wait at
+       least `missing_file_settle_seconds` (new setting, default 5, 1–300).
+  2. **Stable** means the same identity in two observations at least the
+     settle time apart (monotonic time). The retry then claims through the
+     shared path, with two extra preconditions checked immediately before the
+     claim intent is recorded, in the same store transaction that records it
+     (`begin_claim`), so nothing can slip between check and authorization:
+     - **identity:** the claim's own `Observe` returned that same stable
+       identity; otherwise nothing is recorded, and the new identity starts a
+       new settle period;
+     - **fresh admission:** the job is not blocked, no cancellation has been
+       requested, and the file's deadline has not passed (wall clock now).
+       Otherwise nothing is recorded, and the block is persisted if it is due.
+
+     Once the intent is recorded the claim is authorized. Its effects
+     (allocation, Apply, receipt) complete or are reconciled by the normal
+     path even if the deadline passes meanwhile, exactly as for a request.
+     Uncertain authorized effects are always reconciled, never abandoned.
+- When every file is claimed, the handoff completes. Delivery proceeds
+  normally, and the sender's next resend gets 202 (the existing replay path,
+  which revalidates custody). A sender that never resends still has its
+  recording delivered.
 
 **Deadlines and review:**
 - The deadline semantics are unchanged; a retry never extends or resets a
   deadline.
-- When a deadline passes, the next pass persists the block (`claim_blocked`)
-  and stops retrying that job. Status then shows review required without
-  waiting for another request.
-- `reset-missing` (the audited operator reset) makes the job eligible again
-  with the new deadline.
+- Past the deadline, the next pass persists the block (`claim_blocked`) and
+  stops retrying that job. Status shows review required without another
+  request.
+- `reset-missing` makes the job eligible again with its new deadline.
 
-**Backoff:**
-- Per job, the time until the next pass is 2 s, doubling to at most 30 s
-  while nothing changes.
-- When a file was seen and is settling, the next pass comes at
-  `first seen + settle`.
-- A producer request for the job resets the schedule.
-- At most 8 jobs are probed per pass, oldest deadline first, so one pass
-  stays short and producer requests are not delayed for long.
-- Probe state (observations, schedule) is in memory only. A restart starts a
-  fresh settle period, which is safe.
+**Scheduling, backoff and bounded work:**
+- **Budget:** a pass has a budget of **16 child operations**. Each Observe,
+  each claim step and each recovery reconciliation counts as one.
+- **Cursors:** jobs are visited round-robin from a job cursor, and each job
+  resumes at its own file cursor. A pass that runs out of budget stops, and
+  the next due pass continues exactly there. A large waiting job (up to 256
+  files) therefore progresses across passes without monopolizing one, and
+  every eligible job is visited within a bounded number of passes.
+- **Per-job backoff:** the next pass for a job is 2 s later, doubling to at
+  most 30 s while nothing changes. When a file is settling, the next pass
+  comes at `first seen + settle`. A job whose cursor was cut short by the
+  budget is due again immediately (next pass).
+- **Interference:** at most one budgeted pass runs between two producer
+  requests, so a request waits for at most 16 child operations. A producer
+  request for the job resets that job's backoff.
+- **State:** observations, cursors and schedules live in memory. A restart
+  starts fresh settle periods, which is safe.
 
-**Producer requests:** behavior and responses are unchanged. A request that
-arrives while a pass is running simply waits for it (same thread). A request
-can still claim a file immediately, without a settle period, as today. The
-sender asserting the file is complete is the existing contract.
+**Producer requests:** behavior and responses are unchanged. A request claims
+a present file immediately, without a settle period and without the
+fresh-admission precondition, as today. The sender asserting the file is
+complete is the existing contract.
 
 ## Clock-anomaly diagnostics
 
@@ -123,6 +164,27 @@ early.
   so.
 
 ## Proof
+
+- **Recovery:**
+  - Apply succeeded but its receipt was lost (seeded), with the original path
+    now absent: the retry completes the claim through recovery. No first
+    absence is recorded and no settle wait happens.
+  - A two-name relocation state is reconciled the same way.
+- **Size policy:**
+  - with checking on and no expected-size map, the retry claims nothing;
+  - partial custody across a restart: A claimed with checking off, B missing,
+    restart with checking on and a mismatching size for A. The retry stops at
+    A exactly as a resend would, and B is never claimed.
+- **Admission races:**
+  - the deadline passing between the stable observation and the claim: no
+    intent is recorded, and the block is persisted;
+  - a cancellation requested during observation: no intent is recorded;
+  - an intent recorded just before the deadline still completes after it.
+- **Scheduling:**
+  - a continuous stream of producer requests (a new request at least every
+    50 ms) still lets a waiting job's file be claimed within its window;
+  - a waiting job with 64 missing files that then appear: no pass exceeds the
+    budget, and all are claimed across passes.
 
 - **Claim worker / store:**
   - a claim that requires a specific identity refuses a changed file without
