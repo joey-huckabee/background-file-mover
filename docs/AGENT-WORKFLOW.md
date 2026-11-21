@@ -38,9 +38,12 @@ The coordinator owns integration and local validation. Cloud work starts from
 pushed GitHub commits; uncommitted Windows changes do not arrive there. Commit
 and push delegated inputs first, using `git pull --rebase` before every push.
 Cloud work returns on its own branch; review and integrate explicitly without
-overwriting concurrent local work. Start a review with `~/.claude/agents/spawn-agent.sh
-repository-review-agent "<task>"`, or continue a running one with `room-cli thread
-tell <thread>`. When the bundled PowerShell
+overwriting concurrent local work. The standing reviewer is the
+cloud thread `thr_6r6ddcuvm6` ("Repository Review Agent (cloud)", Opus 5.5 1M,
+high effort), a child of the coordinator. Send it each review with `room-cli
+thread tell thr_6r6ddcuvm6 "<task>"` after pushing, because it sees pushed
+commits only. A fresh reviewer can be started with `~/.claude/agents/spawn-agent.sh
+repository-review-agent "<task>"`. When the bundled PowerShell
 launcher returns no output, invoke its adjacent `room-cli` script through Node.
 
 ## Team size and responsibility
