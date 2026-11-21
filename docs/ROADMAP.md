@@ -201,7 +201,9 @@ Encode the required UUID recording_id; finalize lexical canonicalization. Preser
   DOC-01 [producer quickstart](PRODUCER-QUICKSTART.md) written in
   [increment 166](RUST-INCREMENT-166.md); DOC-02 [consumer guide](CONSUMER-GUIDE.md) in
   [increment 167](RUST-INCREMENT-167.md). DOC-04 [restart runbook](RUST-RESTART-RUNBOOK.md)
-  refreshed in [increment 168](RUST-INCREMENT-168.md). DOC-05 and traceability remain.
+  refreshed in [increment 168](RUST-INCREMENT-168.md); DOC-05
+  [deployment matrix](SUPPORTED-DEPLOYMENT.md) in [increment 169](RUST-INCREMENT-169.md).
+  L1/L2/L3 traceability remains.
 - [ ] P12: Rehearse the exact candidate, rerun both required SLES gates and close
   every FR gate before proposing production authorization or release.
 
