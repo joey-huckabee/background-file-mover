@@ -319,7 +319,12 @@
   // chunk; the page follows the cursor. A newer query, a change of the loaded
   // range or sign-out starts a new generation; older replies are dropped.
   var statusBase = "";  // the history footer's count, before any search note
-  var search = { gen: 0, timer: null, state: "idle", checked: 0, matches: null, range: "" };
+  // `text` is the trimmed query as typed, sent to the service (its length rule
+  // counts characters before lowercasing); `query` stays the local lowercase form.
+  var search = { gen: 0, timer: null, state: "idle", checked: 0, matches: null, range: "", text: "" };
+  // Redraws for new matches: one at a time, coalesced, and held while the
+  // retry form is in use (like live updates), so a typed reason is never lost.
+  var searchDraw = { busy: false, pending: false, deferred: false };
   function searchRange() {
     return allItems.length ? allItems[0].job_id + "-" + allItems[allItems.length - 1].job_id : "";
   }
@@ -335,8 +340,8 @@
   }
   function startSearch(deliberate) {
     cancelSearch();
-    if (!query || !searchable(query) || !allItems.length) { return; }
-    var mine = search.gen, q = query, until = allItems[0].job_id;
+    if (!query || !searchable(search.text) || !allItems.length) { return; }
+    var mine = search.gen, q = search.text, until = allItems[0].job_id;
     search.state = "running"; search.matches = {}; search.range = searchRange();
     function step(cursor, marked) {
       var path = "/api/v2/admin/jobs/search?q=" + encodeURIComponent(q) + "&until=" + until +
@@ -350,7 +355,7 @@
         if (r.body.next_cursor === null) { search.state = "done"; }
         // New matches redraw the list (keeping an open detail); otherwise only
         // the progress note changes.
-        if (added) { renderHistory(true); } else { showSearchNote(); }
+        if (added) { redrawSearch(); } else { showSearchNote(); }
         if (r.body.next_cursor !== null) {
           return step(r.body.next_cursor, false); // Continuations are background reads.
         }
@@ -364,7 +369,8 @@
     });
   }
   // Typing: local matches show at once; the server search waits for a pause.
-  function queueSearch() {
+  function queueSearch(text) {
+    search.text = text;
     cancelSearch();
     if (query) { search.timer = setTimeout(function () { search.timer = null; startSearch(true); }, 300); }
   }
@@ -381,6 +387,20 @@
     return "";
   }
   function showSearchNote() { $("history-status").textContent = statusBase + searchNote(); }
+  function redrawSearch() {
+    if (retryInUse()) { searchDraw.deferred = true; showSearchNote(); return; }
+    if (searchDraw.busy) { searchDraw.pending = true; return; }
+    searchDraw.busy = true;
+    var done = function () {
+      searchDraw.busy = false;
+      if (searchDraw.pending) { searchDraw.pending = false; redrawSearch(); }
+    };
+    Promise.resolve(renderHistory(true)).then(done, done);
+  }
+  // The retry form was released: show matches that arrived meanwhile.
+  function resumeSearch() {
+    if (searchDraw.deferred) { searchDraw.deferred = false; redrawSearch(); }
+  }
   // ---- end file-name search ----
   function visibleItems() {
     var list = allItems.filter(matches);
@@ -1082,7 +1102,10 @@
     return !!input && !input.disabled && (document.activeElement === input || input.value.trim() !== "");
   }
   function resumeLive(force) {
-    if (liveDeferred || force) { liveDeferred = false; refreshVisible(); }
+    if (liveDeferred || force) {
+      liveDeferred = false; searchDraw.deferred = false; // The refresh includes search matches.
+      refreshVisible();
+    } else { resumeSearch(); }
   }
 
   // Confirmed actions (cancel, clear history): a confirmation preview first (a
@@ -1895,7 +1918,7 @@
   });
   $("search").addEventListener("input", function () {
     query = $("search").value.trim().toLowerCase(); page = 0; openJob = null;
-    queueSearch();
+    queueSearch($("search").value.trim());
     renderHistory(false);
   });
   function route() {

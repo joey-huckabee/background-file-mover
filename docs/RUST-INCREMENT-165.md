@@ -40,6 +40,14 @@ the reviewed [design](dashboard/FILE-NAME-SEARCH-DESIGN.md) (revision 2).
   - Only the first request of a typed search is marked as interaction.
   - New matches redraw the list, keeping an open detail; otherwise only the
     note changes.
+    - Redraws run one at a time and are coalesced.
+    - While the retry form is in use (focused or holding a reason), they wait
+      and keep the matches, as live updates do. They resume when the form is
+      released.
+  - The service gets the trimmed query **as typed**. Its 256-character limit
+    counts characters before lowercasing; the lowercase form is only for the
+    page's local match. So a query of 129 `İ` (each lowercasing to two
+    characters) is still searched.
   - Placeholder: "Find a job, file, recording ID or folder".
 - **Contract:** OpenAPI route `searchAdminJobFiles`, `$defs/JobFileSearch`,
   `invalid_query` in `AdminError`; route inventory in the checker.
@@ -75,7 +83,11 @@ the reviewed [design](dashboard/FILE-NAME-SEARCH-DESIGN.md) (revision 2).
     unchanged range;
   - failure and retry;
   - no request for empty, over-long or control-character queries;
-  - cancel.
+  - cancel;
+  - a lowercase-expanding query (129 `İ`) is sent as typed, and 257 are not;
+  - redraws are held while the retry form is in use, then one redraw
+    follows; redraws that arrive while one runs are coalesced into a single
+    later one.
 - Contract checker; fmt and workspace clippy.
 
 ## Not covered

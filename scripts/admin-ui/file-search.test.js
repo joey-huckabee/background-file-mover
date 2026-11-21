@@ -25,19 +25,23 @@ function page() {
       call.reply = (status, body) => resolve({ status, body, current: mine === generation });
     });
   };
-  const api = new Function('request', 'quiet', 'renderHistory', '$', 'ctl', 'setTimeout', 'clearTimeout', 'state',
+  env.retryInUse = false;
+  env.draws = [];  // pending renderHistory(true) completions
+  const api = new Function('request', 'quiet', 'renderHistory', '$', 'ctl', 'setTimeout', 'clearTimeout', 'retryInUse', 'state',
     'var allItems = state.items, query = "";\n' + src.slice(start, end) +
-    '\nreturn { queue: function (q) { query = q; queueSearch(); },' +
+    '\nreturn { queue: function (q) { query = q.trim().toLowerCase(); queueSearch(q.trim()); },' +
+    ' resume: resumeSearch,' +
     ' load: function (items) { allItems = items; refreshSearch(); },' +
     ' cancel: cancelSearch, match: serverMatch, note: searchNote,' +
     ' state: function () { return search.state; } };')(
     request,
     (e) => e.name === 'AbortError' || e.message === 'signed out',
-    (live) => env.renders.push(live),
+    (live) => { env.renders.push(live); return new Promise((r) => env.draws.push(r)); },
     () => env.status,
     ctl,
     (fn, ms) => { timers.push({ fn, ms, cleared: false }); return timers.length - 1; },
     (id) => { timers[id].cleared = true; },
+    () => env.retryInUse,
     { items: [] });
   const fire = () => {
     const live = timers.filter((t) => !t.cleared && !t.fired);
@@ -166,6 +170,50 @@ const reply = (ids, cursor, scanned) => ({ job_ids: ids, next_cursor: cursor, sc
     const empty = page();
     empty.api.queue('x'); empty.fire();
     assert.strictEqual(empty.calls.length, 0);
+  }
+  // The service gets the query as typed: a character that grows when
+  // lowercased (İ -> i + U+0307) still counts once toward the 256 limit.
+  {
+    const { api, calls, fire } = page();
+    api.load(jobs(1, 3));
+    api.queue(' ' + 'İ'.repeat(129) + ' ');
+    fire();
+    assert.strictEqual(calls.length, 1, 'not suppressed by lowercase expansion');
+    assert.strictEqual(calls[0].url.searchParams.get('q'), 'İ'.repeat(129));
+    api.queue('İ'.repeat(257)); fire();
+    assert.strictEqual(calls.length, 1, '257 typed characters are not sent');
+  }
+  // Redraws wait while the retry form is in use, keep the matches, and never overlap.
+  {
+    const { api, calls, env, fire } = page();
+    api.load(jobs(1, 50));
+    api.queue('x'); fire();
+    env.retryInUse = true;
+    calls[0].reply(200, reply(['50'], 'c.1', 10));
+    await tick();
+    assert.deepStrictEqual(env.renders, [], 'no redraw while a reason is being typed');
+    assert.ok(api.match({ job_id: '50' }), 'the match is kept');
+    assert.ok(env.status.textContent.endsWith('10 jobs checked'), 'the note still updates');
+    calls[1].reply(200, reply(['40'], 'c.2', 10));
+    await tick();
+    assert.deepStrictEqual(env.renders, []);
+    env.retryInUse = false;
+    api.resume();
+    assert.deepStrictEqual(env.renders, [true], 'one redraw once the form is released');
+    // While that redraw runs, two more chunks with matches arrive: one more
+    // redraw follows after it finishes, not two overlapping ones.
+    calls[2].reply(200, reply(['30'], 'c.3', 10));
+    await tick();
+    calls[3].reply(200, reply(['20'], null, 20));
+    await tick();
+    assert.deepStrictEqual(env.renders, [true]);
+    env.draws[0]();
+    await tick();
+    assert.deepStrictEqual(env.renders, [true, true]);
+    env.draws[1]();
+    await tick();
+    assert.deepStrictEqual(env.renders, [true, true]);
+    assert.strictEqual(api.state(), 'done');
   }
   console.log('file-name search ok');
 })().catch((e) => { console.error(e); process.exit(1); });
