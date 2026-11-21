@@ -4,6 +4,8 @@ The application is implemented in Rust. Use these current sources:
 
 - [Producer quickstart and retry decision table](PRODUCER-QUICKSTART.md)
   (DOC-01): how a recorder submits files and handles every reply.
+- [Consumer guide](CONSUMER-GUIDE.md) (DOC-02): the destination layout, when a
+  recording is complete and how to check it against its manifest.
 - [Implemented behavior and operator actions](RUST-OPERATOR-GUIDE.md).
 - [Stable user situations, evidence and limits](RUST-SCENARIOS.md).
 - [Release closure](RUST-RELEASE-CLOSURE.md) and
