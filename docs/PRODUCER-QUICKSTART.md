@@ -193,4 +193,4 @@ administrator):
 - Operators: [status and recovery guide](RUST-OPERATOR-GUIDE.md), including
   "Missing files: automatic retries" and "Reset a reviewed missing-file
   deadline".
-- Consumers of delivered recordings: DOC-02 (not yet written).
+- Consumers of delivered recordings: [consumer guide](CONSUMER-GUIDE.md) (DOC-02).
