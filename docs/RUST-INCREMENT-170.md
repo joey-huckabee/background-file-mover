@@ -88,7 +88,9 @@ L2-SUB-001 to 005 and L2-FS-001 to 005, in the same file:
 ## Follow-up: REC and RTY (2026-11-21)
 
 L2-REC-001 to 004 and L2-RTY-001 to 006, in the same file:
-- **Tested:** REC-001, 003 and 004; RTY-001, 003, 004 and 006.
+- **Tested:** REC-001 and 003; RTY-001, 003, 004 and 006.
+- **Partly tested:** REC-004. Worker count, limits and eventual commits are
+  tested; overlapping delivery is by inspection.
 - **Deviation (needs approval):**
   - REC-002: stale partials are removed after delivery, not at re-queue;
   - RTY-002: permanent failures, other than a binding refusal or a foreign
