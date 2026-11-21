@@ -50,7 +50,21 @@ file A was claimed with checking off and B is missing; after a restart with
 checking on and a mismatching size for A, the retry stops at A's mismatch
 exactly as a resend would.
 
-**Eligible jobs:**
+**Two kinds of retry work.**
+- **Recovery** of an authorized claim, meaning an unfinished claim intent
+  already recorded (for example Apply succeeded but its receipt was lost, or a
+  crash left both names). It runs through the normal claim recovery path,
+  exactly as a resend would. It is **not** gated by the deadline, a persisted
+  block or a pending cancellation request: the effect was authorized before
+  any of those, and an authorized, possibly applied effect must be
+  reconciled, never abandoned. The only exception is a job whose cancellation
+  has **settled** (`Cancelled`). Settlement already promises "no further work;
+  files stay where they are", so its unfinished intent is left as is, as
+  today.
+- **New claims**, for files without an intent. These are gated by
+  eligibility (below) and by fresh admission at authorization.
+
+**Eligible for new claims:**
 - handoff not complete (`Handoff` not `Ready202`);
 - at least one recorded first absence (`missing` row);
 - not blocked, and the deadline not reached;
@@ -59,11 +73,10 @@ exactly as a resend would.
 
 **Per file, in order** (resuming at the job's cursor; see Scheduling):
 - **Completed claim:** the size check above, nothing else.
-- **Unfinished claim intent** (recorded, receipt not complete; for example
-  Apply succeeded but its receipt was lost, or a crash left both names): the
-  **normal claim recovery path** reconciles it, exactly as a resend would. It
-  is never observed as a fresh file, never classified as absent, and needs no
-  settle period: its identity is already recorded.
+- **Unfinished claim intent:** recovery (above), even when the job is no
+  longer eligible for new claims. It is never observed as a fresh file, never
+  classified as absent, and needs no settle period: its identity is already
+  recorded.
 - **No intent yet:**
   1. **Observe** through the supervised claim worker, as a claim's first step:
      the same `Observe` assignment, custody, expected-size rule and
@@ -77,8 +90,11 @@ exactly as a resend would.
        least `missing_file_settle_seconds` (new setting, default 5, 1–300).
   2. **Stable** means the same identity in two observations at least the
      settle time apart (monotonic time). The retry then claims through the
-     shared path, with two extra preconditions checked immediately before the
-     claim intent is recorded, in the same store transaction that records it
+     shared path. The claim's steps in today's code are: Observe, capacity
+     check, **Allocate** (create the private area), `begin_claim` (record the
+     intent), Apply, receipt. Two extra preconditions are checked twice:
+     **before Allocate** (so a refused claim normally creates nothing), and
+     again in the same store transaction that records the intent
      (`begin_claim`), so nothing can slip between check and authorization:
      - **identity:** the claim's own `Observe` returned that same stable
        identity; otherwise nothing is recorded, and the new identity starts a
@@ -86,6 +102,16 @@ exactly as a resend would.
      - **fresh admission:** the job is not blocked, no cancellation has been
        requested, and the file's deadline has not passed (wall clock now).
        Otherwise nothing is recorded, and the block is persisted if it is due.
+
+     If the `begin_claim` check refuses after Allocate already created the
+     private area (the deadline or a cancellation arrived in between), nothing
+     is recorded and the retry **releases that exact allocation**. A new
+     claim-worker step removes the area only if it is still the allocated
+     directory (device, inode, uid) and empty (plain `rmdir`), then syncs the
+     namespace. If it is not empty or not that directory, it stays; the next
+     claim of that file then refuses, as an allocation gap does today, and the
+     job needs review. After a `reset-missing`, a later retry can allocate
+     again.
 
      Once the intent is recorded the claim is authorized. Its effects
      (allocation, Apply, receipt) complete or are reconciled by the normal
@@ -175,6 +201,14 @@ early.
   - partial custody across a restart: A claimed with checking off, B missing,
     restart with checking on and a mismatching size for A. The retry stops at
     A exactly as a resend would, and B is never claimed.
+- **Recovery despite gates:** a seeded authorized intent (Apply done, receipt
+  lost) on a job whose deadline then expired, and on a job with a cancellation
+  requested but not settled. The retry completes the claim in both. On a job
+  whose cancellation has settled, the intent is left as is.
+- **Allocation released:** the deadline expiring between Allocate and
+  `begin_claim` (qualification pause or seeded). The empty area is removed and
+  no intent is recorded. After `reset-missing`, the retry claims the file
+  normally. An area that gained an entry is kept, and the next claim refuses.
 - **Admission races:**
   - the deadline passing between the stable observation and the claim: no
     intent is recorded, and the block is persisted;
