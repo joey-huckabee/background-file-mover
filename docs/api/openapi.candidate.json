@@ -1941,6 +1941,332 @@
         }
       }
     },
+    "/api/v2/admin/jobs/search": {
+      "get": {
+        "operationId": "searchAdminJobFiles",
+        "description": "File-name search (increment 165): one bounded chunk of a newest-first scan of the jobs' file relative paths; returns matching job IDs only. See docs/dashboard/FILE-NAME-SEARCH-DESIGN.md.",
+        "security": [
+          {
+            "adminCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Mover-Admin-Activity",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "interaction"
+              ]
+            },
+            "description": "Candidate deliberate read/navigation only. Omit for polling. If supplied, valid session-bound CSRF and configured target authority are mandatory. Do not require a script-supplied Origin for same-origin browser GET."
+          },
+          {
+            "name": "Origin",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            },
+            "description": "Browsers normally omit Origin on same-origin GET. Optional here; if supplied it must exactly match the configured dashboard origin."
+          },
+          {
+            "name": "Mover-CSRF-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Required and session-bound when deliberate activity is asserted; not required for an ordinary nonrenewing session read."
+          },
+          {
+            "name": "Sec-Fetch-Site",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Browser-supplied metadata. If present on a deliberate-activity read it must be same-origin; absence does not remove the mandatory session-bound CSRF check."
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Strict percent-decoding (% plus two hex digits; + is a literal plus); valid UTF-8 without control characters; trimmed, then 1-256 Unicode scalar values; matched case-insensitively (Unicode lowercase) as a substring of a file's relative path. Each parameter at most once; unknown parameters are 400 invalid_query."
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9223372036854775807
+            },
+            "description": "Canonical decimal. Only jobs with job_id >= until are scanned."
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            },
+            "description": "Opaque token from next_cursor, bound to the instance, the normalized query and until; otherwise 400 invalid_cursor."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One bounded chunk: at most 8,192 file rows or 1 MiB of path text, then the next job boundary.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/JobFileSearch"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "400": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "invalid_http",
+              "invalid_query",
+              "invalid_cursor",
+              "unexpected_body"
+            ],
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "403": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "admin_request_forbidden"
+            ],
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "404": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "not_found"
+            ],
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "405": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "method_not_allowed"
+            ],
+            "headers": {
+              "Allow": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Allowed method(s) for this route."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "408": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "request_timeout"
+            ],
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "413": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "request_too_large",
+              "confirmation_preview_too_large"
+            ],
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "431": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "request_headers_too_large"
+            ],
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "500": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "internal_error"
+            ],
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "503": {
+            "description": "Candidate route error; see ROUTE-SCHEMAS.candidate.md for precedence and envelope limits.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AdminError"
+                }
+              }
+            },
+            "x-error-codes": [
+              "service_busy",
+              "storage_unavailable",
+              "service_stopping"
+            ],
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, expired or globally revoked session. Authenticate before state/receipt disclosure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./contract.candidate.schema.json#/$defs/AuthenticationRequired"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Authenticated responses are not cacheable."
+              }
+            }
+          }
+        },
+        "x-response-max-bytes": {
+          "page": 1048576,
+          "confirmation": 16777216
+        }
+      }
+    },
     "/api/v2/jobs/{job_id}": {
       "get": {
         "operationId": "getJobStatus",

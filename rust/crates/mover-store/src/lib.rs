@@ -35,6 +35,8 @@ pub use admin_retry::{MAX_RETRY_CONTEXTS_PER_JOB, RetryOccurrence, RetryOutcome,
 pub use inspection::{InspectedEnrollment, InspectionSummary, StateInspection};
 mod missing_resets;
 mod missing_retry;
+mod search;
+pub use search::{FileSearchChunk, SEARCH_CHUNK_BYTES, SEARCH_CHUNK_ROWS};
 mod operators;
 mod retention;
 mod source_ownership;

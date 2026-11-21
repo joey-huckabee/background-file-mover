@@ -4863,3 +4863,85 @@ fn schema_seventeen_requires_the_guarded_source_cleanup_upgrade_and_snapshots_co
     let s = Store::open(f.db()).unwrap();
     assert!(s.next_source_cleanup(100, 16).unwrap().is_some());
 }
+
+fn named_job(s: &Store, id: &str, names: &[&str]) -> i64 {
+    let files = names
+        .iter()
+        .map(|n| FileSpec::new(*n, None).unwrap())
+        .collect();
+    let submission = Submission::new("g", id, "/mnt/recordings/current", files).unwrap();
+    s.accept(&submission, &context()).unwrap().job_id
+}
+
+#[test]
+fn file_name_search_matches_nested_paths_newest_first_in_bounded_chunks() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    let a = named_job(&s, "a", &["2026/Run-7/take.wav", "notes.txt"]);
+    let b = named_job(&s, "b", &["other.wav"]);
+    let c = named_job(&s, "c", &["run-7.WAV", "run-7-copy.wav", "x"]);
+    let search =
+        |q: &str, before: i64, until: i64| s.search_file_paths(q.into(), before, until).unwrap();
+    // Nested folder and file name, case ignored, newest first, each job once.
+    let all = search("run-7", i64::MAX, 0);
+    assert_eq!(all.matches, vec![c, a]);
+    assert_eq!((all.scanned_jobs, all.continue_before), (3, None));
+    assert_eq!(search(".wav", i64::MAX, 0).matches, vec![c, b, a]);
+    assert!(search("absent", i64::MAX, 0).matches.is_empty());
+    // `before` excludes newer jobs; `until` stops the scan.
+    assert_eq!(search("run-7", c, 0).matches, vec![a]);
+    let upper = search("run-7", i64::MAX, b);
+    assert_eq!((upper.matches, upper.scanned_jobs), (vec![c], 2));
+    // A chunk stops at the next job boundary once its row budget is reached:
+    // job c (3 rows) is scanned whole, then the chunk ends.
+    let first = s
+        .search_file_paths_bounded("wav".into(), i64::MAX, 0, 1, 1 << 20)
+        .unwrap();
+    assert_eq!(
+        first,
+        FileSearchChunk {
+            matches: vec![c],
+            scanned_jobs: 1,
+            continue_before: Some(c)
+        }
+    );
+    let second = s
+        .search_file_paths_bounded("wav".into(), c, 0, 1, 1 << 20)
+        .unwrap();
+    assert_eq!(second.continue_before, Some(b));
+    let third = s
+        .search_file_paths_bounded("wav".into(), b, 0, 1, 1 << 20)
+        .unwrap();
+    assert_eq!(
+        third,
+        FileSearchChunk {
+            matches: vec![a],
+            scanned_jobs: 1,
+            continue_before: None
+        }
+    );
+    // Likewise for the byte budget.
+    let bytes = s
+        .search_file_paths_bounded("nothing".into(), i64::MAX, 0, 1000, 5)
+        .unwrap();
+    assert_eq!((bytes.scanned_jobs, bytes.continue_before), (1, Some(c)));
+    // Invalid ranges and an empty needle are refused.
+    for (q, before, until) in [("", i64::MAX, 0), ("x", 5, 5), ("x", 5, -1)] {
+        assert!(s.search_file_paths(q.into(), before, until).is_err());
+    }
+    // The scan walks the primary key backwards and never sorts.
+    let db = Database::open(&f.db(), true).unwrap();
+    let plan: Vec<String> = db
+        .connection
+        .prepare(&format!("EXPLAIN QUERY PLAN {}", search::SEARCH_SQL))
+        .unwrap()
+        .query_map(params![i64::MAX, 0], |r| r.get::<_, String>(3))
+        .unwrap()
+        .map(|r| r.unwrap())
+        .collect();
+    assert!(plan.iter().all(|p| !p.contains("TEMP B-TREE")), "{plan:?}");
+    assert!(
+        plan.iter().any(|p| p.contains("sqlite_autoindex_files_1")),
+        "{plan:?}"
+    );
+}

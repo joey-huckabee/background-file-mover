@@ -16,8 +16,8 @@
   var openJob = null;     // job ID whose inline detail is open
   var rowsById = {};      // list rows on the current page, by job ID
   // At most one read of each kind in flight; a new read aborts the old one.
-  var ctl = { page: null, detail: null, storage: null, settings: null, overview: null };
-  var gen = { page: 0, detail: 0, storage: 0, settings: 0, overview: 0 };
+  var ctl = { page: null, detail: null, storage: null, settings: null, overview: null, search: null };
+  var gen = { page: 0, detail: 0, storage: 0, settings: 0, overview: 0, search: 0 };
   var refreshing = false;
 
   function $(id) { return document.getElementById(id); }
@@ -310,8 +310,98 @@
     if (!query) { return true; }
     var hay = [item.job_id, item.recording_id || "", item.submission_id || "", item.source_folder || "", item.destination_folder || ""]
       .join(" ").toLowerCase();
-    return hay.indexOf(query) >= 0;
+    return hay.indexOf(query) >= 0 || serverMatch(item);
   }
+  // ---- File-name search ----
+  // The list carries no file names, so after the input is still for 300 ms the
+  // page asks the service which loaded jobs have a matching file path
+  // (docs/dashboard/FILE-NAME-SEARCH-DESIGN.md). Each reply is one bounded
+  // chunk; the page follows the cursor. A newer query, a change of the loaded
+  // range or sign-out starts a new generation; older replies are dropped.
+  var statusBase = "";  // the history footer's count, before any search note
+  // `text` is the trimmed query as typed, sent to the service (its length rule
+  // counts characters before lowercasing); `query` stays the local lowercase form.
+  var search = { gen: 0, timer: null, state: "idle", checked: 0, matches: null, range: "", text: "" };
+  // Redraws for new matches: one at a time, coalesced, and held while the
+  // retry form is in use (like live updates), so a typed reason is never lost.
+  var searchDraw = { busy: false, pending: false, deferred: false };
+  function searchRange() {
+    return allItems.length ? allItems[0].job_id + "-" + allItems[allItems.length - 1].job_id : "";
+  }
+  function searchable(q) {
+    var n = Array.from(q).length;
+    return n >= 1 && n <= 256 && !/[\u0000-\u001f\u007f-\u009f]/.test(q);
+  }
+  function cancelSearch() {
+    if (search.timer !== null) { clearTimeout(search.timer); search.timer = null; }
+    if (ctl.search) { ctl.search.abort(); }
+    search.gen++;
+    search.state = "idle"; search.checked = 0; search.matches = null; search.range = "";
+  }
+  function startSearch(deliberate) {
+    cancelSearch();
+    if (!query || !searchable(search.text) || !allItems.length) { return; }
+    var mine = search.gen, q = search.text, until = allItems[0].job_id;
+    search.state = "running"; search.matches = {}; search.range = searchRange();
+    function step(cursor, marked) {
+      var path = "/api/v2/admin/jobs/search?q=" + encodeURIComponent(q) + "&until=" + until +
+        (cursor ? "&cursor=" + encodeURIComponent(cursor) : "");
+      return request(path, marked, "search").then(function (r) {
+        if (!r.current || mine !== search.gen) { return; }
+        if (r.status !== 200 || !r.body) { throw new Error("status " + r.status); }
+        var added = false;
+        r.body.job_ids.forEach(function (id) { added = added || !search.matches[id]; search.matches[id] = true; });
+        search.checked += Number(r.body.scanned_jobs);
+        if (r.body.next_cursor === null) { search.state = "done"; }
+        // New matches redraw the list (keeping an open detail); otherwise only
+        // the progress note changes.
+        if (added) { redrawSearch(); } else { showSearchNote(); }
+        if (r.body.next_cursor !== null) {
+          return step(r.body.next_cursor, false); // Continuations are background reads.
+        }
+      });
+    }
+    showSearchNote();
+    step(null, deliberate).catch(function (e) {
+      if (quiet(e) || mine !== search.gen) { return; }
+      search.state = "failed";
+      showSearchNote();
+    });
+  }
+  // Typing: local matches show at once; the server search waits for a pause.
+  function queueSearch(text) {
+    search.text = text;
+    cancelSearch();
+    if (query) { search.timer = setTimeout(function () { search.timer = null; startSearch(true); }, 300); }
+  }
+  // After the loaded jobs change: restart an active search over the new range
+  // (also retries a failed one), as a background read.
+  function refreshSearch() {
+    if (!query || search.timer !== null) { return; }
+    if (search.state === "failed" || (search.state !== "idle" && search.range !== searchRange())) { startSearch(false); }
+  }
+  function serverMatch(item) { return search.matches !== null && search.matches[item.job_id] === true; }
+  function searchNote() {
+    if (search.state === "running") { return " · Searching file names… " + search.checked + " jobs checked"; }
+    if (search.state === "failed") { return " · File names could not be searched. Try again."; }
+    return "";
+  }
+  function showSearchNote() { $("history-status").textContent = statusBase + searchNote(); }
+  function redrawSearch() {
+    if (retryInUse()) { searchDraw.deferred = true; showSearchNote(); return; }
+    if (searchDraw.busy) { searchDraw.pending = true; return; }
+    searchDraw.busy = true;
+    var done = function () {
+      searchDraw.busy = false;
+      if (searchDraw.pending) { searchDraw.pending = false; redrawSearch(); }
+    };
+    Promise.resolve(renderHistory(true)).then(done, done);
+  }
+  // The retry form was released: show matches that arrived meanwhile.
+  function resumeSearch() {
+    if (searchDraw.deferred) { searchDraw.deferred = false; redrawSearch(); }
+  }
+  // ---- end file-name search ----
   function visibleItems() {
     var list = allItems.filter(matches);
     return descending ? list.slice().reverse() : list;
@@ -321,6 +411,7 @@
     return fetchAll(deliberate).then(function (items) {
       if (items === null) { return false; }
       allItems = items;
+      refreshSearch();
       if (view === "overview") { loadOverviewStorage(); }
       renderCompleteness();
       renderCounts();
@@ -363,7 +454,7 @@
     });
   }
   function openInHistory(jobId) {
-    filter = "all"; query = ""; $("search").value = "";
+    filter = "all"; query = ""; $("search").value = ""; cancelSearch();
     syncFilters();
     var index = visibleItems().findIndex(function (i) { return i.job_id === jobId; });
     page = index < 0 ? 0 : Math.floor(index / PAGE_SIZE);
@@ -476,9 +567,10 @@
     clear(rows);
     rowsById = {};
     var items = body.items;
-    $("history-status").textContent = body.total === 0
+    statusBase = body.total === 0
       ? "0 jobs"
       : body.total + " job" + (body.total === 1 ? "" : "s") + (body.pages > 1 ? " · page " + (page + 1) + " of " + body.pages : "");
+    showSearchNote();
     items.forEach(function (item) {
       rowsById[item.job_id] = item;
       var tr = el("tr", null, "job-row");
@@ -529,7 +621,7 @@
         var reset = el("button", "Show all jobs", "button");
         reset.type = "button";
         reset.addEventListener("click", function () {
-          filter = "all"; query = ""; $("search").value = ""; page = 0; openJob = null;
+          filter = "all"; query = ""; $("search").value = ""; page = 0; openJob = null; cancelSearch();
           syncFilters(); renderHistory(false); $("search").focus();
         });
         cell.appendChild(reset);
@@ -1010,7 +1102,10 @@
     return !!input && !input.disabled && (document.activeElement === input || input.value.trim() !== "");
   }
   function resumeLive(force) {
-    if (liveDeferred || force) { liveDeferred = false; refreshVisible(); }
+    if (liveDeferred || force) {
+      liveDeferred = false; searchDraw.deferred = false; // The refresh includes search matches.
+      refreshVisible();
+    } else { resumeSearch(); }
   }
 
   // Confirmed actions (cancel, clear history): a confirmation preview first (a
@@ -1710,7 +1805,7 @@
     if (!signedIn) {
       Object.keys(ctl).forEach(function (k) { if (ctl[k]) { ctl[k].abort(); } gen[k]++; });
       csrf = null; allItems = []; page = 0; openJob = null; descending = false;
-      pageBudget = 40; olderCursor = null; filter = "all"; query = "";
+      pageBudget = 40; olderCursor = null; filter = "all"; query = ""; cancelSearch();
       selected.clear(); bulk = { action: null, ids: [], proof: null, expires_at: 0, sending: false, message: "" };
       if ($("confirm-dialog").open) { $("confirm-dialog").close(); }
       setView("overview");
@@ -1823,6 +1918,7 @@
   });
   $("search").addEventListener("input", function () {
     query = $("search").value.trim().toLowerCase(); page = 0; openJob = null;
+    queueSearch($("search").value.trim());
     renderHistory(false);
   });
   function route() {

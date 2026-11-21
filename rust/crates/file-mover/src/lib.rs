@@ -299,6 +299,8 @@ enum Observation {
     Status(i64),
     /// Admin history page (bounded; see PageRequest).
     Page(PageRequest),
+    /// One bounded chunk of an admin file-name search (see SearchRequest).
+    Search(SearchRequest),
     Retention(Option<i64>),
     Resume(i64, ResumeInput),
     ResetMissing(i64, MissingResetInput),
@@ -394,6 +396,9 @@ impl Worker {
                         Observation::Status(id) => status_response(&observation_store, id),
                         Observation::Page(request) => {
                             page_response(&observation_store, request)
+                        }
+                        Observation::Search(request) => {
+                            search_response(&observation_store, request)
                         }
                         Observation::Retention(id) => {
                             let mut response=retention_response(&observation_store,id);
@@ -1344,6 +1349,57 @@ pub(crate) struct PageRequest {
     pub(crate) bound: Option<String>,
 }
 
+/// One chunk of an admin file-name search
+/// (docs/dashboard/FILE-NAME-SEARCH-DESIGN.md).
+pub(crate) struct SearchRequest {
+    /// Normalized query: trimmed, Unicode-lowercased.
+    pub(crate) needle: String,
+    /// Hex SHA-256 of the normalized query (cursor binding).
+    pub(crate) digest: String,
+    /// Oldest job to scan; 0 when absent.
+    pub(crate) until: i64,
+    /// Scan jobs older than this one (`i64::MAX` for a first request).
+    pub(crate) before: i64,
+    /// The instance a continuation cursor was issued for.
+    pub(crate) bound: Option<String>,
+}
+
+/// Opaque search cursor, bound to the instance, the normalized query and
+/// `until`; it continues below the last job scanned.
+pub(crate) fn search_cursor(instance: &str, digest: &str, until: i64, last: i64) -> String {
+    format!("c1.{instance}.s.{digest}.{until}.{last}")
+}
+
+fn search_response(store: &Store, request: SearchRequest) -> Response {
+    let Ok(instance) = store.instance_id() else {
+        return error(503, "storage_unavailable", true, None);
+    };
+    if request.bound.as_ref().is_some_and(|b| *b != instance) {
+        return error(400, "invalid_cursor", false, None);
+    }
+    let chunk = match store.search_file_paths(request.needle, request.before, request.until) {
+        Ok(chunk) => chunk,
+        Err(_) => return error(503, "storage_unavailable", true, None),
+    };
+    let next = chunk
+        .continue_before
+        .map(|last| search_cursor(&instance, &request.digest, request.until, last));
+    let ids: Vec<String> = chunk.matches.iter().map(i64::to_string).collect();
+    Response {
+        status: 200,
+        job_id: None,
+        state: None,
+        source_paths_released: false,
+        error: None,
+        retryable: false,
+        details: Some(serde_json::json!({
+            "job_ids": ids,
+            "next_cursor": next,
+            "scanned_jobs": chunk.scanned_jobs,
+        })),
+    }
+}
+
 /// Opaque admin history cursor bound to the state instance and sort order.
 /// Clients must not parse it; the service rejects a cursor from another
 /// instance or one used with the other order.
@@ -1993,6 +2049,7 @@ async fn connection(
                                     Observation::Status(_)
                                     | Observation::Retention(_)
                                     | Observation::Page(..)
+                                    | Observation::Search(..)
                                     | Observation::RetryScope
                                     | Observation::Retry(..)
                                     | Observation::Cancel(..)

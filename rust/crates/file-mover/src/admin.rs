@@ -495,6 +495,11 @@ async fn handle(
                     return Reply::method("POST");
                 }
                 retry(admin, r, observer).await
+            } else if path == b"/api/v2/admin/jobs/search" {
+                if r.head.method != "GET" {
+                    return Reply::method("GET");
+                }
+                search(admin, r, query, observer).await
             } else if path == b"/api/v2/admin/jobs" {
                 if r.head.method != "GET" {
                     return Reply::method("GET");
@@ -825,6 +830,133 @@ fn parse_cursor(value: &str) -> Option<(String, bool, i64)> {
         return None;
     }
     Some((instance.to_owned(), descending, last))
+}
+
+/// Strict percent-decoding: `%` must be followed by two hex digits; `+` is
+/// a literal plus.
+fn percent_decode(value: &str) -> Option<Vec<u8>> {
+    let bytes = value.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' {
+            let hex = bytes.get(i + 1..i + 3)?;
+            let text = std::str::from_utf8(hex).ok()?;
+            if !text.bytes().all(|b| b.is_ascii_hexdigit()) {
+                return None;
+            }
+            out.push(u8::from_str_radix(text, 16).ok()?);
+            i += 3;
+        } else {
+            out.push(bytes[i]);
+            i += 1;
+        }
+    }
+    Some(out)
+}
+
+fn canonical_positive(text: &str) -> Option<i64> {
+    text.parse::<i64>()
+        .ok()
+        .filter(|n| *n > 0 && n.to_string() == text)
+}
+
+/// Parsed search query: the chunk request without the instance check.
+fn search_query(query: Option<&[u8]>) -> Result<crate::SearchRequest, Reply> {
+    let invalid = || Reply::error(400, "invalid_query");
+    let text = std::str::from_utf8(query.ok_or_else(invalid)?).map_err(|_| invalid())?;
+    let (mut q, mut until, mut cursor) = (None, None, None);
+    for pair in text.split('&') {
+        let (key, value) = pair.split_once('=').ok_or_else(invalid)?;
+        let slot = match key {
+            "q" => &mut q,
+            "until" => &mut until,
+            "cursor" => &mut cursor,
+            _ => return Err(invalid()),
+        };
+        if slot
+            .replace(percent_decode(value).ok_or_else(invalid)?)
+            .is_some()
+        {
+            return Err(invalid()); // Duplicate parameter.
+        }
+    }
+    let q = String::from_utf8(q.ok_or_else(invalid)?).map_err(|_| invalid())?;
+    if q.chars().any(char::is_control) {
+        return Err(invalid());
+    }
+    let trimmed = q.trim();
+    if !(1..=256).contains(&trimmed.chars().count()) {
+        return Err(invalid());
+    }
+    let needle = trimmed.to_lowercase();
+    let digest = mover_fs::sha256_hex(needle.as_bytes());
+    let until = match until {
+        None => 0,
+        Some(bytes) => std::str::from_utf8(&bytes)
+            .ok()
+            .and_then(canonical_positive)
+            .ok_or_else(invalid)?,
+    };
+    let (bound, before) = match cursor {
+        None => (None, i64::MAX),
+        Some(bytes) => {
+            let (instance, last) = std::str::from_utf8(&bytes)
+                .ok()
+                .and_then(|c| parse_search_cursor(c, &digest, until))
+                .ok_or_else(|| Reply::error(400, "invalid_cursor"))?;
+            (Some(instance), last)
+        }
+    };
+    Ok(crate::SearchRequest {
+        needle,
+        digest,
+        until,
+        before,
+        bound,
+    })
+}
+
+/// `c1.<instance>.s.<digest>.<until>.<last>`, matching this query and `until`.
+fn parse_search_cursor(value: &str, digest: &str, until: i64) -> Option<(String, i64)> {
+    if value.len() > 1024 {
+        return None;
+    }
+    let parts: Vec<&str> = value.strip_prefix("c1.")?.split('.').collect();
+    let [instance, "s", cursor_digest, cursor_until, last] = parts.as_slice() else {
+        return None;
+    };
+    let valid_instance = !instance.is_empty()
+        && instance
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_');
+    let cursor_until = if *cursor_until == "0" {
+        Some(0)
+    } else {
+        canonical_positive(cursor_until)
+    };
+    let last = canonical_positive(last)?;
+    (valid_instance && *cursor_digest == digest && cursor_until == Some(until) && last > until)
+        .then(|| ((*instance).to_owned(), last))
+}
+
+async fn search(
+    admin: &Admin,
+    r: &http::Request,
+    query: Option<&[u8]>,
+    observer: &std::sync::mpsc::SyncSender<crate::OperatorWork>,
+) -> Reply {
+    if !r.body.is_empty() {
+        return Reply::error(400, "unexpected_body");
+    }
+    if let Err(reply) = authorize_read(admin, r) {
+        return reply;
+    }
+    let request = match search_query(query) {
+        Ok(request) => request,
+        Err(reply) => return reply,
+    };
+    from_operator(crate::operator_reply(observer, crate::Observation::Search(request)).await)
 }
 
 fn from_operator(response: crate::Response) -> Reply {
@@ -1892,6 +2024,82 @@ mod tests {
         );
     }
 
+    #[test]
+    fn search_query_is_strict_and_binds_cursors_to_the_query() {
+        let parse = |s: &str| search_query(Some(s.as_bytes()));
+        let err = |s: &str| {
+            parse(s)
+                .err()
+                .map(|r| (r.status, String::from_utf8(r.body).unwrap()))
+        };
+        let ok = parse("q=%20Run-7%2F%C3%89%20").ok().unwrap();
+        assert_eq!(ok.needle, "run-7/é");
+        assert_eq!(ok.digest, mover_fs::sha256_hex("run-7/é".as_bytes()));
+        assert_eq!((ok.until, ok.before, ok.bound), (0, i64::MAX, None));
+        // `+` is a literal plus, like `%2B`.
+        assert_eq!(parse("q=a+b").ok().unwrap().needle, "a+b");
+        assert_eq!(parse("q=a%2Bb").ok().unwrap().needle, "a+b");
+        assert_eq!(parse("q=x&until=7").ok().unwrap().until, 7);
+        // 256 scalar values after trimming are allowed; 257 are not.
+        let long = "é".repeat(256);
+        assert!(parse(&format!("q=%20{}", long.replace('é', "%C3%A9"))).is_ok());
+        for bad in [
+            "",
+            "q",
+            "q=",
+            "q=%20%20",
+            "q=a&q=b",
+            "q=a&limit=1",
+            "x=1",
+            "q=a&",
+            "q=%zz",
+            "q=%4",
+            "q=a%",
+            "q=%00",
+            "q=a%0Ab",
+            "q=%C3",
+            "q=%FF",
+            "q=x&until=0",
+            "q=x&until=07",
+            "q=x&until=-1",
+            "q=x&until=",
+            "q=x&until=1&until=2",
+            "until=5",
+        ] {
+            let e = err(bad).unwrap_or_else(|| panic!("accepted {bad:?}"));
+            assert_eq!(e.0, 400, "{bad}");
+            assert!(e.1.contains("invalid_query"), "{bad}: {}", e.1);
+        }
+        assert!(err(&format!("q={}", "a".repeat(257))).is_some());
+        assert!(err(&format!("q={}", long.replace('é', "%C3%A9") + "a")).is_some());
+        // Cursor: bound to the instance, the normalized query and `until`.
+        let digest = mover_fs::sha256_hex(b"run");
+        let cursor = crate::search_cursor("inst", &digest, 3, 9);
+        let c = parse(&format!("q=RUN&until=3&cursor={cursor}"))
+            .ok()
+            .unwrap();
+        assert_eq!((c.before, c.bound.as_deref()), (9, Some("inst")));
+        for bad in [
+            format!("q=other&until=3&cursor={cursor}"),
+            format!("q=run&cursor={cursor}"),
+            format!("q=run&until=4&cursor={cursor}"),
+            format!(
+                "q=run&until=3&cursor={}",
+                crate::search_cursor("inst", &digest, 3, 3)
+            ),
+            format!(
+                "q=run&until=3&cursor={}",
+                crate::history_cursor("inst", true, 9)
+            ),
+            format!("q=run&until=3&cursor={}.1", cursor),
+            "q=run&cursor=c1.inst.s.x.0.5".to_owned(),
+            "q=run&cursor=".to_owned(),
+        ] {
+            let e = err(&bad).unwrap_or_else(|| panic!("accepted {bad:?}"));
+            assert_eq!(e.0, 400, "{bad}");
+            assert!(e.1.contains("invalid_cursor"), "{bad}: {}", e.1);
+        }
+    }
     #[test]
     fn history_query_and_cursor_are_strict() {
         let q = |s: &str| history_query(Some(s.as_bytes())).map_err(|r| r.status);
