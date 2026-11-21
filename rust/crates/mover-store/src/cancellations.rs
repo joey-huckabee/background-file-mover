@@ -141,6 +141,17 @@ impl Store {
                 if delivering(id) {
                     continue;
                 }
+                // An authorized claim effect not yet reconciled is uncertain:
+                // the cancellation stays pending until the claim recovery
+                // (missing-file retries) has reconciled it.
+                let unfinished: bool = tx.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM claims WHERE job_id=?1 AND done=0)",
+                    [id],
+                    |r| r.get(0),
+                )?;
+                if unfinished {
+                    continue;
+                }
                 let job = load(&tx, id)?.ok_or(StoreError::CorruptState)?;
                 changed += if job.recording.is_committed() {
                     tx.execute("DELETE FROM cancellations WHERE job_id=?1", [id])?

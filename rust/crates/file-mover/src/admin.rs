@@ -1673,6 +1673,7 @@ fn settings(
         .unwrap_or(0);
     Ok(serde_json::json!({
         "config_file": config_file,
+        "clock_jumps_since_start": crate::missing_retry::CLOCK_JUMPS.load(std::sync::atomic::Ordering::Relaxed),
         "loaded_at": loaded_at,
         "transfers": {
             "source_root": c.source_root,
@@ -1682,6 +1683,7 @@ fn settings(
             "delete_source_after_commit": c.delete_source_after_commit,
             "check_expected_sizes": c.check_expected_sizes,
             "missing_file_retry_window_seconds": c.missing_file_retry_window_seconds,
+            "missing_file_settle_seconds": c.missing_file_settle_seconds,
             "shutdown_wait_seconds": c.shutdown_wait_seconds,
             "delivery_concurrency": c.delivery_concurrency,
             "delivery_file_concurrency": c.delivery_file_concurrency,

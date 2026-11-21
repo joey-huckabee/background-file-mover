@@ -34,6 +34,7 @@ mod migration;
 pub use admin_retry::{MAX_RETRY_CONTEXTS_PER_JOB, RetryOccurrence, RetryOutcome, RetryResult};
 pub use inspection::{InspectedEnrollment, InspectionSummary, StateInspection};
 mod missing_resets;
+mod missing_retry;
 mod operators;
 mod retention;
 mod source_ownership;
@@ -1115,11 +1116,34 @@ impl Database {
     }
 
     fn begin_claim(&mut self, intent: &ClaimIntent) -> Result<()> {
+        self.begin_claim_inner(intent, None).map(|_| ())
+    }
+    /// `admission`: also refuse (Ok(false), nothing recorded) when the job is
+    /// blocked or its deadline has passed at that wall time (the block is
+    /// persisted), in the same transaction that records the intent.
+    fn begin_claim_inner(
+        &mut self,
+        intent: &ClaimIntent,
+        admission: Option<Box<dyn FnOnce() -> i64 + Send>>,
+    ) -> Result<bool> {
         let tx = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
         let job = load(&tx, intent.job_id)?.ok_or(StoreError::InvalidContext)?;
         validate_claim(&job, intent)?;
+        if let Some(clock) = admission
+            && load_claim(&tx, intent.job_id, intent.file_index)?.is_none()
+        {
+            // Sampled inside the transaction, immediately before the check.
+            let now = clock();
+            if now < 0 {
+                return Err(StoreError::InvalidContext);
+            }
+            if !missing_retry::admissible(&tx, intent.job_id, now)? {
+                tx.commit()?; // Keep the persisted block.
+                return Ok(false);
+            }
+        }
         if cancellations::requested(&tx, intent.job_id)? {
             return Err(StoreError::Cancelled);
         }
@@ -1136,7 +1160,7 @@ impl Database {
                     intent.private_name, intent.root.encode(), intent.parent.encode(), intent.area.encode(), intent.source.encode()])?;
         }
         tx.commit()?;
-        Ok(())
+        Ok(true)
     }
     fn claim_blocked(&mut self, job_id: i64, now: i64) -> Result<bool> {
         if now < 0 {

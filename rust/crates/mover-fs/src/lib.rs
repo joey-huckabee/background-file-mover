@@ -504,6 +504,8 @@ pub fn observe_claim(
     })
 }
 pub fn allocate_claim(observed: &ClaimIntent) -> Result<ClaimIntent> {
+    // Qualification fault point: a deadline can pass while Allocate runs.
+    qualification_pause("claim_allocate")?;
     let fresh = observe_claim(
         observed.job_id,
         observed.file_index,
@@ -527,6 +529,37 @@ pub fn allocate_claim(observed: &ClaimIntent) -> Result<ClaimIntent> {
     let mut allocated = observed.clone();
     allocated.area = owned_directory(&area, true)?;
     Ok(allocated)
+}
+
+/// Release an allocation whose claim intent was never recorded (a timer
+/// retry refused at `begin_claim`: deadline or cancellation arrived after
+/// Allocate). Removes the private area only if it is still exactly the
+/// allocated directory and empty (plain `rmdir`), then syncs the namespace.
+/// Ok(true) removed or already absent; Ok(false) kept (not empty), so the next
+/// claim of the file refuses as an allocation gap does today.
+pub fn release_claim_allocation(allocated: &ClaimIntent) -> Result<bool> {
+    let root = root(&allocated.root_path)?;
+    same_directory(&owned_directory(&root, false)?, &allocated.root)?;
+    let namespace = namespace(&root)?;
+    let name = allocated.private_name.as_str();
+    let area = match fs::openat(&namespace, name, DIRECTORY, Mode::empty()) {
+        Err(Errno::NOENT) => {
+            fs::fsync(&namespace)
+                .map_err(|e| ClaimError::Operation("release.sync_namespace", e))?;
+            return Ok(true);
+        }
+        other => other.map_err(|e| ClaimError::Operation("release.open_area", e))?,
+    };
+    same_directory(&owned_directory(&area, true)?, &allocated.area)?;
+    match fs::unlinkat(&namespace, name, AtFlags::REMOVEDIR) {
+        Ok(()) => {
+            fs::fsync(&namespace)
+                .map_err(|e| ClaimError::Operation("release.sync_namespace", e))?;
+            Ok(true)
+        }
+        Err(Errno::NOTEMPTY | Errno::EXIST) => Ok(false),
+        Err(e) => Err(ClaimError::Operation("release.remove_area", e)),
+    }
 }
 
 /// Apply or reconcile a COMMITTED intent. Caller must fence all other workers.

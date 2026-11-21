@@ -748,8 +748,8 @@
     }
     d.missing.forEach(function (m) {
       quietJob = false;
-      activity.appendChild(el("p", "File " + m.file_id + " missing at the source; deadline " + time(m.deadline) +
-        (m.blocked ? " (blocked)" : "") + (m.deadline_elapsed ? " (deadline passed)" : ""), "notice"));
+      activity.appendChild(el("p", missingText(m, d.files), "notice",
+        "missing file " + m.file_id + "; deadline " + m.deadline));
     });
     if (d.latest_resume) {
       quietJob = false;
@@ -1022,6 +1022,19 @@
     if (String(counts.accepted_count) !== "0") { return "Cancelling: the mover is stopping work on this job."; }
     if (String(counts.failed_count) !== "0") { return "A cancellation is already in progress for this job."; }
     return "Nothing to cancel: the job is already delivered, cancelled or no longer tracked.";
+  }
+  // A missing file: waiting, settling (appeared; the mover checks it is
+  // complete before taking it over), or past its deadline (review).
+  function missingText(m, files) {
+    var f = (files || [])[Number(m.file_id)];
+    var name = f ? f.name : "File " + m.file_id;
+    if (m.blocked || m.deadline_elapsed) {
+      return name + " did not arrive by " + time(m.deadline) + "; the job needs review (reset the missing-file deadline to retry).";
+    }
+    if (m.settling) {
+      return name + " has appeared; the mover is checking it is complete before taking it over (deadline " + time(m.deadline) + ").";
+    }
+    return "Waiting for " + name + " at the source until " + time(m.deadline) + "; the mover checks again automatically.";
   }
   // Move mode progress for the Activity panel (null for copy jobs). Only a
   // delivered move job (CleanupPending) is actually being cleaned up.
@@ -1547,7 +1560,9 @@
     clear(target);
     var loaded = new Date(Number(s.loaded_at) * 1000).toISOString().replace("T", " ").replace(".000Z", " UTC");
     target.appendChild(el("p", "Loaded " + (s.config_file ? "from " + s.config_file + " " : "") + "at " + loaded +
-      ". Changes take effect after a restart (producer certificates can be reloaded live).", "muted"));
+      ". Changes take effect after a restart (producer certificates can be reloaded live)." +
+      (Number(s.clock_jumps_since_start) > 0 ? " The system clock jumped " + s.clock_jumps_since_start +
+        " time(s) since start; missing-file deadlines use wall time (see the service log)." : ""), "muted"));
     var grid = el("div", null, "settings-grid");
     target.appendChild(grid);
     var t = s.transfers;
@@ -1559,6 +1574,8 @@
       "Copy keeps the mover's held source copies after delivery; Move removes them after verified delivery (delete_source_after_commit)");
     fact(dl, "Check expected sizes", yesNo(t.check_expected_sizes), "check_expected_sizes");
     fact(dl, "Missing-file retry window", t.missing_file_retry_window_seconds.toString() + " s", "missing_file_retry_window_seconds");
+    fact(dl, "Missing-file settle time", t.missing_file_settle_seconds.toString() + " s",
+      "A late file is taken over once two checks this far apart show it unchanged (missing_file_settle_seconds)");
     fact(dl, "Shutdown wait", t.shutdown_wait_seconds.toString() + " s", "shutdown_wait_seconds");
     if (t.delivery_concurrency !== undefined) {
       fact(dl, "Jobs delivered at once", t.delivery_concurrency.toString(), "delivery_concurrency");
