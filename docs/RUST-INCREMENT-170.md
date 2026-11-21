@@ -57,12 +57,32 @@ Partly tested (the consumer side is a documented obligation, not tested). For
 002 the requirement allows collision, and the mover always treats a foreign
 destination as one, even an identical one.
 
-## Decisions for the user (from DPR and DST)
+## Follow-up: DEL and CLN (2026-11-21)
+
+L2-DEL-001 to 004 and L2-CLN-001 to 005, in the same file:
+- **Tested:** DEL-001, 002 and 003; CLN-001 and 005.
+- **Deviation (needs approval):** DEL-004 and CLN-002 (same exception as DPR-006).
+  Automatic cleanup meets them; operator-confirmed deletion does not.
+- **Inspection:** CLN-003. A non-empty private folder is kept and not reported
+  as removed; no test.
+- **Partly tested:** CLN-004. An unexpected object at the copy's name is
+  refused and reported. An extra file beside the copy is kept silently.
+
+For **automatic** cleanup, the removal sequence was read in
+`file-mover/src/delivery_worker.rs`: the manifest and every final file are
+verified before any removal is authorized
+(`authorize_source_cleanup`). Then `discard_retained_source` in
+`mover-fs/src/lib.rs` re-checks identities and confirms a zero link count.
+
+## Decisions for the user (from DPR, DST, DEL and CLN)
 
 - **L2-DPR-005:** accept the no-clobber link fallback, or reword the
   requirement to "atomic, no-clobber publication".
 - **L2-DPR-006:** reword the requirement to exempt explicit, operator-confirmed
-  deletion (increments 143/144).
+  deletion (increments 143/144). The same decision covers L2-DEL-004 and L2-CLN-002.
+- **L2-CLN-004:** whether the mover should report (route to an operator) an
+  unexpected extra file left in a private folder after removing its copy.
+  Today it is kept silently.
 
 ## Not covered
 

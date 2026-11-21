@@ -34,7 +34,7 @@ time, each a small reviewed PR:
 4. **L1 roll-up:** an L1 requirement is traced when all its L2 children are
    Tested, or accepted as deviations or not applicable.
 
-Progress: DPR and DST (12 of 199 L2) mapped.
+Progress: DPR, DST, DEL and CLN (21 of 199 L2) mapped.
 
 All eight release gates remain open. Product approvals and source/state safety
 requirements are unchanged by source cleanup.
