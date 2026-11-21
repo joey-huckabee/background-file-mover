@@ -85,7 +85,19 @@ L2-SUB-001 to 005 and L2-FS-001 to 005, in the same file:
 - **Deviation (needs approval):** SUB-004. There is no submission manifest
   file; the claimed set is recorded in SQLite.
 
-## Decisions for the user (from DPR, DST, DEL, CLN, SUB and FS)
+## Follow-up: REC and RTY (2026-11-21)
+
+L2-REC-001 to 004 and L2-RTY-001 to 006, in the same file:
+- **Tested:** REC-001 and 003; RTY-001, 003, 004 and 006.
+- **Partly tested:** REC-004. Worker count, limits and eventual commits are
+  tested; overlapping delivery is by inspection.
+- **Deviation (needs approval):**
+  - REC-002: stale partials are removed after delivery, not at re-queue;
+  - RTY-002: permanent failures, other than a binding refusal or a foreign
+    marker, get bounded attempts before review;
+  - RTY-005: fixed, not configurable, backoff and attempt limit.
+
+## Decisions for the user (from DPR, DST, DEL, CLN, SUB, FS, REC and RTY)
 
 - **L2-DPR-005:** accept the no-clobber link fallback, or reword the
   requirement to "atomic, no-clobber publication".
@@ -97,6 +109,13 @@ L2-SUB-001 to 005 and L2-FS-001 to 005, in the same file:
 - **L2-SUB-004:** accept the durable SQLite job, file list and claim records as
   the submission manifest (the written manifest is `COMMITTED.json` at
   delivery), or reword the requirement.
+- **L2-REC-002:** accept removing stale partial copies after delivery (or by
+  confirmed deletion) instead of at re-queue, or reword.
+- **L2-RTY-002:** accept "bounded attempts, then review" for failures that are
+  not explicitly classified, or reword.
+- **L2-RTY-005:** accept the fixed retry limit and delays (three failures; 30
+  and 60 s for capacity, 5 s otherwise), or make them configurable (a product
+  change).
 
 ## Not covered
 
