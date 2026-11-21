@@ -1234,6 +1234,42 @@
       ],
       "description": "Preserves omitted outer absent fields: no null error/state/details placeholders and no HTTP status JSON field. Proposed extensions require implementation."
     },
+    "JobFileSearch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "job_ids": {
+          "type": "array",
+          "maxItems": 8448,
+          "items": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$"
+          },
+          "description": "Matching jobs in this chunk: decimal job IDs, newest first, distinct."
+        },
+        "next_cursor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Null when every job down to until (or job 1) has been scanned."
+        },
+        "scanned_jobs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8448,
+          "description": "Jobs scanned whole by this chunk."
+        }
+      },
+      "required": [
+        "job_ids",
+        "next_cursor",
+        "scanned_jobs"
+      ],
+      "description": "Admin file-name search chunk (increment 165)."
+    },
     "JobSummary": {
       "type": "object",
       "additionalProperties": false,
@@ -2114,6 +2150,7 @@
             "invalid_selection",
             "invalid_confirmation",
             "stale_confirmation",
+            "invalid_query",
             "invalid_cursor",
             "confirmation_preview_too_large",
             "invalid_retry_context",

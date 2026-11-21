@@ -2050,3 +2050,138 @@ fn live_password_change_activates_without_restart() {
     }
     f.stop();
 }
+
+#[test]
+fn admin_file_name_search_matches_nested_paths_in_bounded_chunks() {
+    let (mut f, a) = admin_fixture();
+    // Job 1 through the producer route: its files have not arrived, so it is
+    // recorded with its names and waits.
+    let input = json!({"recording_id":UUID,"generator_id":"recorder",
+        "source_directory":f.root.join("source/current"),
+        "files":["deep/Run-7/f0","Needle-Old.bin"]});
+    assert_eq!(
+        f.https("POST", "/api/v2/jobs", "", &input).1["error"],
+        "source_file_missing"
+    );
+    // Jobs 2-34 seeded offline with the same context: 32 jobs of 256 names,
+    // then one with a nested name and a mixed-case one (8,196 rows in all).
+    f.stop();
+    {
+        let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        let context = s.get(1).unwrap().unwrap().context;
+        let source = f.root.join("source/current");
+        for n in 2..=34 {
+            let names: Vec<String> = if n == 34 {
+                vec!["deep/Run-7/take.wav".into(), "Sub/B".into()]
+            } else {
+                (0..256).map(|i| format!("j{n}/file-{i}.bin")).collect()
+            };
+            let id = mover_core::RecordingId::parse(&format!("00000000-0000-4000-8000-{n:012}"))
+                .unwrap();
+            let request = mover_core::ProducerRequest::new(
+                "recorder".into(),
+                id,
+                source.to_str().unwrap().into(),
+                names,
+                None,
+            )
+            .unwrap();
+            let submission = mover_core::Submission::from_producer(request);
+            assert_eq!(s.accept(&submission, &context).unwrap().job_id, n);
+        }
+    }
+    f.start();
+
+    let path = |q: &str| format!("/api/v2/admin/jobs/search?{q}");
+    assert_eq!(a.call("GET", &path("q=x"), "", &[]).status, 401);
+    let ok = a.login("admin", PASSWORD);
+    let cookie = ok.cookie();
+    let csrf = ok.header("mover-csrf-token").unwrap().to_owned();
+    let get = |q: &str| a.session_path(&path(q), &cookie, "");
+    let search = |q: &str| {
+        let r = get(q);
+        assert_eq!(r.status, 200, "{q}: {}", r.json());
+        assert_eq!(r.header("cache-control"), Some("no-store"));
+        r.json()
+    };
+    // The first chunk ends after job 2 (the job boundary past 8,192 rows);
+    // the cursor continues with job 1.
+    let first = search("q=run-7");
+    assert_eq!(first["job_ids"], json!(["34"]));
+    assert_eq!(first["scanned_jobs"], 33);
+    let cursor = first["next_cursor"].as_str().unwrap().to_owned();
+    let second = search(&format!("q=run-7&cursor={cursor}"));
+    assert_eq!(
+        second,
+        json!({"job_ids":["1"],"next_cursor":null,"scanned_jobs":1})
+    );
+    // Case is ignored on both sides; the query is trimmed.
+    let needle = search("q=%20needle-OLD%20");
+    assert_eq!(needle["job_ids"], json!([]));
+    let more = search(&format!(
+        "q=needle-old&cursor={}",
+        needle["next_cursor"].as_str().unwrap()
+    ));
+    assert_eq!(more["job_ids"], json!(["1"]));
+    assert_eq!(search("q=sub%2Fb")["job_ids"], json!(["34"]));
+    // `until` bounds the scan.
+    assert_eq!(
+        search("q=TAKE.wav&until=34"),
+        json!({"job_ids":["34"],"next_cursor":null,"scanned_jobs":1})
+    );
+    // A cursor is bound to its query, `until` and instance.
+    for q in [
+        format!("q=needle-old&cursor={cursor}"),
+        format!("q=run-7&until=2&cursor={cursor}"),
+        format!("q=run-7&cursor=c1.{}.d.5", "f".repeat(32)),
+        format!(
+            "q=run-7&cursor=c1.{}.s.{}.0.5",
+            "f".repeat(32),
+            cursor.split('.').nth(3).unwrap()
+        ),
+    ] {
+        let r = get(&q);
+        assert_eq!(
+            (r.status, r.json()),
+            (400, json!({"error":"invalid_cursor"})),
+            "{q}"
+        );
+    }
+    for q in [
+        "",
+        "q=",
+        "q=%zz",
+        "q=a&q=b",
+        "q=a&order=desc",
+        "q=%0A",
+        "q=x&until=0",
+    ] {
+        let r = get(q);
+        assert_eq!(
+            (r.status, r.json()),
+            (400, json!({"error":"invalid_query"})),
+            "{q:?}"
+        );
+    }
+    assert_eq!(
+        a.call("POST", &path("q=x"), &format!("Cookie: {cookie}\r\n"), &[])
+            .status,
+        405
+    );
+    // A read marked as interaction needs the session's CSRF token.
+    let marked = |extra: &str| {
+        a.session_path(
+            &path("q=run-7"),
+            &cookie,
+            &format!(
+                "Mover-Admin-Activity: interaction\r\nOrigin: {}\r\n{extra}",
+                a.origin()
+            ),
+        )
+        .status
+    };
+    assert_eq!(marked(""), 403);
+    assert_eq!(marked("Mover-CSRF-Token: wrong\r\n"), 403);
+    assert_eq!(marked(&format!("Mover-CSRF-Token: {csrf}\r\n")), 200);
+    f.stop();
+}

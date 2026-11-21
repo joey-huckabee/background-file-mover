@@ -226,6 +226,8 @@ def main():
         ("get", "/api/v2/jobs/{job_id}/retention"),
         # Added with the dashboard settings view and live updates (increments 133/136).
         ("get", "/api/v2/admin/settings"), ("get", "/api/v2/admin/events"),
+        # File-name search (increment 165).
+        ("get", "/api/v2/admin/jobs/search"),
         *(('post', '/api/v2/admin/jobs/' + action)
           for action in ('cancel', 'retry', 'clear-history', 'delete-data',
                          'delete-destination-data')),

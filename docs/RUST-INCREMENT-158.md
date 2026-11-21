@@ -35,7 +35,8 @@ batches and page at 50 per page ("page 1 of 7"); stat cards stack on a phone.
 
 Known, not changed:
 - Search matches job number, request ID and top-level folders, not nested
-  folders or file names.
+  folders or file names (file names and nested folders added in
+  [increment 165](RUST-INCREMENT-165.md)).
 - At 1440 px the history table is still wider than its card (horizontal
   scroll for the destination column); the detail no longer depends on it.
 - The 40-page loading bound (10,240 jobs) and "Load older jobs" were not

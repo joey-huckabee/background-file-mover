@@ -1,6 +1,7 @@
 # File-name search: design
 
-Status: proposed, revision 2, for review. User request 2026-11-21 ("go with
+Status: revision 2 reviewed and approved 2026-11-21; implemented in
+[increment 165](../RUST-INCREMENT-165.md). User request 2026-11-21 ("go with
 1": the dashboard leftovers). User decision the same day: **server search**
 for file names and nested folders.
 
