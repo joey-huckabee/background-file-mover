@@ -124,12 +124,15 @@ These families describe features of the earlier design.
     only).
 - **Inspection:** REN-003 (same-filesystem moves).
 - **Deviation (needs approval):**
-  - XFR-001: a fixed step model, not a strategy interface;
   - XFR-002: the same publication decision as DPR-005;
   - XFR-004: errno numbers and labels, not errno text;
   - MGR-001: worker threads without a condition-variable queue;
   - MGR-002: the same split as CORE-002.
-- **Tested:** MGR-003 (bounded stop; the drain case in qualification builds).
+- **Partly tested:**
+  - XFR-001: a copy interface with an optional progress callback; the callback
+    wiring is by inspection;
+  - MGR-003: deadline, ownership and exit are tested; draining an in-flight
+    transfer is by inspection and historical evidence.
 
 ## Decisions for the user (all families so far)
 
@@ -164,8 +167,8 @@ These families describe features of the earlier design.
 - **BWL, RSM, REN-001/002:** confirm bandwidth limiting, byte-offset resume and
   rename templates/collision policies are out of the first-release scope, or
   keep any of them (Open; product work).
-- **L2-XFR-001, L2-MGR-001:** accept the Rust mechanisms (fixed copy steps;
-  worker threads without a condition-variable queue), or reword.
+- **L2-MGR-001:** accept worker threads without a condition-variable queue,
+  or reword.
 - **L2-XFR-004:** accept errno numbers plus dashboard labels instead of errno
   text, or reword.
 - **L2-XFR-002, L2-MGR-002:** settled by the DPR-005 and CORE-002 decisions.
