@@ -325,7 +325,8 @@ Zig C fixture compiler boundary. REST decisions remain pending as recorded.
 uses `/home/joey/GIT/background-file-mover-testing`, a separate clone synced
 from committed coordinator work. This supersedes the historical canonical-WSL
 checkout path below. See `docs/AGENT-WORKFLOW.md` for roles, synchronization and
-validation limits. The cloud child is ARM64 and is not the SLES qualification host.
+validation limits. Review agents are not the SLES qualification host; cloud
+children are ARM64, and only the coordinator runs the gates locally.
 
 Shutdown checkpoint 2026-10-23: read `docs/REST-CONTRACT-HANDOFF.md` first.
 2026-11-01 development-machine migration: then read `docs/WORKSTATION-HANDOFF.md`
