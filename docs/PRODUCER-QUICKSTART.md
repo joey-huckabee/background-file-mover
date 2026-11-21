@@ -70,10 +70,12 @@ certificate. The tested `curl` command is in
 
 Write every file **completely** and close it before sending. Files present
 when the request arrives are claimed **immediately**, as they are; the mover
-does not wait for them to stop changing. Only a file that arrives later (after
-`source_file_missing`) is claimed once it has stayed unchanged for the
-server's settle time. Even then, a writer that pauses longer than that can be
-claimed mid-write.
+does not wait for them to stop changing. Only the mover's **automatic** retry
+of a late file (after `source_file_missing`) waits until the file has stayed
+unchanged for the server's settle time; even then, a writer that pauses longer
+than that can be claimed mid-write. **Resending** the request claims a late
+file immediately, like any file present at request time, so resend only after
+the late file is completely written.
 
 Expected sizes help only when the server has `check_expected_sizes` on. It is
 **off by default**, and then supplied sizes are kept with the request but not
@@ -125,7 +127,7 @@ leave the files in place.
 
 | Status | Code | Meaning | Do |
 |---|---|---|---|
-| 409 | `source_file_missing` | A listed file is not there yet. The job is recorded and waits for it during the server's missing-file window (`missing_file_retry_window_seconds`, default 300 s). | Write the missing file. The mover claims it on its own once it is stable, so a resend is not required. A resend is harmless and returns 202 once all files are in custody. After the window it becomes `recording_blocked`. |
+| 409 | `source_file_missing` | A listed file is not there yet. The job is recorded and waits for it during the server's missing-file window (`missing_file_retry_window_seconds`, default 300 s). | Write the missing file completely. The mover claims it on its own once it is stable, so a resend is not required. A resend claims files immediately (no stability wait), so send it only after the file is complete; it returns 202 once all files are in custody. After the window it becomes `recording_blocked`. |
 | 503 | `handoff_pending` | A claim is in progress or its outcome is not yet known. | Retry. |
 | 503 | `service_busy` | The mover is briefly full. | Retry. |
 | 503 | `service_stopping` | The service is shutting down. | Retry; it continues after restart. |
