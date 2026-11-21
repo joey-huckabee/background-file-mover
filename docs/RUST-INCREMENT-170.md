@@ -50,7 +50,14 @@ Documentation and a docs checker only; no product behavior change.
   a non-test helper function (all reported, exit 1). It checks references, not
   whether a test proves its row; that is a review question.
 
-## Decisions for the user (from DPR)
+## Follow-up: DST (2026-11-21)
+
+L2-DST-001 to 005 mapped in the same file: 001, 002, 003 and 005 Tested; 004
+Partly tested (the consumer side is a documented obligation, not tested). For
+002 the requirement allows collision, and the mover always treats a foreign
+destination as one, even an identical one.
+
+## Decisions for the user (from DPR and DST)
 
 - **L2-DPR-005:** accept the no-clobber link fallback, or reword the
   requirement to "atomic, no-clobber publication".
