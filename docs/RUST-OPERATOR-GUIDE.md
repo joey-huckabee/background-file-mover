@@ -133,15 +133,16 @@ initialization and supports legacy jobs in that layout. Its guarded checks run
 before source bootstrap for daemon startup, initialization and single-transfer
 commands, and before offline history-clear preview/apply opens a Store.
 
-Normal startup returns MigrationRequired for schemas 11 and 12 and leaves them
-untouched. Use the explicit [offline migration procedure](OFFLINE-STATE-MIGRATION.md)
+The current state schema is 18. Normal startup returns MigrationRequired for
+schemas 11-17 and leaves them untouched. Use the explicit [offline migration procedure](OFFLINE-STATE-MIGRATION.md)
 after stopping the service and confirming old-worker exit. It creates its own
-verified backup under continuous exclusion before converting validated schema 11
-to 12, then 12 to 13 ([increment137](RUST-INCREMENT-137.md): adds the empty admin
-retry receipt tables; existing rows are untouched).
+verified backup under continuous exclusion, then converts validated schema
+11-17 state step by step to 18; each step and its checkpoints are listed in
+that procedure.
 See [increment 115](RUST-INCREMENT-115.md) for actual qualification and limits. Schemas 1-10, foreign/newer formats, unexpected schema objects and
-corrupt state refuse. UUID-bearing schema-12 state returns UnsupportedIdentity;
-UUID producer and manifest-v2 runtime are not enabled in this build.
+corrupt state refuse. A still-tracked legacy job whose source handoff is
+unfinished refuses startup with UnsupportedIdentity; see
+[UUID producer runtime and supported upgrades](#uuid-producer-runtime-and-supported-upgrades).
 
 On refusal, keep the original database, recovery files, configuration, enrollment
 and payloads. Use software compatible with that state and the declared
