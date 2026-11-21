@@ -10,6 +10,12 @@ does not promise a fixed quality percentage or replace executable validation.
 - Existing cloud reviewer: thread `thr_xnjapdndei`, Codex `gpt-6.1-sol`, linked
   to the coordinator. Default to independent read-only review. Any implementation
   assignment must be explicit, already authorized and have exclusive file ownership.
+- Repository Mega Review Agent (added 2026-11-21): a Claude Fable cloud child
+  for deep whole-repository, read-only review. It runs **only when the user
+  explicitly asks**; the coordinator never starts it on its own judgment. Start
+  it with `scripts/agents/mega-review.sh <pushed-branch> [focus]`. Its standing
+  brief is [MEGA-REVIEW-BRIEF.md](agents/MEGA-REVIEW-BRIEF.md). The routine
+  reviewer above stays the default for per-PR review.
 - Development baseline: `main` after the reviewed 2026-11-07 integration.
 - New work: one short-lived `feature/<increment-name>` or `fix/<issue-name>`
   branch per bounded objective, from current `main`; integrate through a reviewed
@@ -38,6 +44,7 @@ Small fixes and straightforward documentation edits can stay with the coordinato
 |---|---|---|
 | Coordinator / implementer | Canonical Windows checkout and WSL2 test clone | Break down approved work, implement/integrate, resolve findings, own validation and delivery. Only the coordinator integrates into the development branch and reports release readiness. |
 | Independent reviewer | Existing cloud child | Check approved requirements, actual diff and failure paths. Prioritize custody, integrity, recovery, deletion, schema and authentication changes. Report concrete defects, test gaps or unsupported claims; no requirement to find an issue. |
+| Repository Mega Review | Cloud child on request (Claude Fable) | Only when the user asks: one deep, read-only review of the whole repository at a named commit, with the focus the user gives. It reports findings to the coordinator; it does not edit, push or decide product questions. |
 | Specialist, when useful | Separate cloud thread/branch | Audit documentation, investigate a bounded test gap or implement an independent approved component with assigned files. Return findings or commits to the coordinator. |
 
 Use Cloudroom's `room-cli` for child management; do not launch agent CLIs or
