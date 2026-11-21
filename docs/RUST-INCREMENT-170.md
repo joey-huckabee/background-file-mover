@@ -136,10 +136,13 @@ These families describe features of the earlier design.
 
 ## Follow-up: STO, ENV, DASH and JSON (2026-11-21)
 
-- **Tested:** DASH-002 (CSP; embedded assets), DASH-003 (a new CI check,
-  `scripts/admin-ui/no-html-sinks.test.js`, checked to fail on `innerHTML`),
+- **Tested:** DASH-002 (the inlined-assets unit test and the live CSP),
   JSON-002 and JSON-004.
-- **Partly tested:** STO-002 (NFS only in qualification builds), JSON-003
+- **Partly tested:** DASH-003. A new CI check,
+  `scripts/admin-ui/no-html-sinks.test.js`, is a lexical regression check
+  covering whitespace variants; it tests its own pattern set. Text-only
+  rendering is by inspection.
+- **Also partly tested:** STO-002 (NFS only in qualification builds), JSON-003
   (fractions and NUL are refused by the schema and field rules, not the
   parser).
 - **Inspection:** STO-005 (locked dependencies, SLES gate).
