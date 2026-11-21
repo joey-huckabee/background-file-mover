@@ -40,7 +40,8 @@ Known, not changed:
   scroll for the destination column); the detail no longer depends on it.
 - The 40-page loading bound (10,240 jobs) and "Load older jobs" were not
   exercised here, and no automated test covers `fetchAll`/`pageBudget`; a
-  large-history test remains open.
+  large-history test remains open (added in
+  [increment 164](RUST-INCREMENT-164.md)).
 - Quick repeated sign-ins can briefly exhaust the live-stream slots: freed
   slots are noticed at the next 15 s keepalive, and the page retries after
   30 s, showing "Live updates unavailable" meanwhile.
