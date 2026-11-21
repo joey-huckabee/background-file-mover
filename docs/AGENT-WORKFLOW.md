@@ -7,17 +7,22 @@ does not promise a fixed quality percentage or replace executable validation.
 
 - Local coordinator: thread `thr_grm8wj2gt7`, Codex, with canonical checkout
   `D:\GIT\GIT-GitHub\joey-huckabee\background-file-mover`.
-- Existing cloud reviewer: thread `thr_xnjapdndei`, Codex `gpt-6.1-sol`, linked
-  to the coordinator. Default to independent read-only review. Any implementation
-  assignment must be explicit, already authorized and have exclusive file ownership.
-- Repository Mega Review Agent (added 2026-11-21): a Claude Fable cloud child
-  for deep whole-repository, read-only review. It runs **only when the user
-  explicitly asks**; the coordinator never starts it on its own judgment. Start
-  it from the local coordinator thread with
-  `scripts/agents/mega-review.sh <pushed-branch> [focus]`. It pins the commit it
-  fetched, and the child reviews exactly that commit. Its standing
-  brief is [MEGA-REVIEW-BRIEF.md](agents/MEGA-REVIEW-BRIEF.md). The routine
-  reviewer above stays the default for per-PR review.
+- Former reviewer: thread `thr_xnjapdndei`, Codex `gpt-6.1-sol`. It is retained
+  as history and replaced by the Repository Review Agent below for new reviews.
+  Reviews are independent and read-only; any implementation assignment must be
+  explicit, already authorized and have exclusive file ownership.
+- Review agents (user decision 2026-11-21), defined once at user level in
+  `~/.claude/agents/` and started as Cloudroom child threads with
+  `~/.claude/agents/spawn-agent.sh <name> "<task>"` (Cloudroom blocks Claude
+  Code's native subagents):
+  - **Repository Review Agent** (`repository-review`): Claude Opus 5.5 1M, high
+    effort, read-only. Used as needed, for example on every PR. It replaces the
+    Codex reviewer `thr_xnjapdndei` for new reviews.
+  - **Repository Mega Review Agent** (`repository-mega-review`): Claude Fable
+    5.2, max effort, whole-repository and read-only. It runs **only when the
+    user explicitly asks**. For a pinned cloud run, pass
+    `-- --machine cloud --base-branch <pushed-branch>` and name the commit in
+    the task.
 - Development baseline: `main` after the reviewed 2026-11-07 integration.
 - New work: one short-lived `feature/<increment-name>` or `fix/<issue-name>`
   branch per bounded objective, from current `main`; integrate through a reviewed
@@ -30,8 +35,9 @@ The coordinator owns integration and local validation. Cloud work starts from
 pushed GitHub commits; uncommitted Windows changes do not arrive there. Commit
 and push delegated inputs first, using `git pull --rebase` before every push.
 Cloud work returns on its own branch; review and integrate explicitly without
-overwriting concurrent local work. Resume the existing child with `room-cli
-thread tell thr_xnjapdndei` and a concrete task. When the bundled PowerShell
+overwriting concurrent local work. Start a review with `~/.claude/agents/spawn-agent.sh
+repository-review "<task>"`, or continue a running one with `room-cli thread
+tell <thread>`. When the bundled PowerShell
 launcher returns no output, invoke its adjacent `room-cli` script through Node.
 
 ## Team size and responsibility
@@ -45,8 +51,8 @@ Small fixes and straightforward documentation edits can stay with the coordinato
 | Role | Location | Ownership |
 |---|---|---|
 | Coordinator / implementer | Canonical Windows checkout and WSL2 test clone | Break down approved work, implement/integrate, resolve findings, own validation and delivery. Only the coordinator integrates into the development branch and reports release readiness. |
-| Independent reviewer | Existing cloud child | Check approved requirements, actual diff and failure paths. Prioritize custody, integrity, recovery, deletion, schema and authentication changes. Report concrete defects, test gaps or unsupported claims; no requirement to find an issue. |
-| Repository Mega Review | Cloud child on request (Claude Fable) | Only when the user asks: one deep, read-only review of the whole repository at a named commit, with the focus the user gives. It reports findings to the coordinator; it does not edit, push or decide product questions. |
+| Independent reviewer | Repository Review Agent child (Opus 5.5 1M, high) | Check approved requirements, actual diff and failure paths. Prioritize custody, integrity, recovery, deletion, schema and authentication changes. Report concrete defects, test gaps or unsupported claims; no requirement to find an issue. |
+| Repository Mega Review | Child thread on request (Claude Fable) | Only when the user asks: one deep, read-only review of the whole repository at a named commit, with the focus the user gives. It reports findings to the coordinator; it does not edit, push or decide product questions. |
 | Specialist, when useful | Separate cloud thread/branch | Audit documentation, investigate a bounded test gap or implement an independent approved component with assigned files. Return findings or commits to the coordinator. |
 
 Use Cloudroom's `room-cli` for child management; do not launch agent CLIs or
@@ -193,7 +199,8 @@ Recorded 2026-11-11 from the retired model handoff.
   `FILE_MOVER_TLS_FIXTURES`) and fail outside the gate. PR CI runs both full modes.
 - Cloudroom: use `room-cli` (bundled fallback: Node plus
   `C:/Users/Joey/AppData/Local/Programs/Cloudroom/resources/app.asar.unpacked/node_modules/bb-app/host-daemon/dist/room-cli`).
-  Reviewer `thr_xnjapdndei` is a cloud ARM64 thread and cannot run SLES gates.
+  Review agents cannot run the SLES gates (they need the gate's container
+  toolchain); PR CI runs them.
 - Avoid nested PowerShell/WSL/bash quoting and outer-shell command substitution;
   one once ran Git in the Windows mount as Linux root (dubious-ownership warning).
   Do not add a global `safe.directory` exception. Use small scripts with explicit cwd.
