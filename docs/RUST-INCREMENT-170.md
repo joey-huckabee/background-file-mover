@@ -50,12 +50,20 @@ Documentation and a docs checker only; no product behavior change.
   a non-test helper function (all reported, exit 1). It checks references, not
   whether a test proves its row; that is a review question.
 
-## Decisions for the user (from DPR)
+## Follow-up: DST (2026-11-21)
+
+L2-DST-001 to 005 mapped in the same file: 001, 003, 004 and 005 Tested; 002
+Deviation (needs approval). The mover never reuses a foreign destination, even
+identical; it only reconciles its own recorded objects.
+
+## Decisions for the user (from DPR and DST)
 
 - **L2-DPR-005:** accept the no-clobber link fallback, or reword the
   requirement to "atomic, no-clobber publication".
 - **L2-DPR-006:** reword the requirement to exempt explicit, operator-confirmed
   deletion (increments 143/144).
+- **L2-DST-002:** accept treating every foreign destination, even an identical
+  one, as a collision, or reword the requirement.
 
 ## Not covered
 
