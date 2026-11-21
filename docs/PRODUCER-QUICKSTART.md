@@ -55,8 +55,11 @@ Setup and certificate details: [server setup](NATIVE-HTTPS-SETUP.md) and
 
 No other fields are accepted. The body is at most 64 KiB.
 
-The request is **immutable**. Once sent, keep it byte-for-byte for every retry
-of that recording. The file order may change; nothing else may.
+The request is **immutable**. Keep the original body and resend it for every
+retry of that recording. The mover compares meaning, not bytes: the same
+`generator_id`, `source_directory`, size map (present or absent, same values)
+and the same **set** of files. File order, JSON whitespace, key order and UUID
+letter case may differ. Any other change is `recording_id_conflict`.
 
 ## 2. Send it
 
@@ -65,9 +68,16 @@ certificate. The tested `curl` command is in
 [HTTPS clients](NATIVE-HTTPS-CLIENTS.md#submit-with-curl). An optional
 `Idempotency-Key` header must equal the `recording_id`.
 
-Write every file **completely** before sending. The mover claims a file only
-once it is stable, but a writer that pauses longer than the server's settle time
-can still be claimed mid-write. Set expected sizes when you know them.
+Write every file **completely** and close it before sending. Files present
+when the request arrives are claimed **immediately**, as they are; the mover
+does not wait for them to stop changing. Only a file that arrives later (after
+`source_file_missing`) is claimed once it has stayed unchanged for the
+server's settle time. Even then, a writer that pauses longer than that can be
+claimed mid-write.
+
+Expected sizes help only when the server has `check_expected_sizes` on. It is
+**off by default**, and then supplied sizes are kept with the request but not
+compared. Supplying sizes alone does not protect against incomplete files.
 
 ## 3. Read the reply
 
@@ -109,7 +119,7 @@ leave the files in place.
 
 | Status | Code | Meaning | Do |
 |---|---|---|---|
-| 202 | — | The mover holds every file. | Done; reuse the names if you want. A repeat of the same request also gets 202 with the same `job_id`. |
+| 202 | — | The mover holds every file. | Done; reuse the names if you want. While the job is still tracked, a repeat of the same request also gets 202 with the same `job_id`. |
 
 **Retry the same request** (`retryable: true`):
 
@@ -163,11 +173,16 @@ administrator):
 
 ## Rules of thumb
 
-- One recording, one UUID, one immutable body, forever.
+- One recording, one UUID, one immutable request. Never reuse a UUID, even
+  much later: that is your rule, not a promise of the mover. After an
+  operator clears a job's history, the mover forgets its UUID. A resend is
+  then treated as **new** work and could claim new files you have since put
+  at the same paths.
 - Only a valid 202 for your UUID releases the source names. Never assume
   success from silence, an error or a reply for another UUID.
-- After a 202, you never need to send that request again. Doing so is
-  harmless.
+- After a 202, you never need to send that request again. While the job is
+  still tracked, doing so is harmless and returns the same 202. After history
+  clear it is not (see above), so stop resending once you have a valid 202.
 - Never start a second mover, delete its private folders or edit its state to
   get past an error. Ask the operator.
 
