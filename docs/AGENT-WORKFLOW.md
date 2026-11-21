@@ -5,8 +5,18 @@ Updated 2026-11-03 with the user's approved small-team workflow. Fan-out means
 delegating independent tasks in parallel, then integrating their results. It
 does not promise a fixed quality percentage or replace executable validation.
 
-- Local coordinator: thread `thr_grm8wj2gt7`, Codex, with canonical checkout
-  `D:\GIT\GIT-GitHub\joey-huckabee\background-file-mover`.
+- Local coordinator: thread `thr_grm8wj2gt7` ("Coordinator Agent"), with
+  canonical checkout `D:\GIT\GIT-GitHub\joey-huckabee\background-file-mover`.
+  **User decision 2026-11-21:** the coordinator does not do the implementation
+  work. It plans, delegates to the worker, sends reviews, integrates and merges,
+  and runs the testing that must be local (SLES gates and other tests in WSL,
+  real-service TLS tests, demo runs and screenshots). It implements only what
+  that local testing requires.
+- Worker: cloud thread `thr_vve4njpt8u` ("Background-File-Mover worker"),
+  OpenAI `gpt-6.1-sol`, medium effort, a child of the coordinator. It does the
+  implementation and documentation work on its own branches and pushes them for
+  review and local testing. Send it tasks with `room-cli thread tell
+  thr_vve4njpt8u "<task>"`.
 - Former reviewer: thread `thr_xnjapdndei`, Codex `gpt-6.1-sol`. It is retained
   as history and replaced by the Repository Review Agent below for new reviews.
   Reviews are independent and read-only; any implementation assignment must be
@@ -56,7 +66,8 @@ Small fixes and straightforward documentation edits can stay with the coordinato
 
 | Role | Location | Ownership |
 |---|---|---|
-| Coordinator / implementer | Canonical Windows checkout and WSL2 test clone | Break down approved work, implement/integrate, resolve findings, own validation and delivery. Only the coordinator integrates into the development branch and reports release readiness. |
+| Coordinator | Canonical Windows checkout and WSL2 test clone | Break down approved work, delegate it to the worker, request reviews, run required local testing, integrate and merge, and report to the user. Implements only what local testing requires. Only the coordinator integrates into the development branch and reports release readiness. |
+| Worker | Cloud child `thr_vve4njpt8u` ("Background-File-Mover worker", `gpt-6.1-sol`, medium) | Implement the assigned increment on its own branch: code, tests and docs. Push for review and local testing, and fix findings. |
 | Independent reviewer | Repository Review Agent child (Opus 5.5 1M, high) | Check approved requirements, actual diff and failure paths. Prioritize custody, integrity, recovery, deletion, schema and authentication changes. Report concrete defects, test gaps or unsupported claims; no requirement to find an issue. |
 | Repository Mega Review | Child thread on request (Claude Fable) | Only when the user asks: one deep, read-only review of the whole repository at a named commit, with the focus the user gives. It reports findings to the coordinator; it does not edit, push or decide product questions. |
 | Specialist, when useful | Separate cloud thread/branch | Audit documentation, investigate a bounded test gap or implement an independent approved component with assigned files. Return findings or commits to the coordinator. |
