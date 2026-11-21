@@ -465,3 +465,82 @@ fn discard_removes_only_the_exact_retained_copy() {
     );
     std::fs::remove_file(f.0.join(".file-mover/1-1")).unwrap();
 }
+
+// ---- Timer-driven missing-file retries (increment 163) ----
+
+#[test]
+fn retry_admission_is_atomic_with_the_intent_and_unrecorded_allocations_are_released() {
+    let f = Fixture::new();
+    let s = f.store();
+    f.write("a", b"abc");
+    f.write("b", b"def");
+    let job = s
+        .accept(
+            &f.input("retry-admission", &[("a", None), ("b", None)]),
+            &f.context(),
+        )
+        .unwrap();
+    let id = job.job_id;
+    let root = f.0.to_str().unwrap().to_owned();
+    // A first absence recorded at t=100: deadline 400.
+    assert!(!s.note_missing(id, 0, 100).unwrap());
+    assert_eq!(s.missing_retry_jobs().unwrap(), vec![(id, 0)]);
+    assert!(s.claim_admissible(id, 399).unwrap());
+    let allocated = mover_fs::allocate_claim(
+        &mover_fs::observe_claim(id, 0, &root, "recording/a", None).unwrap(),
+    )
+    .unwrap();
+    let area = f.0.join(".file-mover").join(&allocated.private_name);
+    assert!(area.is_dir());
+    // Deadline passed between Allocate and recording: refused atomically,
+    // nothing recorded, the block persisted.
+    assert!(!s.begin_claim_admitted(&allocated, 400).unwrap());
+    assert_eq!(s.claim_intent(id, 0).unwrap(), None);
+    assert!(!s.claim_admissible(id, 100).unwrap(), "block persisted");
+    // The exact empty allocation is released (a repeat finds nothing).
+    assert!(mover_fs::release_claim_allocation(&allocated).unwrap());
+    assert!(!area.exists());
+    assert!(mover_fs::release_claim_allocation(&allocated).unwrap());
+    // After a reviewed reset the job is listed with its new epoch, and a fresh
+    // allocation is admitted and recorded.
+    s.reset_missing(
+        id,
+        &mover_store::MissingResetRequest {
+            command_id: "retry-reset".into(),
+            review_epoch: 0,
+            file_index: 0,
+            retry_window_seconds: 300,
+            actor: "test".into(),
+            reason: "File restored".into(),
+        },
+        500,
+    )
+    .unwrap();
+    assert_eq!(s.missing_retry_jobs().unwrap(), vec![(id, 1)]);
+    let again = mover_fs::allocate_claim(
+        &mover_fs::observe_claim(id, 0, &root, "recording/a", None).unwrap(),
+    )
+    .unwrap();
+    assert!(s.begin_claim_admitted(&again, 501).unwrap());
+    assert_eq!(s.claim_intent(id, 0).unwrap(), Some((again.clone(), false)));
+    // An allocation that gained an entry is kept.
+    let other = mover_fs::allocate_claim(
+        &mover_fs::observe_claim(id, 1, &root, "recording/b", None).unwrap(),
+    )
+    .unwrap();
+    let other_area = f.0.join(".file-mover").join(&other.private_name);
+    std::fs::write(other_area.join("foreign"), b"x").unwrap();
+    assert!(!mover_fs::release_claim_allocation(&other).unwrap());
+    assert!(other_area.join("foreign").exists());
+    // A requested cancellation refuses new authorization, and settlement waits
+    // while the recorded intent is unreconciled.
+    assert_eq!(
+        s.admin_cancel(id, "op", 600).unwrap(),
+        mover_store::CancelOutcome::Accepted
+    );
+    assert!(!s.claim_admissible(id, 601).unwrap());
+    assert_eq!(s.settle_cancellations(602, || false, |_| false).unwrap(), 0);
+    mover_fs::apply_claim_effect(&again).unwrap();
+    s.finish_claim(&again).unwrap();
+    assert_eq!(s.settle_cancellations(603, || false, |_| false).unwrap(), 1);
+}

@@ -158,6 +158,20 @@ console.log('byte formatting ok');
   console.log('cancel reply ok');
 }
 
+// Missing-file wording: waiting, settling, deadline passed.
+{
+  const ms = src.slice(src.indexOf('  // A missing file: waiting, settling'), src.indexOf('  // Move mode progress for the Activity panel'));
+  const missingText = new Function('time', ms + '; return missingText;')(t => 'T' + t);
+  const files = [{ name: 'cam/video.mkv' }, { name: 'cam/audio.wav' }];
+  assert.match(missingText({ file_id: '1', deadline: 90, blocked: false, deadline_elapsed: false, settling: false }, files),
+    /^Waiting for cam\/audio\.wav at the source until T90; the mover checks again automatically\.$/);
+  assert.match(missingText({ file_id: '1', deadline: 90, blocked: false, deadline_elapsed: false, settling: true }, files),
+    /cam\/audio\.wav has appeared; the mover is checking it is complete/);
+  assert.match(missingText({ file_id: '0', deadline: 90, blocked: true, deadline_elapsed: true, settling: false }, files),
+    /cam\/video\.mkv did not arrive by T90; the job needs review/);
+  console.log('missing file wording ok');
+}
+
 // Move mode wording: progress step, attention and activity text.
 {
   const head = src.slice(src.indexOf('  var ATTENTION = '), src.indexOf('  var ACTIVITY = '));

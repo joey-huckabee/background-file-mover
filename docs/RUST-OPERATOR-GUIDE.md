@@ -582,9 +582,42 @@ curl -sS -i -X POST "$base/api/v2/jobs/$job_id/reset-missing" \
 HTTP 200 reports `details.action: MissingDeadlineReset`, next
 `missing_review_epoch`, `new_deadline` and `replay`; `source_paths_released`
 remains false. This changes only that file's deadline/block. It does not claim
-the file, repair a size/ownership problem or grant handoff. The recorder must
-retry its original submission ID/body and obtain submission 202; there is no
-timer-driven missing-file claiming. Other missing files can still block the job.
+the file by itself, repair a size/ownership problem or grant handoff. Once the
+deadline is reset, the mover's own missing-file retries resume (below); the
+recorder may also resend its original submission ID/body to obtain 202. Other
+missing files can still block the job.
+
+## Missing files: automatic retries
+
+When a file listed in a submission is missing, the mover records its first
+absence (the deadline starts) and re-checks on its own; it does not wait for
+the recorder to resend ([design](MISSING-FILE-RETRY-DESIGN.md)).
+
+- **Checks:** after 2 s, doubling up to every 30 s. They run on the same
+  thread as submissions, so they never race a resend, and each pass is
+  bounded (at most 16 small worker steps).
+- **Stable before claiming:** a file that appears is taken over only once two
+  checks at least `missing_file_settle_seconds` apart (default 5, 1–300) show
+  the same object with the same size and modification time, and only if it is
+  still exactly that object when claimed. A file still being written keeps
+  changing and is not claimed. A writer that pauses longer than the settle
+  time could still be caught mid-write: raise the setting, or have senders
+  supply expected sizes with `check_expected_sizes` on.
+- **The same rules as a resend:** cancellation, the deadline block, custody of
+  files already taken over and the expected-size policy all apply. Nothing new
+  is claimed after the deadline, for a cancelled job, or for a job the policy
+  would refuse.
+- **Once every file is taken over,** the recording is delivered even if the
+  recorder never resends; a later resend still gets 202.
+- **Deadline:** past the deadline the job is blocked for review at once, with
+  no request needed. Reset the missing-file deadline (above) to resume.
+- **Interrupted claims:** a claim interrupted after it was recorded (for
+  example a lost receipt) is completed by the same retries, even after the
+  deadline. A cancellation waits as pending until such a claim is reconciled,
+  then settles.
+- **Clock jumps:** a wall-clock jump of more than 2 s is logged, with the jobs
+  whose missing-file windows it affected, and counted on the Settings page.
+  Settling uses the monotonic clock, so a jump never causes an early claim.
 
 The window must be 1–86400 seconds. Resend the exact command file after an uncertain
 response. Replay preserves the original deadline even if it has since expired;

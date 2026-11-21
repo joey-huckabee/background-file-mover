@@ -230,7 +230,8 @@ qualification capability permanently.
 - [ ] Implement configurable postcommit source cleanup, including recorded job
   policy/current startup authorization, retained-source accounting and independent
   cleanup retries. Keep initial development profiles deletion-disabled.
-- [ ] Add timer-driven missing-file retries, clock-anomaly diagnostics and bounded backoff.
+- [x] Add timer-driven missing-file retries, clock-anomaly diagnostics and bounded backoff.
+  Done in [increment 163](RUST-INCREMENT-163.md) ([design](MISSING-FILE-RETRY-DESIGN.md)).
 - [ ] Complete remaining [source-space acceptance evidence](SOURCE-SPACE-ADMISSION-DESIGN.md):
   physical-disk/quota/inode and external-write races, broader concurrent queue
   flooding and actual hard-NFS statistics interruptions/export

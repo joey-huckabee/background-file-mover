@@ -2292,6 +2292,16 @@ impl Fixture {
             .join(self.recording_directory(id))
             .join(relative)
     }
+    fn set_config(&self, key: &str, value: Value) {
+        assert!(
+            self.child.is_none(),
+            "startup policy changes require a stopped service"
+        );
+        let path = self.root.join("config.json");
+        let mut config: Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        config[key] = value;
+        std::fs::write(path, serde_json::to_vec(&config).unwrap()).unwrap();
+    }
     fn set_move_mode(&self, enabled: bool) {
         assert!(
             self.child.is_none(),
@@ -2546,6 +2556,7 @@ fn unsafe_startup_configuration_is_rejected() {
         destination_root: "/dest".into(),
         state_database: "/state/db".into(),
         missing_file_retry_window_seconds: 300,
+        missing_file_settle_seconds: 5,
         max_retained_jobs: 64,
         max_retained_bytes: 1024 * 1024 * 1024 * 1024,
         source_space_admission: Default::default(),
@@ -6670,6 +6681,268 @@ fn move_mode_removes_held_copies_only_after_verified_delivery() {
     );
     // Not authorized: replay still validates the intact held copy.
     assert_eq!(f.post(&inputs[1]).0, 202);
+    f.stop();
+}
+
+/// Wait until a condition on a job's status holds.
+fn wait_status(f: &Fixture, id: &str, seconds: u64, ok: impl Fn(&Value) -> bool) -> Value {
+    let deadline = Instant::now() + Duration::from_secs(seconds);
+    loop {
+        let (_, body) = status(f, id);
+        if ok(&body) {
+            return body;
+        }
+        assert!(Instant::now() < deadline, "{id}: {body}");
+        std::thread::sleep(Duration::from_millis(50));
+    }
+}
+/// Post, retrying 503 service_busy (back-pressure) like a real sender.
+fn post_unbusy(f: &Fixture, body: &Value) -> (u16, Value) {
+    let deadline = Instant::now() + Duration::from_secs(10);
+    loop {
+        let reply = f.post(body);
+        if reply.1["error"] != "service_busy" || Instant::now() >= deadline {
+            return reply;
+        }
+        std::thread::sleep(Duration::from_millis(30));
+    }
+}
+fn handed_off(body: &Value) -> bool {
+    body["source_paths_released"] == true
+}
+
+#[test]
+fn late_missing_files_are_claimed_once_stable_without_a_resend() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    provision_destination(&f);
+    f.set_config("missing_file_settle_seconds", json!(1));
+    f.start();
+    // Another job's replays keep the claim thread busy all along.
+    f.write("busy", b"busy");
+    let busy = f.input("retry-busy", json!(["busy"]));
+    assert_eq!(f.post(&busy).0, 202);
+    let traffic = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
+    let (running, address, bytes) = (traffic.clone(), f.address, post_bytes(&busy));
+    let replays = std::thread::spawn(move || {
+        let mut n = 0;
+        while running.load(std::sync::atomic::Ordering::Relaxed) {
+            // 503 service_busy is normal back-pressure (one-slot queue).
+            let (code, body) = exchange(address, &bytes);
+            assert!(
+                code == 202 || body["error"] == "service_busy",
+                "{code} {body}"
+            );
+            n += u32::from(code == 202);
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        n
+    });
+    // Job 2: "late" is missing at submission; the sender never resends.
+    f.write("early", b"early");
+    let late = f.input("retry-late", json!(["early", "late"]));
+    assert_eq!(post_unbusy(&f, &late).1["error"], "source_file_missing");
+    // A growing file is not claimed while it keeps changing.
+    let path = f.root.join("source/current/late");
+    let writer = {
+        let path = path.clone();
+        std::thread::spawn(move || {
+            use std::io::Write;
+            let mut file = std::fs::File::create(&path).unwrap();
+            for i in 0..10 {
+                file.write_all(format!("chunk {i}\n").as_bytes()).unwrap();
+                file.sync_all().unwrap();
+                std::thread::sleep(Duration::from_millis(300));
+            }
+        })
+    };
+    std::thread::sleep(Duration::from_millis(2000));
+    assert!(path.exists(), "claimed while still being written");
+    writer.join().unwrap();
+    let expected = std::fs::read(&path).unwrap();
+    // Stable now: claimed without any resend, then delivered.
+    wait_status(&f, "2", 15, handed_off);
+    assert!(!path.exists());
+    wait_manifest(&f, "2");
+    assert_eq!(std::fs::read(f.destination("2", "late")).unwrap(), expected);
+    // The sender's later resend gets its normal 202.
+    assert_eq!(post_unbusy(&f, &late).0, 202);
+    traffic.store(false, std::sync::atomic::Ordering::Relaxed);
+    assert!(
+        replays.join().unwrap() > 20,
+        "requests were served throughout"
+    );
+    f.stop();
+}
+
+#[test]
+fn retries_respect_deadlines_cancellation_and_reset() {
+    let mut f = Fixture::new(3);
+    f.stop();
+    provision_destination(&f);
+    f.set_config("missing_file_settle_seconds", json!(1));
+    f.start();
+    // Job 1: the file never comes in time. The timer persists the block
+    // without any request; a file appearing afterwards is not claimed.
+    let lost = f.input("retry-deadline", json!(["never"]));
+    assert_eq!(f.post(&lost).1["error"], "source_file_missing");
+    let blocked = wait_status(&f, "1", 10, |b| {
+        b["details"]["missing"][0]["blocked"] == true
+    });
+    assert_eq!(blocked["details"]["condition"], "ReviewRequired");
+    f.write("never", b"too late");
+    std::thread::sleep(Duration::from_millis(3000));
+    assert!(
+        f.root.join("source/current/never").exists(),
+        "claimed after the deadline"
+    );
+    assert_eq!(f.post(&lost).1["error"], "recording_blocked");
+    // Job 2: cancellation requested while waiting: never claimed.
+    let cancelled = f.input("retry-cancel", json!(["gone"]));
+    assert_eq!(f.post(&cancelled).1["error"], "source_file_missing");
+    {
+        let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        s.admin_cancel(2, "dashboard-account", 1).unwrap();
+    }
+    f.write("gone", b"cancelled");
+    std::thread::sleep(Duration::from_millis(3000));
+    assert!(
+        f.root.join("source/current/gone").exists(),
+        "claimed a cancelled job"
+    );
+    // Job 1 again: a reviewed reset-missing makes the timer resume.
+    let (_, before) = status(&f, "1");
+    let reset = json!({"command_id":"retry-reset","expected_missing_review_epoch":before["details"]["missing_review_epoch"],
+        "file_id":"0","retry_window_seconds":300,"reason":"File restored; resume"}).to_string();
+    assert_eq!(f.raw(&reset_bytes(&reset)).0, 200);
+    wait_status(&f, "1", 15, handed_off);
+    assert!(!f.root.join("source/current/never").exists());
+    assert_eq!(f.post(&lost).0, 202);
+    f.stop();
+}
+
+#[test]
+fn many_waiting_files_are_claimed_across_bounded_passes() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    provision_destination(&f);
+    f.set_config("missing_file_settle_seconds", json!(1));
+    f.start();
+    let names: Vec<String> = (0..64).map(|i| format!("part-{i:02}")).collect();
+    let input = f.input("retry-many", json!(names));
+    assert_eq!(f.post(&input).1["error"], "source_file_missing");
+    for name in &names {
+        f.write(name, name.as_bytes());
+    }
+    wait_status(&f, "1", 180, handed_off);
+    for name in &names {
+        assert!(!f.root.join("source/current").join(name).exists());
+    }
+    assert_eq!(f.post(&input).0, 202);
+    f.stop();
+}
+
+/// Seed an authorized, applied claim whose receipt was lost: intent recorded,
+/// the file moved into private custody, the claim not finished.
+fn seed_lost_receipt(f: &Fixture, id: i64, index: usize, name: &str) {
+    let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    let observed = mover_fs::observe_claim(
+        id,
+        index,
+        f.root.join("source").to_str().unwrap(),
+        &format!("current/{name}"),
+        None,
+    )
+    .unwrap();
+    let allocated = mover_fs::allocate_claim(&observed).unwrap();
+    s.begin_claim(&allocated).unwrap();
+    mover_fs::apply_claim_effect(&allocated).unwrap();
+    assert!(!f.root.join("source/current").join(name).exists());
+    assert!(!s.claim_intent(id, index).unwrap().unwrap().1);
+}
+
+#[test]
+fn retries_recover_authorized_claims_despite_deadline_and_cancellation() {
+    let mut f = Fixture::new(3);
+    f.stop();
+    provision_destination(&f);
+    f.set_config("missing_file_settle_seconds", json!(1));
+    f.start();
+    for (n, label) in ["recover-expired", "recover-cancel"]
+        .into_iter()
+        .enumerate()
+    {
+        let present = format!("present-{n}");
+        f.write(&present, b"present");
+        let input = f.input(label, json!([present, format!("late-{n}")]));
+        assert_eq!(f.post(&input).1["error"], "source_file_missing");
+    }
+    f.stop();
+    for n in 0..2 {
+        f.write(&format!("late-{n}"), b"late");
+        seed_lost_receipt(&f, n as i64 + 1, 1, &format!("late-{n}"));
+    }
+    {
+        let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        // Job 2: cancellation requested. Settlement waits while an authorized
+        // claim effect is unreconciled.
+        s.admin_cancel(2, "dashboard-account", 1).unwrap();
+        assert_eq!(s.settle_cancellations(2, || false, |_| false).unwrap(), 0);
+    }
+    std::thread::sleep(Duration::from_secs(4)); // Every window has expired.
+    f.start();
+    // Authorized intents are reconciled although the deadline passed (job 1)
+    // and a cancellation is pending (job 2).
+    wait_status(&f, "1", 20, handed_off);
+    // Job 2: reconciled first, then the cancellation settles.
+    let settled = wait_status(&f, "2", 20, |b| b["details"]["condition"] == "Cancelled");
+    assert_eq!(settled["details"]["files"][1]["phase"], "Claimed");
+    assert!(f.root.join("source/.file-mover/2-1/data").exists());
+    f.stop();
+}
+
+#[test]
+fn retries_keep_the_whole_job_size_policy() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    provision_destination(&f);
+    f.set_config("missing_file_settle_seconds", json!(1));
+    f.start();
+    // Job 1: no expected-size map. Job 2: a map whose size for the claimed
+    // file is wrong (accepted while checking is off). Job 3: (below).
+    f.write("a1", b"aaa");
+    assert_eq!(
+        f.post(&f.input("size-nomap", json!(["a1", "b1"]))).1["error"],
+        "source_file_missing"
+    );
+    f.write("a2", b"aaa");
+    let wrong = f.input(
+        "size-wrong",
+        json!([{"name":"a2","size_bytes":9}, {"name":"b2","size_bytes":3}]),
+    );
+    assert_eq!(f.post(&wrong).1["error"], "source_file_missing");
+    f.stop();
+    f.set_size_check(true);
+    f.start();
+    // Job 3: checking on, the missing file's expected size is wrong.
+    f.write("a3", b"aaa");
+    let late_wrong = f.input(
+        "size-late-wrong",
+        json!([{"name":"a3","size_bytes":3}, {"name":"b3","size_bytes":5}]),
+    );
+    assert_eq!(f.post(&late_wrong).1["error"], "source_file_missing");
+    for name in ["b1", "b2", "b3"] {
+        f.write(name, b"bbb");
+    }
+    std::thread::sleep(Duration::from_secs(5));
+    // The retry refuses exactly where a resend would: none is claimed.
+    for name in ["b1", "b2", "b3"] {
+        assert!(
+            f.root.join("source/current").join(name).exists(),
+            "{name} claimed"
+        );
+    }
+    assert_eq!(status(&f, "1").1["details"]["files"][1]["phase"], "Pending");
     f.stop();
 }
 

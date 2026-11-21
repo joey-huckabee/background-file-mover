@@ -13,6 +13,7 @@ mod diagnostic;
 pub mod enrollment;
 mod http;
 pub mod ingress;
+mod missing_retry;
 pub mod native;
 pub mod password;
 pub mod payload;
@@ -69,6 +70,10 @@ pub struct Config {
     pub state_database: String,
     #[serde(default = "retry_default")]
     pub missing_file_retry_window_seconds: u32,
+    /// A late missing file is claimed by the timer only after two identical
+    /// observations at least this far apart (1-300 s; MISSING-FILE-RETRY-DESIGN).
+    #[serde(default = "settle_default")]
+    pub missing_file_settle_seconds: u32,
     #[serde(default = "retained_jobs_default")]
     pub max_retained_jobs: u64,
     #[serde(default = "retained_bytes_default")]
@@ -89,6 +94,9 @@ pub struct Config {
     /// (L2-COPY-002). Default 1 MiB.
     #[serde(default = "copy_buffer_default")]
     pub copy_buffer_bytes: u64,
+}
+fn settle_default() -> u32 {
+    5
 }
 fn copy_buffer_default() -> u64 {
     mover_fs::DEFAULT_COPY_BUFFER as u64
@@ -133,6 +141,9 @@ impl Config {
         }
         if !mover_fs::valid_copy_buffer(self.copy_buffer_bytes) {
             return Err("copy_buffer_bytes must be 64 KiB to 64 MiB in whole 4 KiB pages");
+        }
+        if !(1..=300).contains(&self.missing_file_settle_seconds) {
+            return Err("missing_file_settle_seconds must be an integer from 1 through 300");
         }
         self.destination_binding
             .validate()
@@ -849,38 +860,36 @@ impl Worker {
         let (sender, receiver) = mpsc::sync_channel::<Work>(1);
         let claim_stop = stop.clone();
         let check_expected_sizes = c.check_expected_sizes;
+        let settle = Duration::from_secs(u64::from(c.missing_file_settle_seconds));
         let thread = match std::thread::Builder::new()
             .name("mover-local-claim".into())
             .spawn(move || {
-                while let Ok((submission, context, reply, lease)) = receiver.recv() {
-                    if claim_stop.load(Ordering::Relaxed) {
-                        let _ = reply.send(error(503, "service_stopping", true, None));
-                        continue;
-                    }
-                    // Actual admission is serialized with policy activation, not
-                    // with enqueue: a request can have waited behind blocked I/O.
-                    let permit = match lease.as_ref().map(reload::Lease::admit).transpose() {
-                        Ok(permit) => permit,
-                        Err(()) => {
-                            let _ = reply.send(error(403, "caller_not_authorized", false, None));
-                            continue;
+                // Timer-driven missing-file retries share this thread with
+                // producer claims (serialized); a due pass also runs after every
+                // request, so steady traffic cannot starve it.
+                let mut retry = missing_retry::Retry::new(settle);
+                loop {
+                    match receiver.recv_timeout(retry.wait(std::time::Instant::now())) {
+                        Ok((submission, context, reply, lease)) => {
+                            handle_submission(
+                                &store,
+                                &guard,
+                                &claim_stop,
+                                &claim_active,
+                                &admission,
+                                check_expected_sizes,
+                                &mut retry,
+                                (submission, context, reply, lease),
+                            );
                         }
-                    };
-                    claim_active.store(true, Ordering::SeqCst);
-                    let result = process(
-                        &store,
-                        &guard,
-                        &claim_stop,
-                        &submission,
-                        &context,
-                        &admission,
-                        check_expected_sizes,
-                    );
-                    claim_active.store(false, Ordering::SeqCst);
-                    if let Some(permit) = permit {
-                        permit.finish(result.error != Some("source_space_unavailable"));
+                        Err(mpsc::RecvTimeoutError::Timeout) => (),
+                        Err(mpsc::RecvTimeoutError::Disconnected) => break,
                     }
-                    let _ = reply.send(result); // Lost response never rolls back a claim.
+                    if !claim_stop.load(Ordering::Relaxed) && retry.due(std::time::Instant::now()) {
+                        claim_active.store(true, Ordering::SeqCst);
+                        retry.pass(&store, &guard, &claim_stop, check_expected_sizes);
+                        claim_active.store(false, Ordering::SeqCst);
+                    }
                 }
             }) {
             Ok(thread) => thread,
@@ -940,6 +949,88 @@ fn claim_error(failure: mover_fs::ClaimError, id: i64) -> Response {
         _ => error(409, "recording_blocked", false, Some(id)),
     }
 }
+/// One producer submission on the claim thread (unchanged behavior).
+#[allow(clippy::too_many_arguments)]
+fn handle_submission(
+    store: &Store,
+    guard: &mover_fs::LocalClaimLock,
+    claim_stop: &AtomicBool,
+    claim_active: &AtomicBool,
+    admission: &source_space::Handle,
+    check_expected_sizes: bool,
+    retry: &mut missing_retry::Retry,
+    (submission, context, reply, lease): Work,
+) {
+    if claim_stop.load(Ordering::Relaxed) {
+        let _ = reply.send(error(503, "service_stopping", true, None));
+        return;
+    }
+    // Actual admission is serialized with policy activation, not
+    // with enqueue: a request can have waited behind blocked I/O.
+    let permit = match lease.as_ref().map(reload::Lease::admit).transpose() {
+        Ok(permit) => permit,
+        Err(()) => {
+            let _ = reply.send(error(403, "caller_not_authorized", false, None));
+            return;
+        }
+    };
+    claim_active.store(true, Ordering::SeqCst);
+    let result = process(
+        store,
+        guard,
+        claim_stop,
+        &submission,
+        &context,
+        admission,
+        check_expected_sizes,
+    );
+    claim_active.store(false, Ordering::SeqCst);
+    if let Some(permit) = permit {
+        permit.finish(result.error != Some("source_space_unavailable"));
+    }
+    if let Some(job) = result.job_id.as_deref().and_then(|j| j.parse::<i64>().ok()) {
+        retry.touched(job);
+    }
+    let _ = reply.send(result); // Lost response never rolls back a claim.
+}
+
+/// Whole-job gates before claiming, shared unchanged by producer requests and
+/// timer retries (docs/MISSING-FILE-RETRY-DESIGN.md), in order: cancellation,
+/// persisted block, custody of completed claims, the complete size-map policy.
+/// Completed claims' recorded sizes are then checked per file by the claim.
+pub(crate) fn claim_gates(
+    store: &Store,
+    guard: &mover_fs::LocalClaimLock,
+    stop: &AtomicBool,
+    job: &mover_store::Accepted,
+    check_expected_sizes: bool,
+) -> std::result::Result<(), Response> {
+    // Contract: an exact unfinished request first honors cancellation.
+    match store.cancellation_requested(job.job_id) {
+        Ok(false) => (),
+        Ok(true) => return Err(error(409, "recording_cancelled", false, Some(job.job_id))),
+        Err(_) => return Err(error(503, "storage_unavailable", true, Some(job.job_id))),
+    }
+    match store.claim_blocked(job.job_id, now()) {
+        Ok(false) => (),
+        Ok(true) => return Err(error(409, "recording_blocked", false, Some(job.job_id))),
+        Err(_) => return Err(error(503, "storage_unavailable", true, Some(job.job_id))),
+    }
+    if let Err(e) = claim_worker::validate_existing(store, guard, stop, job.job_id, false) {
+        return Err(claim_error(e, job.job_id));
+    }
+    if check_expected_sizes
+        && job
+            .recording
+            .submission()
+            .producer()
+            .is_some_and(|r| !r.expected_sizes_supplied())
+    {
+        return Err(error(400, "invalid_submission", false, Some(job.job_id)));
+    }
+    Ok(())
+}
+
 fn process(
     store: &Store,
     guard: &mover_fs::LocalClaimLock,
@@ -991,28 +1082,8 @@ fn process(
         Err(_) => return error(503, "storage_unavailable", true, None),
     };
     if job.recording.handoff() != Handoff::Ready202 {
-        // Contract: an exact unfinished request first honors cancellation.
-        match store.cancellation_requested(job.job_id) {
-            Ok(false) => (),
-            Ok(true) => return error(409, "recording_cancelled", false, Some(job.job_id)),
-            Err(_) => return error(503, "storage_unavailable", true, Some(job.job_id)),
-        }
-        match store.claim_blocked(job.job_id, now()) {
-            Ok(false) => (),
-            Ok(true) => return error(409, "recording_blocked", false, Some(job.job_id)),
-            Err(_) => return error(503, "storage_unavailable", true, Some(job.job_id)),
-        }
-        if let Err(e) = claim_worker::validate_existing(store, guard, stop, job.job_id, false) {
-            return claim_error(e, job.job_id);
-        }
-        if check_expected_sizes
-            && job
-                .recording
-                .submission()
-                .producer()
-                .is_some_and(|r| !r.expected_sizes_supplied())
-        {
-            return error(400, "invalid_submission", false, Some(job.job_id));
+        if let Err(refused) = claim_gates(store, guard, stop, &job, check_expected_sizes) {
+            return refused;
         }
         for i in 0..job.recording.submission().files().len() {
             match claim_worker::claim(store, guard, stop, job.job_id, i, check_expected_sizes) {
@@ -1130,9 +1201,13 @@ fn job_view(snapshot: &mover_store::JobStatus) -> JobView {
             "transfer_phase":t.as_ref().map(|t|format!("{:?}",t.phase)),
             "attempt":t.as_ref().map(|t|t.attempt)})
     }).collect();
-    let missing: Vec<_> = snapshot.missing.iter().map(|(i, deadline, blocked)| serde_json::json!({
-        "file_id":i.to_string(),"deadline":deadline,"blocked":blocked,"deadline_elapsed":now()>=*deadline
-    })).collect();
+    let missing: Vec<_> = snapshot.missing.iter().map(|(i, deadline, blocked)| {
+        let seen = missing_retry::last_seen(snapshot.job.job_id, *i);
+        serde_json::json!({
+            "file_id":i.to_string(),"deadline":deadline,"blocked":blocked,"deadline_elapsed":now()>=*deadline,
+            "last_seen_at":seen,"settling":seen.is_some()
+        })
+    }).collect();
     let cancel_state = snapshot.cancellation.as_ref().map(|c| c.state);
     let moving = recording.policy().delete_source_after_commit;
     let condition = if committed {

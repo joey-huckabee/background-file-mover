@@ -843,6 +843,14 @@
         },
         "deadline_elapsed": {
           "type": "boolean"
+        },
+        "last_seen_at": {
+          "anyOf": [{"$ref": "#/$defs/Timestamp"}, {"type": "null"}],
+          "description": "Timer retry (increment163): wall time the file was last seen present at the source, or null."
+        },
+        "settling": {
+          "type": "boolean",
+          "description": "Timer retry (increment163): the file has appeared and is being checked for stability before it is taken over."
         }
       },
       "required": [

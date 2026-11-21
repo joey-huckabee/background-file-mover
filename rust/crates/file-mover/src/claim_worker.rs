@@ -86,6 +86,13 @@ enum Assignment {
         version: u32,
         claim: ClaimWire,
     },
+    /// Remove an allocation whose intent was never recorded (timer retry
+    /// refused at admission); only that exact empty area. The reply echoes
+    /// the claim when the area is gone, and is a refusal when it was kept.
+    Release {
+        version: u32,
+        claim: ClaimWire,
+    },
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -189,6 +196,7 @@ pub(crate) fn claim(
         index,
         check_expected_sizes,
         &mut diagnostic,
+        None,
     );
     if let Err(error) = &result
         && filesystem_failure(error, diagnostic.as_deref())
@@ -220,6 +228,142 @@ fn filesystem_failure(error: &ClaimError, diagnostic: Option<&str>) -> bool {
 }
 
 #[allow(clippy::too_many_arguments)]
+/// Timer retry preconditions for a **new** claim (none for recovery of an
+/// existing intent): the claim's own observation must be exactly the stable
+/// identity, and admission (not blocked, deadline not passed, no cancellation
+/// requested) is checked before Allocate and again atomically in `begin_claim`.
+pub(crate) struct RetryGate {
+    pub(crate) stable: mover_core::ObjectIdentity,
+    pub(crate) now: i64,
+}
+/// Same object, unchanged: device, inode, owner, size, mtime and link count.
+pub(crate) fn same_observation(
+    a: &mover_core::ObjectIdentity,
+    b: &mover_core::ObjectIdentity,
+) -> bool {
+    a.device == b.device
+        && a.inode == b.inode
+        && a.uid == b.uid
+        && a.size == b.size
+        && a.modified_seconds == b.modified_seconds
+        && a.modified_nanos == b.modified_nanos
+        && a.links == b.links
+}
+/// The `Observe` assignment a claim of this file would send.
+fn observe_assignment(
+    job: &Accepted,
+    job_id: i64,
+    index: usize,
+    check_sizes: bool,
+) -> Result<(Assignment, String), ClaimError> {
+    let file = job
+        .recording
+        .submission()
+        .files()
+        .get(index)
+        .ok_or(ClaimError::Blocked("unknown file"))?;
+    let name = if job.context.source_relative_directory.is_empty() {
+        file.relative_path().to_owned()
+    } else {
+        format!(
+            "{}/{}",
+            job.context.source_relative_directory,
+            file.relative_path()
+        )
+    };
+    Ok((
+        Assignment::Observe {
+            version: 1,
+            job_id,
+            file_index: index,
+            root_path: job.context.source_root_path.clone(),
+            source_name: name.clone(),
+            expected_size: if check_sizes {
+                file.expected_size()
+            } else {
+                None
+            },
+        },
+        name,
+    ))
+}
+/// Observe one unclaimed file without any effect (timer retry): its identity,
+/// or None when absent. Same assignment, custody and size rule as a claim.
+pub(crate) fn observe(
+    store: &Store,
+    guard: &LocalClaimLock,
+    stop: &AtomicBool,
+    job_id: i64,
+    index: usize,
+    check_expected_sizes: bool,
+) -> Result<Option<mover_core::ObjectIdentity>, ClaimError> {
+    let job = store
+        .get(job_id)?
+        .ok_or(ClaimError::Blocked("unknown job"))?;
+    if !guard.matches_path(&job.context.source_root_path) {
+        return Err(ClaimError::Blocked("source scope changed"));
+    }
+    let check_sizes = job.recording.submission().producer().is_none() || check_expected_sizes;
+    let (assignment, name) = observe_assignment(&job, job_id, index, check_sizes)?;
+    match request(&assignment, guard, stop) {
+        Ok(observed) => {
+            if observed.job_id != job_id
+                || observed.file_index != index
+                || observed.source_name != name
+            {
+                return Err(ClaimError::Blocked("observation receipt mismatch"));
+            }
+            Ok(Some(observed.source))
+        }
+        Err(ClaimError::MissingSource) => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+/// A timer-retry claim: like `claim`, with the stability and admission
+/// preconditions for a new claim. Ok(None) = refused by a precondition
+/// (changed file, deadline, block or cancellation): nothing was recorded.
+pub(crate) fn claim_stable(
+    store: &Store,
+    guard: &LocalClaimLock,
+    stop: &AtomicBool,
+    job_id: i64,
+    index: usize,
+    check_expected_sizes: bool,
+    gate: &RetryGate,
+) -> Result<Option<Accepted>, ClaimError> {
+    let mut diagnostic = None;
+    let mut refused = false;
+    let result = claim_file(
+        store,
+        guard,
+        stop,
+        job_id,
+        index,
+        check_expected_sizes,
+        &mut diagnostic,
+        Some((gate, &mut refused)),
+    );
+    if refused {
+        return Ok(None);
+    }
+    if let Err(error) = &result
+        && filesystem_failure(error, diagnostic.as_deref())
+        && !stop.load(std::sync::atomic::Ordering::Relaxed)
+    {
+        let text = diagnostic.unwrap_or_else(|| super::diagnostic::describe(error));
+        if let Err(e) = store.record_problem(
+            job_id,
+            mover_store::ProblemStage::Claim,
+            &text,
+            Some(index),
+            crate::now(),
+        ) {
+            eprintln!("Claim {job_id} problem record failed: {e}");
+        }
+    }
+    result.map(Some)
+}
+#[allow(clippy::too_many_arguments)]
 fn claim_file(
     store: &Store,
     guard: &LocalClaimLock,
@@ -228,6 +372,7 @@ fn claim_file(
     index: usize,
     check_expected_sizes: bool,
     diagnostic: &mut Option<String>,
+    mut gate: Option<(&RetryGate, &mut bool)>,
 ) -> Result<Accepted, ClaimError> {
     let job = store
         .get(job_id)?
@@ -258,32 +403,17 @@ fn claim_file(
                 .files()
                 .get(index)
                 .ok_or(ClaimError::Blocked("unknown file"))?;
-            let name = if job.context.source_relative_directory.is_empty() {
-                file.relative_path().to_owned()
-            } else {
-                format!(
-                    "{}/{}",
-                    job.context.source_relative_directory,
-                    file.relative_path()
-                )
-            };
-            let observed = request_diagnosed(
-                &Assignment::Observe {
-                    version: 1,
-                    job_id,
-                    file_index: index,
-                    root_path: job.context.source_root_path.clone(),
-                    source_name: name.clone(),
-                    expected_size: if check_sizes {
-                        file.expected_size()
-                    } else {
-                        None
-                    },
-                },
-                guard,
-                stop,
-                diagnostic,
-            )?;
+            let (assignment, name) = observe_assignment(&job, job_id, index, check_sizes)?;
+            let observed = request_diagnosed(&assignment, guard, stop, diagnostic)?;
+            // Timer retry: exactly the stable identity, and fresh admission
+            // before anything is allocated.
+            if let Some((g, refused)) = gate.as_mut()
+                && (!same_observation(&observed.source, &g.stable)
+                    || !store.claim_admissible(job_id, g.now)?)
+            {
+                **refused = true;
+                return Err(ClaimError::Blocked("retry claim not admitted"));
+            }
             if observed.job_id != job_id
                 || observed.file_index != index
                 || observed.root_path != job.context.source_root_path
@@ -310,7 +440,35 @@ fn claim_file(
             if allocated != expected {
                 return Err(ClaimError::Blocked("allocation receipt mismatch"));
             }
-            store.begin_claim(&allocated)?;
+            match gate.as_mut() {
+                None => store.begin_claim(&allocated)?,
+                Some((g, refused)) => {
+                    // Admission again, atomically with recording the intent.
+                    let admitted = match store.begin_claim_admitted(&allocated, g.now) {
+                        Ok(admitted) => admitted,
+                        Err(mover_store::StoreError::Cancelled) => false,
+                        Err(e) => return Err(e.into()),
+                    };
+                    if !admitted {
+                        **refused = true;
+                        // Nothing recorded: release exactly this empty area.
+                        if let Err(e) = request(
+                            &Assignment::Release {
+                                version: 1,
+                                claim: ClaimWire::new(&allocated),
+                            },
+                            guard,
+                            stop,
+                        ) {
+                            eprintln!(
+                                "Claim {job_id} file {index}: unrecorded allocation kept ({})",
+                                super::diagnostic::describe(&e)
+                            );
+                        }
+                        return Err(ClaimError::Blocked("retry claim not admitted"));
+                    }
+                }
+            }
             allocated
         }
     };
@@ -354,7 +512,8 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
         Assignment::Allocate { version, claim }
         | Assignment::Apply { version, claim }
         | Assignment::Validate { version, claim }
-        | Assignment::Discard { version, claim } => (*version, &claim.root_path),
+        | Assignment::Discard { version, claim }
+        | Assignment::Release { version, claim } => (*version, &claim.root_path),
     };
     if version != 1 {
         return Err("invalid claim protocol version".into());
@@ -366,6 +525,7 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
         Assignment::Apply { .. } => "apply",
         Assignment::Validate { .. } => "validate",
         Assignment::Discard { .. } => "discard",
+        Assignment::Release { .. } => "release",
     };
     let mut boundary = "custody_before";
     let result: Result<ClaimIntent, ClaimError> = (|| {
@@ -393,6 +553,13 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
             Assignment::Validate { claim, .. } => claim.decode().and_then(|c| {
                 mover_fs::validate_claimed_object(&c)?;
                 Ok(c)
+            }),
+            Assignment::Release { claim, .. } => claim.decode().and_then(|c| {
+                if mover_fs::release_claim_allocation(&c)? {
+                    Ok(c)
+                } else {
+                    Err(ClaimError::Blocked("allocation not empty; kept"))
+                }
             }),
             // Removed now or already absent: either way no retained copy remains.
             Assignment::Discard { claim, .. } => claim.decode().and_then(|c| {

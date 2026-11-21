@@ -1,6 +1,22 @@
-# Timer-driven missing-file retries (design proposal)
+# Timer-driven missing-file retries
 
-Status: proposal for review before implementation. Roadmap item "Add
+Status: approved (independent review, 2026-11-20); implemented in
+[increment 163](RUST-INCREMENT-163.md), with these implementation notes:
+
+- **Discovery:** discovery also includes partly claimed jobs whose handoff is
+  not complete. A first absence's `missing` row is removed once that file is
+  claimed, while later files may still wait.
+- **Cancellation settlement:** settlement leaves a cancellation pending while
+  the job has an unfinished, authorized claim intent. Uncertain effects keep a
+  cancellation pending, as the contract already requires. Claim recovery then
+  reconciles it and settlement proceeds. A settled cancellation with an
+  unfinished intent can therefore only come from earlier versions, and the
+  retry leaves it as is.
+- **Budget:** the whole-job custody validation before new claims, which is the
+  request's own check with one worker call per completed file, counts as one
+  budget unit. It runs at most once per job visit.
+
+Original proposal: Roadmap item "Add
 timer-driven missing-file retries, clock-anomaly diagnostics and bounded
 backoff".
 
