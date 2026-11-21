@@ -13,7 +13,9 @@ does not promise a fixed quality percentage or replace executable validation.
 - Repository Mega Review Agent (added 2026-11-21): a Claude Fable cloud child
   for deep whole-repository, read-only review. It runs **only when the user
   explicitly asks**; the coordinator never starts it on its own judgment. Start
-  it with `scripts/agents/mega-review.sh <pushed-branch> [focus]`. Its standing
+  it from the local coordinator thread with
+  `scripts/agents/mega-review.sh <pushed-branch> [focus]`. It pins the commit it
+  fetched, and the child reviews exactly that commit. Its standing
   brief is [MEGA-REVIEW-BRIEF.md](agents/MEGA-REVIEW-BRIEF.md). The routine
   reviewer above stays the default for per-PR review.
 - Development baseline: `main` after the reviewed 2026-11-07 integration.
