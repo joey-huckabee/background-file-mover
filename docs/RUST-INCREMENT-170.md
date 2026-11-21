@@ -100,14 +100,18 @@ L2-REC-001 to 004 and L2-RTY-001 to 006, in the same file:
 ## Follow-up: LIF and CORE (2026-11-21)
 
 L2-LIF-001 to 005 and L2-CORE-001 to 004, in the same file:
-- **Tested:** LIF-003 and 005; CORE-001 and 003.
+- **Tested:** LIF-003; CORE-003.
+- **Partly tested:** CORE-001. The recording transitions are in the core;
+  cancellation, retry and cleanup state are in the store.
 - **Inspection:** CORE-004 (`mover-core` has no clock, file or network
   access).
 - **Deviation (needs approval):**
   - LIF-001: cancel keeps partial destination files; deleting them is
     separate;
   - LIF-002: cancellation stops between steps, and there is no pause;
-  - CORE-002: the job data is split between the core and SQLite.
+  - CORE-002: the job data is split between the core and SQLite;
+  - LIF-005: cancelling an unknown or finished job is skipped (approved), not
+    refused with a typed error.
 - **Not applicable (needs approval), proposed:** LIF-004 (pause and resume).
 
 ## Decisions for the user (all families so far)
@@ -136,7 +140,10 @@ L2-LIF-001 to 005 and L2-CORE-001 to 004, in the same file:
 - **L2-LIF-004:** confirm job pause and resume are out of scope, or keep them
   (Open; a product change).
 - **L2-CORE-002:** accept the split job model (core recording plus SQLite
-  records; no byte counters in the core), or reword.
+  records; no byte counters in the core), or reword. This also settles the
+  scope of L2-CORE-001.
+- **L2-LIF-005:** reword the requirement to match the approved behavior:
+  unknown or finished jobs are skipped in bulk cancel, not refused.
 
 ## Not covered
 
