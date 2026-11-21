@@ -52,9 +52,10 @@ Documentation and a docs checker only; no product behavior change.
 
 ## Follow-up: DST (2026-11-21)
 
-L2-DST-001 to 005 mapped in the same file: 001, 003, 004 and 005 Tested; 002
-Deviation (needs approval). The mover never reuses a foreign destination, even
-identical; it only reconciles its own recorded objects.
+L2-DST-001 to 005 mapped in the same file: 001, 002, 003 and 005 Tested; 004
+Partly tested (the consumer side is a documented obligation, not tested). For
+002 the requirement allows collision, and the mover always treats a foreign
+destination as one, even an identical one.
 
 ## Decisions for the user (from DPR and DST)
 
@@ -62,8 +63,6 @@ identical; it only reconciles its own recorded objects.
   requirement to "atomic, no-clobber publication".
 - **L2-DPR-006:** reword the requirement to exempt explicit, operator-confirmed
   deletion (increments 143/144).
-- **L2-DST-002:** accept treating every foreign destination, even an identical
-  one, as a collision, or reword the requirement.
 
 ## Not covered
 
