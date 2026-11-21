@@ -88,7 +88,8 @@ dashboard remain unfinished. Packaging is not the next dashboard milestone.
   direction; do not treat this step as permission to remove approved behavior.
   Robustness items (long paths, unknown sizes, large histories, empty/error/
   stale states, keyboard/focus, contrast, narrow layouts) done in
-  [increment 158](RUST-INCREMENT-158.md); screen-by-screen trimming with the
+  [increment 158](RUST-INCREMENT-158.md); the large-history loading test in
+  [increment 164](RUST-INCREMENT-164.md). Screen-by-screen trimming with the
   user remains.
 - [ ] After the dashboard/backend and remaining release prerequisites are
   qualified, validate the complete offline bundle, instructions and cutover.
