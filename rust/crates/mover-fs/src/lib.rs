@@ -504,6 +504,8 @@ pub fn observe_claim(
     })
 }
 pub fn allocate_claim(observed: &ClaimIntent) -> Result<ClaimIntent> {
+    // Qualification fault point: a deadline can pass while Allocate runs.
+    qualification_pause("claim_allocate")?;
     let fresh = observe_claim(
         observed.job_id,
         observed.file_index,

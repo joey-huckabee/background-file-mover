@@ -24,6 +24,8 @@ const DISCOVERY: Duration = Duration::from_secs(2);
 pub(crate) static PROBES: Mutex<Option<HashMap<(i64, usize), i64>>> = Mutex::new(None);
 /// Wall-clock jumps seen since start (Settings).
 pub(crate) static CLOCK_JUMPS: AtomicU64 = AtomicU64::new(0);
+/// Child operations the last pass started (diagnostics and tests).
+pub(crate) static LAST_PASS_OPS: AtomicU64 = AtomicU64::new(0);
 
 /// Wall time last seen for a probed file (None when absent or not probed).
 pub(crate) fn last_seen(job: i64, file: usize) -> Option<i64> {
@@ -68,7 +70,20 @@ pub(crate) fn clock_jump(
 
 struct Seen {
     identity: ObjectIdentity,
+    /// When the observation's reply arrived (conservative: never earlier).
     at: Instant,
+}
+/// Stable: the same identity as an earlier observation whose reply arrived at
+/// least `settle` before this observation **started**.
+pub(crate) fn settled(
+    earlier: Option<(&ObjectIdentity, Instant)>,
+    identity: &ObjectIdentity,
+    started: Instant,
+    settle: Duration,
+) -> bool {
+    earlier.is_some_and(|(seen, at)| {
+        same_observation(seen, identity) && started.saturating_duration_since(at) >= settle
+    })
 }
 struct JobState {
     /// Missing-review epoch when last seen: a reviewed reset makes the job
@@ -77,6 +92,11 @@ struct JobState {
     due: Instant,
     backoff: Duration,
     cursor: usize,
+    /// Custody validation of completed claims before new claims, resumable
+    /// across passes (one child call each); `validated` once complete for the
+    /// current pass over the files.
+    validate_cursor: usize,
+    validated: bool,
     seen: HashMap<usize, Seen>,
 }
 
@@ -194,6 +214,7 @@ impl Retry {
         let start = ids.iter().position(|&id| id > self.last_job).unwrap_or(0);
         let order: Vec<i64> = ids[start..].iter().chain(&ids[..start]).copied().collect();
         let mut budget = BUDGET;
+        let before = claim_worker::CHILD_OPS.load(Ordering::Relaxed);
         for id in order {
             if budget == 0 || stop.load(Ordering::Relaxed) {
                 break;
@@ -204,6 +225,8 @@ impl Retry {
                 due: now,
                 backoff: FIRST,
                 cursor: 0,
+                validate_cursor: 0,
+                validated: false,
                 seen: HashMap::new(),
             });
             if state.due > now {
@@ -222,11 +245,21 @@ impl Retry {
                 &mut budget,
             );
         }
+        // The interference bound: a pass never starts more child operations
+        // than its budget (claim-worker children; delivery is not involved).
+        let used = claim_worker::CHILD_OPS.load(Ordering::Relaxed) - before;
+        debug_assert!(
+            used <= u64::from(BUDGET),
+            "retry pass used {used} child operations"
+        );
+        LAST_PASS_OPS.store(used, Ordering::Relaxed);
     }
 }
 
-/// One job: recovery of authorized intents first (not gated), then new claims
-/// behind the shared gates, from the job's cursor, within the budget.
+/// One job (design: Per file): the whole-job size policy first, then recovery
+/// of authorized intents (not gated by deadline, block or a pending
+/// cancellation), then the lifecycle gates, budgeted custody validation and
+/// new claims from the job's cursor, all within the pass budget.
 #[allow(clippy::too_many_arguments)]
 fn visit(
     store: &Store,
@@ -242,6 +275,10 @@ fn visit(
     let log = |what: &str, e: &dyn std::fmt::Display| {
         eprintln!("Missing-file retry of job {id}: {what}: {e}")
     };
+    let back_off = |state: &mut JobState| {
+        state.backoff = (state.backoff * 2).min(MAX);
+        state.due = now + state.backoff;
+    };
     let Ok(Some(status)) = store.status(id) else {
         return;
     };
@@ -255,9 +292,22 @@ fn visit(
         state.due = now + MAX;
         return;
     }
+    // The size policy holds before anything completes a handoff, recovery
+    // included (same as a resend, which checks it before claiming).
+    match crate::size_policy_ok(store, &status.job, check) {
+        Ok(true) => (),
+        Ok(false) => {
+            back_off(state);
+            return;
+        }
+        Err(e) => {
+            log("size policy", &e);
+            back_off(state);
+            return;
+        }
+    }
     let mut progressed = false;
-    // Recovery of authorized, unfinished intents: not gated by deadline,
-    // block or a pending cancellation request.
+    // Recovery of authorized, unfinished intents.
     for index in 0..files {
         if let Ok(Some((_, false))) = store.claim_intent(id, index) {
             if *budget < CLAIM_COST {
@@ -271,24 +321,45 @@ fn visit(
             }
         }
     }
-    // New claims: the same whole-job gates as a producer request.
     let Ok(Some(job)) = store.get(id) else {
         return;
     };
     if job.recording.handoff() == mover_core::Handoff::Ready202 {
         return;
     }
-    if *budget == 0 {
-        state.due = now;
-        return;
+    // Lifecycle gates for new claims (no child operations): cancellation and
+    // the deadline block, as a resend checks them.
+    match (
+        store.cancellation_requested(id),
+        store.claim_blocked(id, crate::now()),
+    ) {
+        (Ok(false), Ok(false)) => (),
+        _ => {
+            back_off(state);
+            return;
+        }
     }
-    *budget -= 1; // Gates include custody validation of completed claims.
-    if crate::claim_gates(store, guard, stop, &job, check).is_err() {
-        // Blocked, cancellation requested, custody or size policy: no new
-        // claims; a block or reset is visible to the next discovery.
-        state.backoff = MAX;
-        state.due = now + MAX;
-        return;
+    // Custody of completed claims, as a resend validates it: one child call
+    // per completed claim, budgeted and resumable.
+    if !state.validated {
+        while state.validate_cursor < files {
+            if *budget == 0 || stop.load(Ordering::Relaxed) {
+                state.due = now;
+                return;
+            }
+            let index = state.validate_cursor;
+            if let Ok(Some((_, true))) = store.claim_intent(id, index) {
+                *budget -= 1;
+                if let Err(e) = claim_worker::validate_one(store, guard, stop, id, index) {
+                    log("custody", &crate::diagnostic::describe(&e));
+                    state.validate_cursor = 0;
+                    back_off(state);
+                    return;
+                }
+            }
+            state.validate_cursor += 1;
+        }
+        state.validated = true;
     }
     let mut wake: Option<Instant> = None;
     let mut index = state.cursor.min(files);
@@ -309,6 +380,7 @@ fn visit(
             Ok(Some((_, false))) => (), // Recovery above.
             Ok(None) => {
                 *budget -= 1;
+                let started = Instant::now();
                 match claim_worker::observe(store, guard, stop, id, index, check) {
                     Ok(None) => {
                         // Absent: record its first absence once (deadline starts).
@@ -319,22 +391,17 @@ fn visit(
                         set_seen(id, index, None);
                     }
                     Ok(Some(identity)) => {
+                        let replied = Instant::now();
                         set_seen(id, index, Some(crate::now()));
-                        let stable = state.seen.get(&index).is_some_and(|s| {
-                            same_observation(&s.identity, &identity)
-                                && now.saturating_duration_since(s.at) >= settle
-                        });
-                        if stable {
+                        let earlier = state.seen.get(&index).map(|s| (&s.identity, s.at));
+                        if settled(earlier, &identity, started, settle) {
                             if *budget < CLAIM_COST {
                                 state.cursor = index;
                                 state.due = now;
                                 return;
                             }
                             *budget -= CLAIM_COST;
-                            let gate = RetryGate {
-                                stable: identity,
-                                now: crate::now(),
-                            };
+                            let gate = RetryGate { stable: identity };
                             match claim_worker::claim_stable(
                                 store, guard, stop, id, index, check, &gate,
                             ) {
@@ -348,11 +415,18 @@ fn visit(
                             let at = match state.seen.get(&index) {
                                 Some(s) if same_observation(&s.identity, &identity) => s.at,
                                 _ => {
-                                    state.seen.insert(index, Seen { identity, at: now });
-                                    now
+                                    state.seen.insert(
+                                        index,
+                                        Seen {
+                                            identity,
+                                            at: replied,
+                                        },
+                                    );
+                                    replied
                                 }
                             };
-                            let w = at + settle;
+                            // Due just after the settle time has fully passed.
+                            let w = at + settle + Duration::from_millis(50);
                             wake = Some(wake.map_or(w, |x| x.min(w)));
                         }
                     }
@@ -369,15 +443,17 @@ fn visit(
         }
         index += 1;
     }
+    // A full pass over the files ends this validation cycle.
     state.cursor = 0;
+    state.validate_cursor = 0;
+    state.validated = false;
     if progressed {
         state.backoff = FIRST;
         state.due = now + FIRST;
     } else if let Some(w) = wake {
         state.due = w;
     } else {
-        state.backoff = (state.backoff * 2).min(MAX);
-        state.due = now + state.backoff;
+        back_off(state);
     }
 }
 
@@ -395,6 +471,43 @@ mod tests {
         assert_eq!(clock_jump(1000, t0, 1000, t10), Some(-10));
     }
     #[test]
+    fn settling_counts_from_the_reply_to_the_next_observation_start() {
+        let id = |size| ObjectIdentity {
+            device: 1,
+            inode: 2,
+            uid: 3,
+            size,
+            modified_seconds: 4,
+            modified_nanos: 5,
+            links: 1,
+        };
+        let settle = Duration::from_secs(5);
+        let t0 = Instant::now();
+        // The first reply arrived late (t0 + 4 s); an observation starting at
+        // t0 + 6 s is only 2 s after it: not stable, however the visit began.
+        let replied = t0 + Duration::from_secs(4);
+        assert!(!settled(
+            Some((&id(7), replied)),
+            &id(7),
+            t0 + Duration::from_secs(6),
+            settle
+        ));
+        assert!(settled(
+            Some((&id(7), replied)),
+            &id(7),
+            t0 + Duration::from_secs(9),
+            settle
+        ));
+        // Changed or first observation: never stable.
+        assert!(!settled(
+            Some((&id(7), replied)),
+            &id(8),
+            t0 + Duration::from_secs(60),
+            settle
+        ));
+        assert!(!settled(None, &id(7), t0 + Duration::from_secs(60), settle));
+    }
+    #[test]
     fn scheduling_waits_until_the_earliest_due_job_or_discovery() {
         let mut r = Retry::new(Duration::from_secs(5));
         let now = Instant::now();
@@ -409,6 +522,8 @@ mod tests {
                 due: now + Duration::from_millis(500),
                 backoff: FIRST,
                 cursor: 0,
+                validate_cursor: 0,
+                validated: false,
                 seen: HashMap::new(),
             },
         );

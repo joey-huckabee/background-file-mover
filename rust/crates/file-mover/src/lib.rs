@@ -994,6 +994,34 @@ fn handle_submission(
     let _ = reply.send(result); // Lost response never rolls back a claim.
 }
 
+/// The whole-job size policy (no I/O): with checking on, a producer request
+/// must carry a complete expected-size map, and every completed claim's
+/// recorded size must match its expected size (legacy submissions always
+/// check). Retries apply it before recovery and new claims alike.
+pub(crate) fn size_policy_ok(
+    store: &Store,
+    job: &mover_store::Accepted,
+    check_expected_sizes: bool,
+) -> std::result::Result<bool, mover_store::StoreError> {
+    let producer = job.recording.submission().producer();
+    if check_expected_sizes && producer.is_some_and(|r| !r.expected_sizes_supplied()) {
+        return Ok(false);
+    }
+    let check_sizes = producer.is_none() || check_expected_sizes;
+    if check_sizes {
+        for (index, file) in job.recording.submission().files().iter().enumerate() {
+            if let Some((intent, true)) = store.claim_intent(job.job_id, index)?
+                && file
+                    .expected_size()
+                    .is_some_and(|n| n != intent.source.size)
+            {
+                return Ok(false);
+            }
+        }
+    }
+    Ok(true)
+}
+
 /// Whole-job gates before claiming, shared unchanged by producer requests and
 /// timer retries (docs/MISSING-FILE-RETRY-DESIGN.md), in order: cancellation,
 /// persisted block, custody of completed claims, the complete size-map policy.

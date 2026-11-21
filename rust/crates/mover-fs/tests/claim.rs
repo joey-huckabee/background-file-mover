@@ -485,7 +485,7 @@ fn retry_admission_is_atomic_with_the_intent_and_unrecorded_allocations_are_rele
     // A first absence recorded at t=100: deadline 400.
     assert!(!s.note_missing(id, 0, 100).unwrap());
     assert_eq!(s.missing_retry_jobs().unwrap(), vec![(id, 0)]);
-    assert!(s.claim_admissible(id, 399).unwrap());
+    assert!(s.claim_admissible(id, || 399).unwrap());
     let allocated = mover_fs::allocate_claim(
         &mover_fs::observe_claim(id, 0, &root, "recording/a", None).unwrap(),
     )
@@ -494,9 +494,9 @@ fn retry_admission_is_atomic_with_the_intent_and_unrecorded_allocations_are_rele
     assert!(area.is_dir());
     // Deadline passed between Allocate and recording: refused atomically,
     // nothing recorded, the block persisted.
-    assert!(!s.begin_claim_admitted(&allocated, 400).unwrap());
+    assert!(!s.begin_claim_admitted(&allocated, || 400).unwrap());
     assert_eq!(s.claim_intent(id, 0).unwrap(), None);
-    assert!(!s.claim_admissible(id, 100).unwrap(), "block persisted");
+    assert!(!s.claim_admissible(id, || 100).unwrap(), "block persisted");
     // The exact empty allocation is released (a repeat finds nothing).
     assert!(mover_fs::release_claim_allocation(&allocated).unwrap());
     assert!(!area.exists());
@@ -521,7 +521,7 @@ fn retry_admission_is_atomic_with_the_intent_and_unrecorded_allocations_are_rele
         &mover_fs::observe_claim(id, 0, &root, "recording/a", None).unwrap(),
     )
     .unwrap();
-    assert!(s.begin_claim_admitted(&again, 501).unwrap());
+    assert!(s.begin_claim_admitted(&again, || 501).unwrap());
     assert_eq!(s.claim_intent(id, 0).unwrap(), Some((again.clone(), false)));
     // An allocation that gained an entry is kept.
     let other = mover_fs::allocate_claim(
@@ -538,9 +538,42 @@ fn retry_admission_is_atomic_with_the_intent_and_unrecorded_allocations_are_rele
         s.admin_cancel(id, "op", 600).unwrap(),
         mover_store::CancelOutcome::Accepted
     );
-    assert!(!s.claim_admissible(id, 601).unwrap());
+    assert!(!s.claim_admissible(id, || 601).unwrap());
     assert_eq!(s.settle_cancellations(602, || false, |_| false).unwrap(), 0);
     mover_fs::apply_claim_effect(&again).unwrap();
     s.finish_claim(&again).unwrap();
     assert_eq!(s.settle_cancellations(603, || false, |_| false).unwrap(), 1);
+}
+
+#[test]
+fn clock_diagnostics_use_a_reset_windows_own_start() {
+    let f = Fixture::new();
+    let s = f.store();
+    let job = s
+        .accept(&f.input("retry-clock", &[("x", None)]), &f.context())
+        .unwrap();
+    // First absence at 100 (job window 300: deadline 400), blocked at 500,
+    // then reset at 500 with a much longer window (deadline 1500).
+    assert!(!s.note_missing(job.job_id, 0, 100).unwrap());
+    assert!(s.claim_blocked(job.job_id, 500).unwrap());
+    s.reset_missing(
+        job.job_id,
+        &mover_store::MissingResetRequest {
+            command_id: "clock-reset".into(),
+            review_epoch: 0,
+            file_index: 0,
+            retry_window_seconds: 1000,
+            actor: "test".into(),
+            reason: "Longer window".into(),
+        },
+        500,
+    )
+    .unwrap();
+    // The current window started at 500, not 1500 - 300 = 1200.
+    assert!(s.missing_recorded_after(800).unwrap().is_empty());
+    assert_eq!(s.missing_recorded_after(499).unwrap(), vec![job.job_id]);
+    assert_eq!(
+        s.missing_deadlines_between(1400, 1500).unwrap(),
+        vec![job.job_id]
+    );
 }

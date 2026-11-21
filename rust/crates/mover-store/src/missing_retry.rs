@@ -49,12 +49,17 @@ impl Store {
 
     /// Fresh admission for a new claim (before allocation): persists an
     /// expired deadline as a block; false when blocked or a cancellation was
-    /// requested.
-    pub fn claim_admissible(&self, job_id: i64, now: i64) -> Result<bool> {
-        if now < 0 {
-            return Err(StoreError::InvalidContext);
-        }
+    /// requested. `clock` is read inside the transaction.
+    pub fn claim_admissible(
+        &self,
+        job_id: i64,
+        clock: impl FnOnce() -> i64 + Send + 'static,
+    ) -> Result<bool> {
         self.call(move |db| {
+            let now = clock();
+            if now < 0 {
+                return Err(StoreError::InvalidContext);
+            }
             let tx = db
                 .connection
                 .transaction_with_behavior(TransactionBehavior::Immediate)?;
@@ -66,13 +71,21 @@ impl Store {
 
     /// `begin_claim` with fresh admission in the same transaction: Ok(false)
     /// (nothing recorded, an expired deadline persisted as a block) when the
-    /// job is blocked or a cancellation was requested.
-    pub fn begin_claim_admitted(&self, intent: &ClaimIntent, now: i64) -> Result<bool> {
-        if now < 0 {
-            return Err(StoreError::InvalidContext);
-        }
+    /// job is blocked or a cancellation was requested. `clock` is read when
+    /// the transaction runs, never earlier (an Allocate may cross a deadline).
+    pub fn begin_claim_admitted(
+        &self,
+        intent: &ClaimIntent,
+        clock: impl FnOnce() -> i64 + Send + 'static,
+    ) -> Result<bool> {
         let intent = intent.clone();
-        self.call(move |db| db.begin_claim_inner(&intent, Some(now)))
+        self.call(move |db| {
+            let now = clock();
+            if now < 0 {
+                return Err(StoreError::InvalidContext);
+            }
+            db.begin_claim_inner(&intent, Some(now))
+        })
     }
 
     /// Jobs whose missing-file deadline lies in `(after, until]` (clock-jump
@@ -87,13 +100,17 @@ impl Store {
         })
     }
 
-    /// Jobs whose first recorded absence lies after `now` (wall clock set back
-    /// below a window's start): `deadline - window > now`.
+    /// Jobs whose current window started after `now` (wall clock set back
+    /// below a window's start). A window's start is the reviewed reset's own
+    /// recorded time when that reset set the current deadline, else the first
+    /// absence (`deadline - the job's window`).
     pub fn missing_recorded_after(&self, now: i64) -> Result<Vec<i64>> {
         self.call(move |db| {
             let mut s = db.connection.prepare(
                 "SELECT DISTINCT m.job_id FROM missing m JOIN jobs j ON j.job_id=m.job_id \
-                 WHERE m.deadline - j.missing_retry_seconds > ?1 ORDER BY 1",
+                 WHERE COALESCE((SELECT max(r.recorded_at) FROM missing_resets r WHERE r.job_id=m.job_id \
+                 AND r.file_index=m.file_index AND r.new_deadline=m.deadline), \
+                 m.deadline - j.missing_retry_seconds) > ?1 ORDER BY 1",
             )?;
             Ok(s.query_map([now], |r| r.get::<_, i64>(0))?
                 .collect::<std::result::Result<Vec<_>, _>>()?)

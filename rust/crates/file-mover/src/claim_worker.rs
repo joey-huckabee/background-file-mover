@@ -123,6 +123,8 @@ fn request(
     request_diagnosed(assignment, guard, stop, &mut None)
 }
 /// As `request`, also returning the child's validated diagnostic on failure.
+/// Claim-worker children started (retry passes assert their budget with it).
+pub(crate) static CHILD_OPS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 fn request_diagnosed(
     assignment: &Assignment,
     guard: &LocalClaimLock,
@@ -137,6 +139,7 @@ fn request_diagnosed(
     if bytes.len() > LIMIT {
         return Err(ClaimError::Blocked("claim assignment too large"));
     }
+    CHILD_OPS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let bytes = super::payload::exchange(
         &bytes,
         "--internal-claim-worker",
@@ -234,7 +237,6 @@ fn filesystem_failure(error: &ClaimError, diagnostic: Option<&str>) -> bool {
 /// requested) is checked before Allocate and again atomically in `begin_claim`.
 pub(crate) struct RetryGate {
     pub(crate) stable: mover_core::ObjectIdentity,
-    pub(crate) now: i64,
 }
 /// Same object, unchanged: device, inode, owner, size, mtime and link count.
 pub(crate) fn same_observation(
@@ -409,7 +411,7 @@ fn claim_file(
             // before anything is allocated.
             if let Some((g, refused)) = gate.as_mut()
                 && (!same_observation(&observed.source, &g.stable)
-                    || !store.claim_admissible(job_id, g.now)?)
+                    || !store.claim_admissible(job_id, crate::now)?)
             {
                 **refused = true;
                 return Err(ClaimError::Blocked("retry claim not admitted"));
@@ -442,9 +444,11 @@ fn claim_file(
             }
             match gate.as_mut() {
                 None => store.begin_claim(&allocated)?,
-                Some((g, refused)) => {
+                Some((_, refused)) => {
                     // Admission again, atomically with recording the intent.
-                    let admitted = match store.begin_claim_admitted(&allocated, g.now) {
+                    // Wall time read when the transaction runs (Allocate may
+                    // have crossed the deadline).
+                    let admitted = match store.begin_claim_admitted(&allocated, crate::now) {
                         Ok(admitted) => admitted,
                         Err(mover_store::StoreError::Cancelled) => false,
                         Err(e) => return Err(e.into()),
@@ -602,6 +606,41 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
     }
     channel.write_all(&bytes)?;
     Ok(())
+}
+/// Validate one completed claim's custody (one child call; nothing for a
+/// copy whose custody a confirmed deletion or move-mode cleanup released).
+pub(crate) fn validate_one(
+    store: &Store,
+    guard: &LocalClaimLock,
+    stop: &AtomicBool,
+    id: i64,
+    index: usize,
+) -> Result<bool, ClaimError> {
+    match store.claim_intent(id, index)? {
+        Some((_, true)) if store.retained_copy_released(id, index)? => Ok(false),
+        Some((intent, true)) => {
+            if !guard.matches_path(&intent.root_path) {
+                return Err(ClaimError::Blocked("source scope changed"));
+            }
+            let reply = match request(
+                &Assignment::Validate {
+                    version: 1,
+                    claim: ClaimWire::new(&intent),
+                },
+                guard,
+                stop,
+            ) {
+                Ok(reply) => reply,
+                Err(_) if store.retained_copy_released(id, index)? => return Ok(true),
+                Err(e) => return Err(e),
+            };
+            if reply != intent {
+                return Err(ClaimError::Blocked("handoff validation receipt mismatch"));
+            }
+            Ok(true)
+        }
+        _ => Ok(false),
+    }
 }
 pub(crate) fn validate_existing(
     store: &Store,

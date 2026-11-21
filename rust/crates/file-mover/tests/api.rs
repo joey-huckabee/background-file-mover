@@ -6947,6 +6947,91 @@ fn retries_keep_the_whole_job_size_policy() {
 }
 
 #[test]
+fn recovery_keeps_the_whole_job_size_policy() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    provision_destination(&f);
+    f.set_config("missing_file_settle_seconds", json!(1));
+    f.start();
+    // Job 1: no expected-size map. Job 2: a map whose size for the already
+    // claimed file is wrong (accepted while checking was off).
+    f.write("p1", b"aaa");
+    assert_eq!(
+        f.post(&f.input("recover-nomap", json!(["p1", "l1"]))).1["error"],
+        "source_file_missing"
+    );
+    f.write("p2", b"aaa");
+    let wrong = f.input(
+        "recover-wrong",
+        json!([{"name":"p2","size_bytes":9}, {"name":"l2","size_bytes":4}]),
+    );
+    assert_eq!(f.post(&wrong).1["error"], "source_file_missing");
+    f.stop();
+    for (id, name) in [(1, "l1"), (2, "l2")] {
+        f.write(name, b"late");
+        seed_lost_receipt(&f, id, 1, name);
+    }
+    f.set_size_check(true);
+    f.start();
+    std::thread::sleep(Duration::from_secs(5));
+    // Neither unfinished intent is completed while the policy refuses the job.
+    let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    for id in [1, 2] {
+        assert!(!s.claim_intent(id, 1).unwrap().unwrap().1, "job {id}");
+        assert_eq!(
+            status(&f, &id.to_string()).1["source_paths_released"],
+            false
+        );
+    }
+    drop(s);
+    f.stop();
+}
+
+#[test]
+fn retry_admission_reads_the_clock_after_a_slow_allocation() {
+    if !cfg!(feature = "nfs-qualification") {
+        return;
+    }
+    let mut f = Fixture::new(4);
+    f.stop();
+    provision_destination(&f);
+    f.set_config("missing_file_settle_seconds", json!(1));
+    f.start();
+    let input = f.input("retry-slow-allocate", json!(["slow"]));
+    assert_eq!(f.post(&input).1["error"], "source_file_missing");
+    f.stop();
+    // The retry's Allocate pauses; the deadline passes while it waits.
+    let rendezvous = f.root.join("allocate-pause");
+    std::fs::create_dir(&rendezvous).unwrap();
+    std::fs::set_permissions(&rendezvous, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let mut command = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap());
+    command
+        .env("FILE_MOVER_QUALIFICATION_PAUSE", "claim_allocate")
+        .env("FILE_MOVER_QUALIFICATION_RENDEZVOUS", &rendezvous);
+    f.start_command(command);
+    f.write("slow", b"slow");
+    let until = Instant::now() + Duration::from_secs(20);
+    while !rendezvous.join("ready").exists() {
+        assert!(Instant::now() < until, "retry did not reach Allocate");
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    std::thread::sleep(Duration::from_secs(5)); // The 4 s window ends.
+    std::fs::write(rendezvous.join("go"), b"").unwrap();
+    // Admission reads the clock when the intent would be recorded: refused,
+    // nothing recorded, the empty allocation released, the block persisted.
+    wait_status(&f, "1", 15, |b| {
+        b["details"]["missing"][0]["blocked"] == true
+    });
+    std::thread::sleep(Duration::from_secs(2));
+    assert!(f.root.join("source/current/slow").exists());
+    assert!(
+        !f.root.join("source/.file-mover/1-0").exists(),
+        "allocation released"
+    );
+    f.stop();
+}
+
+#[test]
 fn replay_validation_tolerates_a_deletion_that_starts_mid_check() {
     if !cfg!(feature = "nfs-qualification") {
         return;

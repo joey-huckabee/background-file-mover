@@ -23,29 +23,36 @@ existing `check_expected_sizes`). Implements the reviewed
   - **Discovery:** jobs with a recorded first absence, an unfinished claim
     intent, or a partial claim, whose handoff is not complete.
   - **Fairness:** round-robin job and file cursors, resumable across passes.
-  - **Budget:** 16 child operations per pass; a claim counts as 3, and the
-    whole-job validation as 1.
+  - **Budget:** 16 child operations per pass. A claim counts as 3, and each
+    completed claim's custody validation as 1, budgeted and resumable. Each
+    pass asserts (debug builds) that the children it actually started, counted
+    in `claim_worker::CHILD_OPS`, stay within the budget.
   - **Backoff:** 2 s doubling to 30 s; a settling file is due at
     first-seen + settle; a reviewed reset (new missing-review epoch) is due at
     once.
-  - **Recovery** of unfinished intents runs before the gates and is not gated
-    by deadline, block or a pending cancellation. Only a settled cancellation
-    leaves it as is.
+  - **Recovery** of unfinished intents is not gated by deadline, block or a
+    pending cancellation. It does require the whole-job size policy
+    (`size_policy_ok`: complete map, completed claims' recorded sizes), as a
+    resend does. Only a settled cancellation leaves it as is.
   - **New claims:** absent files get their first-absence row. A present file
     is claimed only after two identical observations (device, inode, owner,
-    size, mtime, links) at least the settle time apart, by monotonic time.
+    size, mtime, links), where the next observation **starts** at least the
+    settle time after the earlier one's **reply** (monotonic; `settled`).
 - **Claim worker** (`claim_worker.rs`):
   - `observe` (observe-only).
   - `claim_stable`: the claim's own Observe must return the stable identity.
     Fresh admission is checked before Allocate (`claim_admissible`) and again
     inside the transaction that records the intent (`begin_claim_admitted`).
+    Both read the wall clock inside their store transaction. A qualification
+    fault point `claim_allocate` exists for testing.
     If refused after Allocate, a new `release` step removes exactly that empty
     area (`mover_fs::release_claim_allocation`, identity-checked `rmdir`);
     otherwise it is kept and later claims refuse as an allocation gap does.
 - **Store:**
   - `missing_retry_jobs` (with epochs), `claim_admissible` and
-    `begin_claim_admitted`.
-  - Clock-jump lookups.
+    `begin_claim_admitted`, which take a clock read inside the transaction.
+  - Clock-jump lookups. A backward jump uses the current window's real
+    start: the reset's recorded time when a reviewed reset set the deadline.
   - **Cancellation settlement now waits** while a job has an unfinished claim
     intent (uncertain effect, per the contract).
 - **Clock:** wall/monotonic drift over 2 s is logged with the affected jobs and
@@ -85,6 +92,21 @@ existing `check_expected_sizes`). Implements the reviewed
     - a wrong expected size for the late file.
   - `many_waiting_files_are_claimed_across_bounded_passes`: 64 files appear
     and are all claimed across budgeted passes.
+- **Real service, further cases:**
+  - `recovery_keeps_the_whole_job_size_policy`: with checking turned on,
+    seeded lost receipts are **not** completed, both for a job without a size
+    map and for a job whose already-claimed file has a wrong recorded size.
+  - `retry_admission_reads_the_clock_after_a_slow_allocation`
+    (qualification builds; run locally with the feature): the retry's
+    Allocate is paused until the window ends. Admission then refuses, nothing
+    is recorded, the empty allocation is released, the block is persisted and
+    the file stays. With the old time captured before Observe, it would have
+    been claimed.
+  - The budget assertion held in every pass of every retry test, including
+    the 64-file run.
+- **mover-fs** (`clock_diagnostics_use_a_reset_windows_own_start`): a reset
+  with a much longer window is not reported as a window "recorded in the
+  future".
 - **mover-fs**
   (`retry_admission_is_atomic_with_the_intent_and_unrecorded_allocations_are_released`):
   - a deadline passing between Allocate and recording is refused atomically:
@@ -95,16 +117,16 @@ existing `check_expected_sizes`). Implements the reviewed
   - an allocation that gained an entry is kept;
   - a cancellation refuses new authorization, and settlement waits for the
     unfinished intent, then proceeds.
-- **Unit:** clock-jump detection (forward, backward, within 2 s) and
-  scheduling (due, wait, a resend resets backoff). Dashboard node test for the
+- **Unit:** clock-jump detection (forward, backward, within 2 s);
+  scheduling (due, wait, a resend resets backoff); settling counts from the
+  earlier reply to the next start, so a late reply never backdates it. Dashboard node test for the
   missing-file wording.
 - Contract checker, fmt and workspace clippy.
 
 ## Not covered
 
-- No test drives a real race between Allocate and `begin_claim` in the
-  running service. The store and mover-fs test covers the atomic refusal and
-  the release on real files.
+- The Allocate/deadline race runs only in qualification builds (CI's
+  qualification gate, and locally with the feature).
 - Continuous producer traffic is exercised with one other job's replays every
   50 ms, not a saturating load.
 - A writer pausing longer than the settle time can still be claimed mid-write

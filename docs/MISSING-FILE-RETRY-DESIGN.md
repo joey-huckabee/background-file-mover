@@ -12,9 +12,17 @@ Status: approved (independent review, 2026-11-20); implemented in
   reconciles it and settlement proceeds. A settled cancellation with an
   unfinished intent can therefore only come from earlier versions, and the
   retry leaves it as is.
-- **Budget:** the whole-job custody validation before new claims, which is the
-  request's own check with one worker call per completed file, counts as one
-  budget unit. It runs at most once per job visit.
+- **Budget:** custody validation of completed claims before new claims costs
+  one child call per completed file. It is budgeted that way and resumes
+  across passes. Every pass asserts (in debug builds) that it started no more
+  child operations than its budget.
+- **Size policy before recovery:** recovery of an unfinished intent completes
+  a handoff, so the whole-job size policy (complete map, completed claims'
+  recorded sizes) must hold first, as for a resend. The deadline, a block and
+  a pending cancellation still do not gate recovery.
+- **Clock reads:** admission reads the wall clock inside the store
+  transaction. A settle period counts from an observation's reply to the next
+  observation's start.
 
 Original proposal: Roadmap item "Add
 timer-driven missing-file retries, clock-anomaly diagnostics and bounded
