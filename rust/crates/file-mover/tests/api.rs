@@ -6842,6 +6842,68 @@ fn many_waiting_files_are_claimed_across_bounded_passes() {
     f.stop();
 }
 
+#[test]
+fn retry_budgets_ignore_concurrent_confirmed_deletions() {
+    let mut f = Fixture::new(300);
+    f.stop();
+    provision_destination(&f);
+    f.set_config("missing_file_settle_seconds", json!(1));
+    f.start();
+    // Job 1: 32 delivered files. Job 2: 64 files that have not arrived yet.
+    let kept: Vec<String> = (0..32).map(|i| format!("kept-{i:02}")).collect();
+    for name in &kept {
+        f.write(name, name.as_bytes());
+    }
+    // Large requests are claimed across resends (handoff_pending).
+    let delivered = f.input("delete-many", json!(kept));
+    let deadline = Instant::now() + Duration::from_secs(60);
+    while post_unbusy(&f, &delivered).0 != 202 {
+        assert!(Instant::now() < deadline, "job 1 was not handed off");
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    wait_status(&f, "1", 120, |b| b["state"] == "Committed");
+    let late: Vec<String> = (0..64).map(|i| format!("late-{i:02}")).collect();
+    let waiting = f.input("retry-beside-deletion", json!(late));
+    assert_eq!(f.post(&waiting).1["error"], "source_file_missing");
+    f.stop();
+    {
+        let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        let (targets, digest) = s
+            .deletion_preview(1, mover_store::DeletionScope::Source)
+            .unwrap()
+            .unwrap();
+        assert_eq!(targets.len(), 32);
+        assert!(matches!(
+            s.start_deletion(
+                1,
+                mover_store::DeletionScope::Source,
+                "dashboard-account",
+                &"a".repeat(64),
+                &digest,
+                100
+            )
+            .unwrap(),
+            mover_store::DeletionStart::Started(_)
+        ));
+    }
+    for name in &late {
+        f.write(name, name.as_bytes());
+    }
+    // Deletion children (delivery thread) and retry passes (claim thread) run
+    // together; a debug build asserts each pass's own budget.
+    f.start();
+    let done = wait_status(&f, "1", 120, |b| {
+        b["details"]["deletion"]["completion_pending"] == false
+    });
+    assert_eq!(
+        done["details"]["deletion"],
+        json!({"completion_pending":false,"deleted_count":32,"failed_count":0})
+    );
+    wait_status(&f, "2", 180, handed_off);
+    assert_eq!(f.post(&waiting).0, 202, "the service is still up");
+    f.stop();
+}
+
 /// Seed an authorized, applied claim whose receipt was lost: intent recorded,
 /// the file moved into private custody, the claim not finished.
 fn seed_lost_receipt(f: &Fixture, id: i64, index: usize, name: &str) {

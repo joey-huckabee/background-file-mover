@@ -25,8 +25,9 @@ existing `check_expected_sizes`). Implements the reviewed
   - **Fairness:** round-robin job and file cursors, resumable across passes.
   - **Budget:** 16 child operations per pass. A claim counts as 3, and each
     completed claim's custody validation as 1, budgeted and resumable. Each
-    pass asserts (debug builds) that the children it actually started, counted
-    in `claim_worker::CHILD_OPS`, stay within the budget.
+    pass asserts (debug builds) that the children it actually started stay
+    within the budget. The count (`claim_worker::CHILD_OPS`) is per thread,
+    so the delivery thread's confirmed deletions never count against a pass.
   - **Backoff:** 2 s doubling to 30 s; a settling file is due at
     first-seen + settle; a reviewed reset (new missing-review epoch) is due at
     once.
@@ -43,7 +44,8 @@ existing `check_expected_sizes`). Implements the reviewed
   - `claim_stable`: the claim's own Observe must return the stable identity.
     Fresh admission is checked before Allocate (`claim_admissible`) and again
     inside the transaction that records the intent (`begin_claim_admitted`).
-    Both read the wall clock inside their store transaction. A qualification
+    Both read the wall clock inside their store transaction, immediately before
+    the admission check (after the job and claim rows are read). A qualification
     fault point `claim_allocate` exists for testing.
     If refused after Allocate, a new `release` step removes exactly that empty
     area (`mover_fs::release_claim_allocation`, identity-checked `rmdir`);
@@ -104,6 +106,11 @@ existing `check_expected_sizes`). Implements the reviewed
     been claimed.
   - The budget assertion held in every pass of every retry test, including
     the 64-file run.
+  - `retry_budgets_ignore_concurrent_confirmed_deletions`: a confirmed
+    deletion of 32 retained files (delivery thread) runs while 64 late files
+    are retried (claim thread). Both complete and the service stays up. With
+    the earlier process-wide counter, this test fails: the debug assertion
+    stops the claim thread and the late files are never claimed.
 - **mover-fs** (`clock_diagnostics_use_a_reset_windows_own_start`): a reset
   with a much longer window is not reported as a window "recorded in the
   future".

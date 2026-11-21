@@ -214,7 +214,7 @@ impl Retry {
         let start = ids.iter().position(|&id| id > self.last_job).unwrap_or(0);
         let order: Vec<i64> = ids[start..].iter().chain(&ids[..start]).copied().collect();
         let mut budget = BUDGET;
-        let before = claim_worker::CHILD_OPS.load(Ordering::Relaxed);
+        let before = claim_worker::CHILD_OPS.with(std::cell::Cell::get);
         for id in order {
             if budget == 0 || stop.load(Ordering::Relaxed) {
                 break;
@@ -247,7 +247,7 @@ impl Retry {
         }
         // The interference bound: a pass never starts more child operations
         // than its budget (claim-worker children; delivery is not involved).
-        let used = claim_worker::CHILD_OPS.load(Ordering::Relaxed) - before;
+        let used = claim_worker::CHILD_OPS.with(std::cell::Cell::get) - before;
         debug_assert!(
             used <= u64::from(BUDGET),
             "retry pass used {used} child operations"

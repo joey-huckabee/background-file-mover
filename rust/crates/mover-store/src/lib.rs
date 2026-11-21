@@ -1121,18 +1121,28 @@ impl Database {
     /// `admission`: also refuse (Ok(false), nothing recorded) when the job is
     /// blocked or its deadline has passed at that wall time (the block is
     /// persisted), in the same transaction that records the intent.
-    fn begin_claim_inner(&mut self, intent: &ClaimIntent, admission: Option<i64>) -> Result<bool> {
+    fn begin_claim_inner(
+        &mut self,
+        intent: &ClaimIntent,
+        admission: Option<Box<dyn FnOnce() -> i64 + Send>>,
+    ) -> Result<bool> {
         let tx = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)?;
         let job = load(&tx, intent.job_id)?.ok_or(StoreError::InvalidContext)?;
         validate_claim(&job, intent)?;
-        if let Some(now) = admission
+        if let Some(clock) = admission
             && load_claim(&tx, intent.job_id, intent.file_index)?.is_none()
-            && !missing_retry::admissible(&tx, intent.job_id, now)?
         {
-            tx.commit()?; // Keep the persisted block.
-            return Ok(false);
+            // Sampled inside the transaction, immediately before the check.
+            let now = clock();
+            if now < 0 {
+                return Err(StoreError::InvalidContext);
+            }
+            if !missing_retry::admissible(&tx, intent.job_id, now)? {
+                tx.commit()?; // Keep the persisted block.
+                return Ok(false);
+            }
         }
         if cancellations::requested(&tx, intent.job_id)? {
             return Err(StoreError::Cancelled);

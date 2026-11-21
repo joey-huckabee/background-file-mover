@@ -122,9 +122,13 @@ fn request(
 ) -> Result<ClaimIntent, ClaimError> {
     request_diagnosed(assignment, guard, stop, &mut None)
 }
+thread_local! {
+    /// Claim-worker children started on this thread. A retry pass asserts its
+    /// budget with it, so the delivery thread's confirmed source deletions
+    /// never count against the claim thread's pass.
+    pub(crate) static CHILD_OPS: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
+}
 /// As `request`, also returning the child's validated diagnostic on failure.
-/// Claim-worker children started (retry passes assert their budget with it).
-pub(crate) static CHILD_OPS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 fn request_diagnosed(
     assignment: &Assignment,
     guard: &LocalClaimLock,
@@ -139,7 +143,7 @@ fn request_diagnosed(
     if bytes.len() > LIMIT {
         return Err(ClaimError::Blocked("claim assignment too large"));
     }
-    CHILD_OPS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    CHILD_OPS.with(|n| n.set(n.get() + 1));
     let bytes = super::payload::exchange(
         &bytes,
         "--internal-claim-worker",

@@ -56,13 +56,14 @@ impl Store {
         clock: impl FnOnce() -> i64 + Send + 'static,
     ) -> Result<bool> {
         self.call(move |db| {
+            let tx = db
+                .connection
+                .transaction_with_behavior(TransactionBehavior::Immediate)?;
+            // Sampled inside the transaction, immediately before the check.
             let now = clock();
             if now < 0 {
                 return Err(StoreError::InvalidContext);
             }
-            let tx = db
-                .connection
-                .transaction_with_behavior(TransactionBehavior::Immediate)?;
             let ok = admissible(&tx, job_id, now)?;
             tx.commit()?;
             Ok(ok)
@@ -79,13 +80,7 @@ impl Store {
         clock: impl FnOnce() -> i64 + Send + 'static,
     ) -> Result<bool> {
         let intent = intent.clone();
-        self.call(move |db| {
-            let now = clock();
-            if now < 0 {
-                return Err(StoreError::InvalidContext);
-            }
-            db.begin_claim_inner(&intent, Some(now))
-        })
+        self.call(move |db| db.begin_claim_inner(&intent, Some(Box::new(clock))))
     }
 
     /// Jobs whose missing-file deadline lies in `(after, until]` (clock-jump
