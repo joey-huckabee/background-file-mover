@@ -35,7 +35,7 @@ time, each a small reviewed PR:
    Tested, or accepted as deviations or not applicable.
 
 Progress: DPR, DST, DEL, CLN, SUB, FS, REC, RTY, LIF, CORE, BWL, RSM, REN, XFR,
-MGR, STO, ENV, DASH, JSON, CFG and EVT (98 of 199 L2) mapped.
+MGR, STO, ENV, DASH, JSON, CFG, EVT, POSIX and COPY (121 of 199 L2) mapped.
 
 All eight release gates remain open. Product approvals and source/state safety
 requirements are unchanged by source cleanup.
