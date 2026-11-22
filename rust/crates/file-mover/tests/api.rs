@@ -6821,6 +6821,349 @@ fn retries_respect_deadlines_cancellation_and_reset() {
     f.stop();
 }
 
+/// Real loopback service/claim-thread load, without qualification-only hooks.
+mod sustained_sender_load {
+    use super::*;
+    use std::{
+        collections::BTreeSet,
+        os::unix::fs::MetadataExt,
+        sync::{Arc, atomic::AtomicBool},
+    };
+
+    #[derive(Default)]
+    struct Counts {
+        accepted: u64,
+        busy: u64,
+        limited: u64,
+    }
+    struct Sender<'a> {
+        address: SocketAddr,
+        finish_by: Instant,
+        abort: &'a AtomicBool,
+        counts: Counts,
+    }
+    impl Sender<'_> {
+        /// No pacing: normal back-pressure is retried and counted. Everything
+        /// else (including a transport error, 500 or handoff_pending) fails.
+        fn ready(&mut self, input: &Value) -> Option<Value> {
+            let bytes = post_bytes(input);
+            while !self.abort.load(Ordering::Relaxed) {
+                assert!(
+                    Instant::now() < self.finish_by,
+                    "sender did not clear back-pressure"
+                );
+                let (code, body) = exchange(self.address, &bytes);
+                match (code, body["error"].as_str()) {
+                    (202, None) => {
+                        assert_accepted(&body, input["recording_id"].as_str().unwrap());
+                        assert!(handed_off(&body));
+                        self.counts.accepted += 1;
+                        return Some(body);
+                    }
+                    (503, Some("service_busy")) => self.counts.busy += 1,
+                    (429, Some("rate_limited")) => self.counts.limited += 1,
+                    _ => panic!("unexpected sustained-load reply: {code} {body}"),
+                }
+            }
+            None
+        }
+    }
+    /// On a monitoring assertion/panic, stop dispatch and join every scoped
+    /// sender before Fixture can stop/remove its service and files.
+    struct AbortOnDrop(Arc<AtomicBool>);
+    impl Drop for AbortOnDrop {
+        fn drop(&mut self) {
+            self.0.store(true, Ordering::Relaxed);
+        }
+    }
+
+    #[test]
+    fn timer_retries_do_not_starve_under_sustained_sender_load() {
+        const SENDERS: usize = 6;
+        const JOBS_PER_SENDER: usize = 64;
+        const LATE_JOBS: usize = 4;
+        const LATE_FILES: usize = 8;
+        const LOAD: Duration = Duration::from_secs(25);
+        const LATE_BOUND: Duration = Duration::from_secs(20);
+        let test_started = Instant::now();
+        let mut f = Fixture::new(300);
+        f.stop();
+        provision_destination(&f);
+        f.set_config("missing_file_settle_seconds", json!(1));
+        // Bound retained work without confusing retention refusal with ingress
+        // back-pressure. At the cap, every sender continues committed replays.
+        f.set_config(
+            "max_retained_jobs",
+            json!(LATE_JOBS + 1 + SENDERS * JOBS_PER_SENDER),
+        );
+        f.start();
+        let mut service_stderr = f.child.as_mut().unwrap().stderr.take().unwrap();
+        let mut expected = Vec::new();
+        for job in 0..LATE_JOBS {
+            let names: Vec<_> = (0..LATE_FILES)
+                .map(|file| format!("load-late-{job}-{file}"))
+                .collect();
+            let input = f.input(&format!("load-late-{job}"), json!(names));
+            let (code, reply) = post_unbusy(&f, &input);
+            assert_eq!(code, 409, "{reply}");
+            assert_eq!(reply["error"], "source_file_missing");
+            // These are the first accepted jobs; no producer thread exists yet.
+            expected.push(((job + 1).to_string(), input));
+        }
+        let seed_name = "load-committed-seed";
+        f.write(seed_name, seed_name.as_bytes());
+        let seed = f.input(seed_name, json!([seed_name]));
+        let seed_reply = post_unbusy(&f, &seed);
+        assert_eq!(seed_reply.0, 202, "{:?}", seed_reply.1);
+        let seed_id = seed_reply.1["job_id"].as_str().unwrap().to_owned();
+        wait_status(&f, &seed_id, 15, |body| body["state"] == "Committed");
+        let seed = Arc::new(seed);
+        let mut inputs = Vec::new();
+        for sender in 0..SENDERS {
+            let mut jobs = Vec::new();
+            for job in 0..JOBS_PER_SENDER {
+                let name = format!("load-new-{sender}-{job}");
+                f.write(&name, name.as_bytes());
+                jobs.push(f.input(&name, json!([name])));
+            }
+            inputs.push(jobs);
+        }
+        let abort = Arc::new(AtomicBool::new(false));
+        let released = Arc::new(AtomicBool::new(false));
+        let started = Instant::now();
+        let load_until = started + LOAD;
+        let address = f.address;
+        let (reports, confirmations, late_claim, health_count, health_max) =
+            std::thread::scope(|scope| {
+                let _abort_on_exit = AbortOnDrop(abort.clone());
+                let mut handles = Vec::new();
+                for jobs in inputs {
+                    let (abort, released, seed, seed_id) = (
+                        abort.clone(),
+                        released.clone(),
+                        seed.clone(),
+                        seed_id.clone(),
+                    );
+                    handles.push(scope.spawn(move || {
+                        let mut sender = Sender {
+                            address,
+                            finish_by: load_until + Duration::from_secs(10),
+                            abort: &abort,
+                            counts: Counts::default(),
+                        };
+                        let mut jobs = jobs.into_iter();
+                        let mut new_jobs = Vec::new();
+                        // Unlike a Barrier, this also releases already-started
+                        // threads if another spawn fails and the scope unwinds.
+                        while !released.load(Ordering::Acquire) && !abort.load(Ordering::Relaxed) {
+                            std::thread::yield_now();
+                        }
+                        while Instant::now() < load_until && !abort.load(Ordering::Relaxed) {
+                            if let Some(input) = jobs.next() {
+                                let Some(reply) = sender.ready(&input) else {
+                                    break;
+                                };
+                                let id = reply["job_id"].as_str().unwrap().to_owned();
+                                let Some(replay) = sender.ready(&input) else {
+                                    break;
+                                };
+                                assert_eq!(replay["job_id"], id, "new job replay changed identity");
+                                // Exactly one initial 202, then its checked replay;
+                                // advance to another UUID only after both succeed.
+                                new_jobs.push((id, input));
+                            }
+                            let Some(replay) = sender.ready(&seed) else {
+                                break;
+                            };
+                            assert_eq!(replay["job_id"], seed_id, "committed replay changed identity");
+                        }
+                        (sender.counts, new_jobs)
+                    }));
+                }
+                released.store(true, Ordering::Release);
+                let mut confirmation_sender = Sender {
+                    address,
+                    finish_by: load_until,
+                    abort: &abort,
+                    counts: Counts::default(),
+                };
+                let mut written = None;
+                let mut observed = [false; LATE_JOBS];
+                let mut late_claim = None;
+                let (mut health_count, mut health_max) = (0_u64, Duration::ZERO);
+                while Instant::now() < load_until {
+                    assert!(
+                        handles.iter().all(|handle| !handle.is_finished()),
+                        "sender exited during load"
+                    );
+                    assert!(
+                        f.child.as_mut().unwrap().try_wait().unwrap().is_none(),
+                        "service exited during load"
+                    );
+                    if written.is_none() && started.elapsed() >= Duration::from_secs(2) {
+                        // Conservative clock: includes writing every late file.
+                        written = Some(Instant::now());
+                        for (_, input) in &expected {
+                            for name in input["files"].as_array().unwrap() {
+                                let name = name.as_str().unwrap();
+                                f.write(name, name.as_bytes());
+                            }
+                        }
+                    }
+                    if let Some(written) = written {
+                        for (index, (id, _)) in expected.iter().enumerate() {
+                            if !observed[index] {
+                                let (code, body) = status(&f, id);
+                                assert_eq!(code, 200, "{body}");
+                                assert_ne!(body["details"]["condition"], "ReviewRequired", "{body}");
+                                observed[index] = handed_off(&body);
+                            }
+                        }
+                        if late_claim.is_none() && observed.iter().all(|ready| *ready) {
+                            let elapsed = written.elapsed();
+                            assert!(elapsed <= LATE_BOUND, "late handoffs took {elapsed:?}");
+                            assert!(
+                                Instant::now() < load_until
+                                    && handles.iter().all(|handle| !handle.is_finished())
+                            );
+                            // Prove timer-only handoff BEFORE any late resend: a
+                            // producer resend must not be what claims the files.
+                            for (_, input) in &expected {
+                                for name in input["files"].as_array().unwrap() {
+                                    assert!(
+                                        !f.root
+                                            .join("source/current")
+                                            .join(name.as_str().unwrap())
+                                            .exists()
+                                    );
+                                }
+                            }
+                            late_claim = Some(elapsed);
+                            for (id, input) in &expected {
+                                let reply = confirmation_sender.ready(input).unwrap();
+                                assert_eq!(reply["job_id"], *id, "late replay changed identity");
+                            }
+                            assert!(
+                                Instant::now() < load_until
+                                    && handles.iter().all(|handle| !handle.is_finished()),
+                                "late 202 confirmations must finish with all senders still running"
+                            );
+                        }
+                        assert!(
+                            late_claim.is_some() || written.elapsed() < LATE_BOUND,
+                            "late files starved under sender traffic: {observed:?}"
+                        );
+                    }
+                    let health_started = Instant::now();
+                    let (code, body) = f.raw(b"GET /healthz HTTP/1.1\r\nHost: localhost\r\n\r\n");
+                    assert_eq!(code, 200, "health during load: {body}");
+                    let elapsed = health_started.elapsed();
+                    health_max = health_max.max(elapsed);
+                    assert!(elapsed < Duration::from_secs(5), "health stalled for {elapsed:?}");
+                    health_count += 1;
+                    std::thread::sleep(Duration::from_millis(100));
+                }
+                let late_claim = late_claim.expect("no timer-driven late handoff during load");
+                let reports: Vec<_> = handles
+                    .into_iter()
+                    .map(|handle| handle.join().expect("sender failed"))
+                    .collect();
+                (
+                    reports,
+                    confirmation_sender.counts,
+                    late_claim,
+                    health_count,
+                    health_max,
+                )
+            });
+        let load_seconds = started.elapsed().as_secs_f64();
+        let mut counts = confirmations;
+        let mut initial_202 = 0;
+        for (sender_counts, jobs) in reports {
+            assert!(
+                !jobs.is_empty(),
+                "each sender must finish a new job and its replay"
+            );
+            initial_202 += jobs.len();
+            counts.accepted += sender_counts.accepted;
+            counts.busy += sender_counts.busy;
+            counts.limited += sender_counts.limited;
+            expected.extend(jobs);
+        }
+        // Health alone cannot detect a claim-thread panic; a final real replay
+        // must also work, including in debug where every retry pass asserts its budget.
+        let final_replay = post_unbusy(&f, &seed);
+        assert_eq!(final_replay.0, 202, "{:?}", final_replay.1);
+        assert_eq!(final_replay.1["job_id"], seed_id);
+        expected.push((seed_id, (*seed).clone()));
+        f.stop();
+        let mut stderr = String::new();
+        service_stderr.read_to_string(&mut stderr).unwrap();
+        assert!(
+            !stderr.contains("panicked") && !stderr.contains("retry pass used"),
+            "service stderr: {stderr}"
+        );
+        let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        assert_eq!(store.job_count().unwrap(), expected.len() as u64);
+        let mut ids = BTreeSet::new();
+        let mut recordings = BTreeSet::new();
+        let mut objects = BTreeSet::new();
+        for (id, input) in &expected {
+            assert!(ids.insert(id.clone()), "duplicate job ID {id}");
+            let uuid = input["recording_id"].as_str().unwrap();
+            assert!(recordings.insert(uuid), "duplicate recording {uuid}");
+            let id: i64 = id.parse().unwrap();
+            let snapshot = store.status(id).unwrap().expect("accepted job lost");
+            assert_eq!(snapshot.job.recording.submission().submission_id(), uuid);
+            assert_eq!(snapshot.job.recording.handoff(), mover_core::Handoff::Ready202);
+            assert!(snapshot.missing.is_empty(), "job {id} still has missing files");
+            assert!(
+                snapshot
+                    .delivery
+                    .as_ref()
+                    .is_none_or(|(failures, _, _)| *failures == 0),
+                "delivery error for {id}"
+            );
+            for transfer in snapshot.transfers.iter().flatten() {
+                assert_eq!(transfer.attempt, 1, "unexpected delivery retry for {id}");
+            }
+            for (index, name) in input["files"].as_array().unwrap().iter().enumerate() {
+                let name = name.as_str().unwrap();
+                let (intent, complete) = store.claim_intent(id, index).unwrap().expect("claim lost");
+                assert!(complete, "unfinished claim for {id}/{index}");
+                assert!(
+                    objects.insert((intent.source.device, intent.source.inode)),
+                    "source claimed twice"
+                );
+                let held = f
+                    .root
+                    .join("source/.file-mover")
+                    .join(&intent.private_name)
+                    .join("data");
+                assert_eq!(std::fs::read(&held).unwrap(), name.as_bytes());
+                assert_eq!(std::fs::metadata(held).unwrap().nlink(), 1);
+                assert!(!f.root.join("source/current").join(name).exists());
+            }
+        }
+        let total = counts.accepted + counts.busy + counts.limited;
+        eprintln!(
+            "SUSTAINED_MISSING_RETRY senders={SENDERS} load_seconds={load_seconds:.3} requests={total} requests_per_second={:.3} initial_202={initial_202} replay_202={} service_busy={} rate_limited={} late_files={} late_claim_seconds={:.3} health_checks={health_count} health_max_seconds={:.3} retained_jobs={}",
+            total as f64 / load_seconds,
+            counts.accepted - initial_202 as u64,
+            counts.busy,
+            counts.limited,
+            LATE_JOBS * LATE_FILES,
+            late_claim.as_secs_f64(),
+            health_max.as_secs_f64(),
+            expected.len()
+        );
+        assert!(
+            test_started.elapsed() < Duration::from_secs(60),
+            "sustained test exceeded its total budget"
+        );
+    }
+}
+
 #[test]
 fn many_waiting_files_are_claimed_across_bounded_passes() {
     let mut f = Fixture::new(300);
