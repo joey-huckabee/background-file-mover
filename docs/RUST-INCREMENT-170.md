@@ -284,6 +284,49 @@ Checks for this documentation batch: `python3 scripts/check_trace.py`, diff and
 local link/count checks. No Rust builds/tests, SLES gates or NFS labs were run.
 Mapping and reference validation do not close requirements or release gates.
 
+## Follow-up: JOB, SEC and NFS
+
+2026-11-22, from main `4115a8c`: 39 final-family requirements mapped (15 JOB,
+16 SEC and 8 NFS), bringing this branch to **179 of 199**, with **20 remaining**.
+CTL PR103 is still in review and excluded from this count. Keep both batches
+when it merges: the combined mapping will be **199 of 199**, not a declaration
+that all requirements are met or that P10/L3/L1/release decisions are closed.
+This batch adds:
+
+- **Tested (1):** JOB-002: actual SQLite WAL/FULL/foreign-key pragmas.
+- **Partly tested (14):** JOB-001/005/006/012/015; SEC-001/003/004/005/007/012;
+  NFS-001/002/003. Tests cover bounded admission/transition/aggregate/recovery
+  properties, selected path/type/identity refusals, native no-clobber fallback
+  and local two-name interruption/collision recovery. Full syscall/race,
+  phase-graph, log, hardware and production-NFS coverage is not inferred.
+- **Inspection (4):** JOB-008/009, SEC-015 and NFS-006: local-only state,
+  repository confinement, concrete SHA-256 verification, and documented weak
+  NFS cached-attribute observations/mount-profile limits.
+- **Deviation (needs approval) (15):** JOB-003/004/007/010/011/013/014;
+  SEC-002/006/008/009/010/011; NFS-004/007. Owner-thread SQLite, guarded
+  offline migration, actual completion metadata/problem states, explicit
+  enrollment, payload-effect intent boundaries, durable-identity/protected
+  parent custody, exact relative paths, Rust argv launch, supervised blocked
+  workers and staged publication differ from the full older mechanisms.
+  Proposals reconcile or retain obligations; they do not authorize changing
+  frozen v2/legacy bytes, root ownership, timeout/fencing or retry authority.
+- **Open (5):** SEC-013/014/016 and NFS-005/008: target MAC/hardened shipping,
+  endpoint-security exclusion verification, silly-rename tolerance and actual
+  server/export/storage durability qualification remain unclosed.
+
+Every cited test body and relevant implementation/helper was read. Legacy
+acceptance/WAL fixtures and current UUID race/reopen evidence are distinguished.
+Local two-name process-exit tests explicitly invoke their ignored helper and
+are not feature-only; managed NFS access/RPC pauses still require the opt-in
+qualification build. Synthetic mount/errno facts and retained real-export lab
+records do not establish production NFS support, persistent-media durability,
+privileged-adversary fencing, SELinux/AppArmor policy or deployment readiness.
+Production NFS remains disabled. No new labs or test fixtures were introduced.
+
+Checks: `python3 scripts/check_trace.py`, diff, local link/count checks. No Rust
+builds/tests, SLES gates, live NFS/systemd, endpoint-security queries or operational
+state were run/accessed for this documentation batch. No release gate is closed.
+
 ## Decisions for the user (all families so far)
 
 - **L2-DPR-005:** accept the no-clobber link fallback, or reword the
@@ -397,9 +440,44 @@ Mapping and reference validation do not close requirements or release gates.
   clarify its intended scope. The current engine is always buffered; this is
   not an authorization to add a kernel-copy feature.
 
+- **L2-JOB-001/007/010/011:** reconcile historical per-file deferrals and the
+  creation-time/integrity-mode/FAILED-error/automatic-first-boot wording with
+  approved durable per-file custody, completion manifests, informational
+  problems/review and explicit original-state enrollment. Do not change frozen
+  producer/manifest v2 or retained legacy bytes through trace reconciliation.
+- **L2-JOB-003/004:** reword per-caller SQLite connections and automatic
+  startup migrations for the approved owner-thread/guarded offline upgrade
+  contract; do not restore unsafe automatic conversion.
+- **L2-JOB-013/014:** define intent/commit boundaries and phase-specific state
+  write failure handling precisely, preserving source and uncertain custody;
+  empty allocation/observation is distinct from payload relocation. Do not
+  require discarding an already admitted job or successfully writing review
+  state to failed storage.
+- **L2-SEC-002/006/008:** reconcile preceding-stat identity checks,
+  absolute canonicalization and literal
+  fork/execvp wording with protected service-owned descriptors, exact relative
+  producer paths and Rust argv launch. Any stronger threat model or permission
+  expansion requires separate design/approval, not a trace-only change.
+- **L2-SEC-009/010/011:** define timeout/progress and missing-both external-failure
+  classification against actual worker lifetime, durable queues and bounded
+  retry/review semantics; no timer or signal proves blocked remote effects
+  settled. Preserve approved custody, cancellation and move-cleanup behavior.
+- **L2-SEC-013/014/016 (Open):** retain and qualify target MAC, full systemd
+  hardening and endpoint-security exclusion verification, or explicitly approve
+  applicability/scope changes. Candidate units/default labels are not closure.
+- **L2-NFS-001/004/005:** settle per-tree strategy logging, ESTALE scheduling
+  authority and tested silly-rename tolerance before claiming those properties;
+  unknown effects/files must remain protected. Production NFS stays disabled.
+- **L2-NFS-007/008:** reconcile two-hop rename wording with the approved staged
+  copy/verify/publication protocol, and retain actual consumer-cache/server/
+  export/storage durability qualification as a separate authorized deliverable.
+  Lab/protocol facts are not production NFS approval or a power-loss guarantee.
+
 ## Not covered
 
-- 59 L2 requirements remain unmapped, along with L3 and the L1 roll-up.
+- 20 L2 requirements remain unmapped on this branch pending CTL PR103. L3,
+  the L1 roll-up, user decisions and verification gaps remain open even after
+  all 199 L2 rows are mapped.
   Mapped rows marked partial, deviation, proposed not applicable or Open are not
   requirement closure; their outstanding evidence/decisions remain above.
 - Test evidence does not qualify NFS, systemd or physical faults.

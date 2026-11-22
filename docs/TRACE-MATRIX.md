@@ -35,7 +35,9 @@ time, each a small reviewed PR:
    Tested, or accepted as deviations or not applicable.
 
 Progress: DPR, DST, DEL, CLN, SUB, FS, REC, RTY, LIF, CORE, BWL, RSM, REN, XFR,
-MGR, STO, ENV, DASH, JSON, CFG, EVT, CLI, ARC, POSIX and COPY (140 of 199 L2) mapped.
+MGR, STO, ENV, DASH, JSON, CFG, EVT, CLI, ARC, POSIX, COPY, JOB, SEC and NFS
+(179 of 199 L2) mapped. CTL PR103 adds the remaining 20 when merged; complete
+mapping is not verification closure or release qualification.
 
 All eight release gates remain open. Product approvals and source/state safety
 requirements are unchanged by source cleanup.
