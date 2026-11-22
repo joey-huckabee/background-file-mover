@@ -6850,7 +6850,7 @@ mod sustained_sender_load {
             while !self.abort.load(Ordering::Relaxed) {
                 assert!(
                     Instant::now() < self.finish_by,
-                    "sender did not clear back-pressure"
+                    "sender request did not receive 202 before its deadline"
                 );
                 let (code, body) = exchange(self.address, &bytes);
                 match (code, body["error"].as_str()) {

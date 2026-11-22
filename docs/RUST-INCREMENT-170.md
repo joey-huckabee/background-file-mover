@@ -252,12 +252,12 @@ The same PR restores the 2026-11-03 workflow history line alongside the current
 - **L2-JSON-005 (Open):** whether to add a JSON conformance corpus and fuzzing
   (product and test work, possibly new tooling).
 
-- **L2-CFG-004:** should `missing_file_retry_window_seconds` have an approved
-  application range, and what minimum/maximum should it use? Currently the
-  entire `u32` range is accepted: zero expires a missing-file window immediately,
-  while 4,000,000,000 seconds is about 127 years. The design/API draft specifies
-  the 300-second default but no approved range was found. Adding a range is
-  product work requiring that decision; this PR changes no validation behavior.
+- **L2-CFG-004 — decided: keep as today (user decision, 2026-11-21).**
+  `missing_file_retry_window_seconds` keeps its current behavior: there is no
+  application range check, and any `u32` is accepted, including zero. Zero
+  expires a missing-file window immediately; 4,000,000,000 seconds is about
+  127 years. No range check is requested by this decision. The L2-CFG-004 row's
+  validation facts and disposition remain unchanged.
 - **L2-CFG-005:** accept shared runtime snapshots with validation at service
   entry points, or require a distinct immutable validated configuration type.
 - **L2-CFG-007:** confirm whether guarded `--check-state` (which validates

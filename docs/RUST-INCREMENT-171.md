@@ -4,10 +4,11 @@ User authorization 2026-11-21; implementation from main `4282b74`, revised
 2026-11-22 after coordinator WSL diagnostics on PR98. Test and documentation
 changes only; no retry, shutdown, protocol or custody product changes.
 
-**Status: revised test awaiting coordinator rerun.** Earlier revisions failed
-locally for the reasons below. None of those runs or diagnostic variants are
-passing qualification evidence. SLES production/qualification results remain
-pending; no starvation defect has been established by those failures.
+**Status: coordinator WSL debug checks passed at `1416575`: three loaded runs
+and two zero-sender baselines, using the gate SQLite flags.** The reviewer passed
+the test. Earlier failed diagnostics are retained below and are not counted as
+passing evidence. These local runs are not SLES qualification; SLES production
+and qualification results belong to [PR98 CI](https://github.com/joey-huckabee/background-file-mover/pull/98/checks).
 
 ## Scenario and assertions
 
@@ -17,17 +18,20 @@ It uses the existing real-service `Fixture`, `set_config`, `post_unbusy`,
 `wait_status`, `handed_off` and HTTP exchange helpers. It runs in ordinary and
 qualification builds without qualification-only pauses or fault hooks.
 
-1. Prepare all 384 one-file load inputs and confirm a separate seed job is
+1. Prepare all 24 one-file load inputs and confirm a separate seed job is
    `Committed` **before** submitting any late jobs. Bulk writes and waiting for
    seed delivery therefore cannot age a missing job's retry backoff.
 2. Submit four jobs with four missing files each (**16 late files**), each
    returning 409 `source_file_missing`. Start load directly after those replies.
    Do not resend these bodies before status proves timer-driven handoff.
 3. **Six producer threads** run unpaced for a **45-second** window. Each
-   alternates a unique complete one-file job (initial 202 and same-ID replay)
-   with replays of the already-committed seed. Each sender has at most 64 new
-   jobs, 384 total; after its cap it continues seed replays to the deadline.
-   Retention admits the maximum 389 jobs, avoiding incidental capacity refusal.
+   submits at most **four** unique complete one-file jobs (initial 202 and
+   same-ID replay), interleaving seed and own-job replays. After the cap,
+   traffic continues with seed replays and a rotation through that sender's
+   accepted jobs; those own jobs need not yet be committed. There are at most
+   24 new load jobs. `delivery_concurrency` is **4** for this test. Retention
+   admits at most **29 jobs** (24 load + 4 late + 1 seed), avoiding incidental
+   capacity refusal; the exact audited count depends on completed submissions.
 4. About two seconds into load, write the late files. Count claims by the
    disappearance of their original source paths, rejecting lookup errors.
    Only the claim worker removes those names in this disposable fixture. The
@@ -48,8 +52,9 @@ qualification builds without qualification-only pauses or fault hooks.
    or nonzero back-pressure count is required.
 7. Join senders, allow all accepted load, late and seed jobs to reach
    **Committed before `f.stop()`**, then perform the strict store audit. The
-   commit drain has one shared deadline: 20 seconds from drain start, capped
-   at 60 seconds from test start. It does not grant a separate timeout per job.
+   commit drain has its own shared **30-second** deadline from drain start
+   after load and sender joins, with no cap tied to test start. It does not
+   grant a separate timeout per job.
    This avoids injecting a delivery interruption through the test's own stop.
 8. The audit requires exactly the expected unique job/recording IDs, committed
    handoff, no missing files or delivery failures, and attempt 1 for each
@@ -79,16 +84,17 @@ The revised starvation assertion instead monitors continued claims: ten seconds
 without a new claim while source files remain is a failure, even if the overall
 window has time left. Polling samples progress; it does not measure each worker
 operation or establish a product latency guarantee. The separate **45-second
-load window** provides completion slack for 16 files, estimated at **12–13
-seconds** from that host's baseline; the estimate is not a measured result for
-the revised test. Compare baseline and loaded runs of this same scenario before
+load window** provides completion slack for 16 files. The recorded revised
+runs observed late handoff at **16.686 seconds without load** and **17.643 seconds
+with load**. Compare baseline and loaded runs of this same scenario before
 interpreting a failure. These local test bounds do not qualify NFS or arbitrary
 slow I/O.
 
 A request already started at the end of load may finish for up to ten more
 seconds. Existing HTTP reads are bounded to 15 seconds, fixture shutdown has its
-five-second bound, and the test asserts total successful runtime at most
-**70 seconds**, including setup, delivery drain and audit. Scoped senders join
+five-second bound, and delivery has its independent 30-second post-load drain.
+The test asserts total successful runtime at most
+**90 seconds**, including setup, delivery drain and audit. Scoped senders join
 before teardown even on failure; an abort flag releases threads during unwind.
 
 ## Metrics and observations
@@ -131,12 +137,39 @@ confirmed cause. Preserve the diagnostics; do not assert on the presence or
 absence of clock jumps. Timing uses monotonic clocks; the missing window remains
 300 seconds and wall-clock expiry semantics are unchanged.
 
-| Revised execution | Throughput / back-pressure | Baseline or loaded late-claim time | Result |
-|---|---|---|---|
-| WSL baseline, 0 senders | Pending | Pending | Awaiting rerun |
-| WSL load, 6 senders | Pending | Pending | Awaiting rerun |
-| SLES production, debug/release | Pending | Pending | Not qualified |
-| SLES qualification, debug/release | Pending | Pending | Not qualified |
+### Coordinator-reported results at `1416575`
+
+These are **local WSL debug runs with the gate SQLite flags**, not SLES runs.
+The coordinator reported fmt and Clippy clean. Loaded runs passed **3 of 3**
+(total times **55.05 s, 53.18 s, 54.48 s**); zero-sender baselines passed **2 of 2**
+(**50.26 s, 49.76 s**). The following supplied metrics describe one loaded and
+one baseline run; they are not averages over the repeated runs.
+
+Loaded:
+
+```text
+senders=6 load_seconds=49.228 requests=162582 requests_per_second=3302.634 initial_202=21 replay_202=67 service_busy=162494 rate_limited=0 late_files=16 late_claim_seconds=17.643 late_age_at_write_seconds=2.491 drain_seconds=0.417 health_checks=276 health_max_seconds=0.003 retained_jobs=26
+```
+
+Baseline:
+
+```text
+senders=0 load_seconds=45.028 requests=4 late_files=16 late_claim_seconds=16.686 late_age_at_write_seconds=2.473 drain_seconds=0.017 health_checks=379 health_max_seconds=0.001 retained_jobs=5
+```
+
+Late handoff under saturating load (**17.6 s**) was close to baseline (**16.7 s**).
+There was **no observed starvation** in these runs: the single claim thread was
+saturated, nearly every sender request received `service_busy`, and timer retries
+still interleaved fairly. Throughput is bounded by supervised child-operation
+cost. The loaded sample accepted 21 new jobs and retained 26 total, below the
+29-job maximum; the baseline retained only the four late jobs and seed.
+
+| Execution | Evidence / result |
+|---|---|
+| WSL baseline, 0 senders | Passed 2/2; local debug with gate SQLite flags |
+| WSL load, 6 senders | Passed 3/3; local debug with gate SQLite flags |
+| SLES production, debug/release | [PR98 CI checks](https://github.com/joey-huckabee/background-file-mover/pull/98/checks); separate from the WSL evidence |
+| SLES qualification, debug/release | [PR98 CI checks](https://github.com/joey-huckabee/background-file-mover/pull/98/checks); production NFS remains disabled |
 
 ## Reproduce and checks
 
@@ -150,27 +183,33 @@ FILE_MOVER_TEST_SUSTAINED_SENDERS=6 cargo test -p file-mover --test api sustaine
 ```
 
 The selector affects this test only, never production configuration. The baseline
-still prewrites all 384 load files before late submissions, so it removes sender
+still prewrites all 24 load files before late submissions, so it removes sender
 traffic without removing the setup that previously caused backoff aging.
-The coordinator reported fmt and workspace Clippy clean at `2e883b2`; its
-baseline and loaded runtime failures are recorded above. On this revision,
-`cargo fmt --all` was applied and
-`cargo fmt --all -- --check` passes, using the repository-pinned Rust1.99.0
-Cargo/rustfmt and its compiler library from official distribution components,
-verified against their manifest SHA-256 hashes. This installs host tools only,
-without changing workspace dependencies. Diff/local-link and source-preservation
-checks pass. Revised Clippy/runtime/SLES results await the coordinator rerun; no
-new baseline or loaded runtime is claimed here.
+The coordinator reported fmt and Clippy clean and the successful real-service
+runs above at `1416575`. This follow-up changes documentation and clarifies only
+the sender timeout message, without changing test behavior.
+`cargo fmt --all -- --check`, diff/local-link and trace checks pass for this
+follow-up. No new local
+runtime, Clippy or SLES runs are claimed by the documentation worker.
+
+## Decided shutdown behavior
+
+**User decision, 2026-11-21: "keep it the way it is today".** A delivery
+interrupted by service shutdown continues to be recorded as a delivery failure.
+[`delivery_worker.rs`](../rust/crates/file-mover/src/delivery_worker.rs) returns
+`delivery dispatch stopped` when stop interrupts a worker exchange;
+[`lib.rs`](../rust/crates/file-mover/src/lib.rs) handles that error through
+`delivery_failed`. This is decided, not an open product question. The load test
+waits for every accepted job to commit before stopping so its strict audit
+measures failures during the workload rather than its own shutdown.
 
 ## Not covered
 
-- **Open user question:** shutdown currently can charge a delivery failure when
-  `delivery dispatch stopped` falls through to `delivery_failed` in `lib.rs`.
-  The coordinator is taking that behavior to the user. This test now waits for
-  commitment before stopping; it does not fix, approve or qualify shutdown
-  interruption behavior. A separate product decision/change is required.
+- Shutdown-interrupted delivery behavior remains as decided above; this load
+  test drains accepted deliveries and does not qualify interruption behavior.
 - Loopback HTTP exercises the actual claim thread, not TLS or protected producer
   UID/connection-cap enforcement. Six unpaced senders offer contention; after
-  the finite new-job cap, traffic can consist only of committed replays.
+  the finite new-job cap, traffic consists of seed and own-job replays, with
+  own jobs potentially still delivering.
 - No NFS, systemd, physical faults, operational credentials/state, deployment,
   deletion or release qualification. All release gates remain open.
