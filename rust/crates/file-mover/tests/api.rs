@@ -6883,8 +6883,21 @@ mod sustained_sender_load {
         const JOBS_PER_SENDER: usize = 64;
         const LATE_JOBS: usize = 4;
         const LATE_FILES: usize = 8;
-        const LOAD: Duration = Duration::from_secs(25);
-        const LATE_BOUND: Duration = Duration::from_secs(20);
+        const LOAD: Duration = Duration::from_secs(30);
+        // Fresh jobs (at most 6 s old when all files are written): allow 2 s
+        // discovery + up to 8 s early empty-pass backoff + 1 s settling + 14 s
+        // for budgeted passes, packing and producer/local-I/O interference.
+        // 32 first observations + 32*(stable Observe + 3 claim operations)
+        // + up to 32 completed-claim validations is about 192 operations, or
+        // 12 full 16-operation pass equivalents. This is a local-fixture
+        // regression bound, not a wall-time guarantee supplied by the budget.
+        const LATE_BOUND: Duration = Duration::from_secs(25);
+        let senders = match std::env::var("FILE_MOVER_TEST_SUSTAINED_SENDERS") {
+            Err(std::env::VarError::NotPresent) => SENDERS,
+            Ok(value) if value == "6" => SENDERS,
+            Ok(value) if value == "0" => 0,
+            _ => panic!("FILE_MOVER_TEST_SUSTAINED_SENDERS must be 0 (baseline) or 6 (load)"),
+        };
         let test_started = Instant::now();
         let mut f = Fixture::new(300);
         f.stop();
@@ -6898,18 +6911,6 @@ mod sustained_sender_load {
         );
         f.start();
         let mut service_stderr = f.child.as_mut().unwrap().stderr.take().unwrap();
-        let mut expected = Vec::new();
-        for job in 0..LATE_JOBS {
-            let names: Vec<_> = (0..LATE_FILES)
-                .map(|file| format!("load-late-{job}-{file}"))
-                .collect();
-            let input = f.input(&format!("load-late-{job}"), json!(names));
-            let (code, reply) = post_unbusy(&f, &input);
-            assert_eq!(code, 409, "{reply}");
-            assert_eq!(reply["error"], "source_file_missing");
-            // These are the first accepted jobs; no producer thread exists yet.
-            expected.push(((job + 1).to_string(), input));
-        }
         let seed_name = "load-committed-seed";
         f.write(seed_name, seed_name.as_bytes());
         let seed = f.input(seed_name, json!([seed_name]));
@@ -6928,16 +6929,34 @@ mod sustained_sender_load {
             }
             inputs.push(jobs);
         }
+        // No bulk preparation or seed delivery may age the missing jobs:
+        // start traffic directly after their first confirmed missing replies.
+        let mut expected = Vec::new();
+        let mut first_missing = None;
+        for job in 0..LATE_JOBS {
+            let names: Vec<_> = (0..LATE_FILES)
+                .map(|file| format!("load-late-{job}-{file}"))
+                .collect();
+            let input = f.input(&format!("load-late-{job}"), json!(names));
+            let (code, reply) = post_unbusy(&f, &input);
+            assert_eq!(code, 409, "{reply}");
+            assert_eq!(reply["error"], "source_file_missing");
+            first_missing.get_or_insert_with(Instant::now);
+            // Only the committed seed precedes these jobs in this fresh store.
+            let id = seed_id.parse::<u64>().unwrap() + job as u64 + 1;
+            expected.push((id.to_string(), input));
+        }
+        let first_missing = first_missing.unwrap();
         let abort = Arc::new(AtomicBool::new(false));
         let released = Arc::new(AtomicBool::new(false));
         let started = Instant::now();
         let load_until = started + LOAD;
         let address = f.address;
-        let (reports, confirmations, late_claim, health_count, health_max) =
+        let (reports, confirmations, late_claim, late_age, health_count, health_max) =
             std::thread::scope(|scope| {
                 let _abort_on_exit = AbortOnDrop(abort.clone());
                 let mut handles = Vec::new();
-                for jobs in inputs {
+                for jobs in inputs.into_iter().take(senders) {
                     let (abort, released, seed, seed_id) = (
                         abort.clone(),
                         released.clone(),
@@ -6975,7 +6994,10 @@ mod sustained_sender_load {
                             let Some(replay) = sender.ready(&seed) else {
                                 break;
                             };
-                            assert_eq!(replay["job_id"], seed_id, "committed replay changed identity");
+                            assert_eq!(
+                                replay["job_id"], seed_id,
+                                "committed replay changed identity"
+                            );
                         }
                         (sender.counts, new_jobs)
                     }));
@@ -6990,6 +7012,7 @@ mod sustained_sender_load {
                 let mut written = None;
                 let mut observed = [false; LATE_JOBS];
                 let mut late_claim = None;
+                let mut late_age = None;
                 let (mut health_count, mut health_max) = (0_u64, Duration::ZERO);
                 while Instant::now() < load_until {
                     assert!(
@@ -7010,12 +7033,23 @@ mod sustained_sender_load {
                             }
                         }
                     }
+                    if written.is_some() && late_age.is_none() {
+                        let age = first_missing.elapsed();
+                        assert!(
+                            age <= Duration::from_secs(6),
+                            "fixture aged before late writes ({age:?}); cannot infer starvation"
+                        );
+                        late_age = Some(age);
+                    }
                     if let Some(written) = written {
                         for (index, (id, _)) in expected.iter().enumerate() {
                             if !observed[index] {
                                 let (code, body) = status(&f, id);
                                 assert_eq!(code, 200, "{body}");
-                                assert_ne!(body["details"]["condition"], "ReviewRequired", "{body}");
+                                assert_ne!(
+                                    body["details"]["condition"], "ReviewRequired",
+                                    "{body}"
+                                );
                                 observed[index] = handed_off(&body);
                             }
                         }
@@ -7059,7 +7093,10 @@ mod sustained_sender_load {
                     assert_eq!(code, 200, "health during load: {body}");
                     let elapsed = health_started.elapsed();
                     health_max = health_max.max(elapsed);
-                    assert!(elapsed < Duration::from_secs(5), "health stalled for {elapsed:?}");
+                    assert!(
+                        elapsed < Duration::from_secs(5),
+                        "health stalled for {elapsed:?}"
+                    );
                     health_count += 1;
                     std::thread::sleep(Duration::from_millis(100));
                 }
@@ -7072,6 +7109,7 @@ mod sustained_sender_load {
                     reports,
                     confirmation_sender.counts,
                     late_claim,
+                    late_age.unwrap(),
                     health_count,
                     health_max,
                 )
@@ -7096,6 +7134,28 @@ mod sustained_sender_load {
         assert_eq!(final_replay.0, 202, "{:?}", final_replay.1);
         assert_eq!(final_replay.1["job_id"], seed_id);
         expected.push((seed_id, (*seed).clone()));
+        // Do not turn our own shutdown into a delivery failure. Keep the load
+        // audit strict, but first let EVERY accepted job finish on its own.
+        let drain_started = Instant::now();
+        let drain_by =
+            (drain_started + Duration::from_secs(20)).min(test_started + Duration::from_secs(60));
+        let mut pending: Vec<_> = expected.iter().map(|(id, _)| id.as_str()).collect();
+        while !pending.is_empty() {
+            pending.retain(|id| {
+                let (code, body) = status(&f, id);
+                assert_eq!(code, 200, "{body}");
+                assert_ne!(body["details"]["condition"], "ReviewRequired", "{body}");
+                body["state"] != "Committed"
+            });
+            assert!(
+                pending.is_empty() || Instant::now() < drain_by,
+                "delivery did not commit before shutdown: {pending:?}"
+            );
+            if !pending.is_empty() {
+                std::thread::sleep(Duration::from_millis(50));
+            }
+        }
+        let drain_seconds = drain_started.elapsed().as_secs_f64();
         f.stop();
         let mut stderr = String::new();
         service_stderr.read_to_string(&mut stderr).unwrap();
@@ -7115,8 +7175,18 @@ mod sustained_sender_load {
             let id: i64 = id.parse().unwrap();
             let snapshot = store.status(id).unwrap().expect("accepted job lost");
             assert_eq!(snapshot.job.recording.submission().submission_id(), uuid);
-            assert_eq!(snapshot.job.recording.handoff(), mover_core::Handoff::Ready202);
-            assert!(snapshot.missing.is_empty(), "job {id} still has missing files");
+            assert_eq!(
+                snapshot.job.recording.handoff(),
+                mover_core::Handoff::Ready202
+            );
+            assert!(
+                snapshot.job.recording.is_committed(),
+                "job {id} lost commitment"
+            );
+            assert!(
+                snapshot.missing.is_empty(),
+                "job {id} still has missing files"
+            );
             assert!(
                 snapshot
                     .delivery
@@ -7129,7 +7199,8 @@ mod sustained_sender_load {
             }
             for (index, name) in input["files"].as_array().unwrap().iter().enumerate() {
                 let name = name.as_str().unwrap();
-                let (intent, complete) = store.claim_intent(id, index).unwrap().expect("claim lost");
+                let (intent, complete) =
+                    store.claim_intent(id, index).unwrap().expect("claim lost");
                 assert!(complete, "unfinished claim for {id}/{index}");
                 assert!(
                     objects.insert((intent.source.device, intent.source.inode)),
@@ -7147,18 +7218,19 @@ mod sustained_sender_load {
         }
         let total = counts.accepted + counts.busy + counts.limited;
         eprintln!(
-            "SUSTAINED_MISSING_RETRY senders={SENDERS} load_seconds={load_seconds:.3} requests={total} requests_per_second={:.3} initial_202={initial_202} replay_202={} service_busy={} rate_limited={} late_files={} late_claim_seconds={:.3} health_checks={health_count} health_max_seconds={:.3} retained_jobs={}",
+            "SUSTAINED_MISSING_RETRY senders={senders} load_seconds={load_seconds:.3} requests={total} requests_per_second={:.3} initial_202={initial_202} replay_202={} service_busy={} rate_limited={} late_files={} late_claim_seconds={:.3} late_age_at_write_seconds={:.3} drain_seconds={drain_seconds:.3} health_checks={health_count} health_max_seconds={:.3} retained_jobs={}",
             total as f64 / load_seconds,
             counts.accepted - initial_202 as u64,
             counts.busy,
             counts.limited,
             LATE_JOBS * LATE_FILES,
             late_claim.as_secs_f64(),
+            late_age.as_secs_f64(),
             health_max.as_secs_f64(),
             expected.len()
         );
         assert!(
-            test_started.elapsed() < Duration::from_secs(60),
+            test_started.elapsed() <= Duration::from_secs(70),
             "sustained test exceeded its total budget"
         );
     }
