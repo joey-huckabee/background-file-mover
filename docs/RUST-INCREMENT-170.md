@@ -168,6 +168,12 @@ L2-CFG-001 to 011 and L2-EVT-001 to 005 add 16 mappings (98 of 199 total):
   do not block the sender; authoritative transition ownership is by inspection.
   `--check-state` also validates configuration without starting the service, but
   needs existing state and exclusion; its invalid-config path is by inspection.
+  CFG-004 explicitly records the numeric settings without application ranges:
+  `missing_file_retry_window_seconds` accepts all `u32` values, including zero;
+  `max_retained_jobs` and `max_retained_bytes` require only non-zero `u64` values.
+  In CFG-002, the stage of destination-binding unknown-field refusal is by
+  inspection, not isolated by its test. EVT-005 identifies `file_id` as a per-job
+  file index, not a filesystem identity.
 - **Inspection (2):** CFG-001 and EVT-004. The bounded config loader uses pinned
   Serde dependencies and standard file I/O. Store writes/version notifications
   serialize on the SQLite worker; the progress board has a mutex. There is no
@@ -246,6 +252,12 @@ The same PR restores the 2026-11-03 workflow history line alongside the current
 - **L2-JSON-005 (Open):** whether to add a JSON conformance corpus and fuzzing
   (product and test work, possibly new tooling).
 
+- **L2-CFG-004:** should `missing_file_retry_window_seconds` have an approved
+  application range, and what minimum/maximum should it use? Currently the
+  entire `u32` range is accepted: zero expires a missing-file window immediately,
+  while 4,000,000,000 seconds is about 127 years. The design/API draft specifies
+  the 300-second default but no approved range was found. Adding a range is
+  product work requiring that decision; this PR changes no validation behavior.
 - **L2-CFG-005:** accept shared runtime snapshots with validation at service
   entry points, or require a distinct immutable validated configuration type.
 - **L2-CFG-007:** confirm whether guarded `--check-state` (which validates
