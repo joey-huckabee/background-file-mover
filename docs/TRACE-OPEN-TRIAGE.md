@@ -5,11 +5,12 @@ This is step 2 of the [traceability plan](TRACE-MATRIX.md#plan).
 The [L2 requirements](L2-REQ.md) and [trace dispositions](TRACE-L2.md) are
 unchanged. These are proposed next actions, not approvals or test results.
 
-There are **4 test gaps, 6 feature gaps and 0 already-covered rows**. A test
+There are **3 test gaps, 7 feature gaps and 0 already-covered rows**. A test
 gap means the relevant implementation exists but its required verification is
 missing; it does not mean that the implementation is already proved compliant.
-In particular, the two NFS entries need qualification of existing behavior on
-the intended export. A failing qualification must reopen the implementation
+NFS durability needs qualification of existing behavior on the intended export;
+artifact tolerance also has a known enrollment-path feature gap. A failing
+qualification must reopen the implementation
 question, rather than weaken the checks or become a pass by inspection.
 
 Effort is relative: **S** is one focused existing-harness test; **M** is a
@@ -27,7 +28,7 @@ not calendar commitments. Test names and new paths below are proposals only.
 | L2-SEC-013 | feature gap | L | Destination-label handling and target-specific AppArmor policy. |
 | L2-SEC-014 | feature gap | M | Complete and qualify the shipped hardened service unit. |
 | L2-SEC-016 | feature gap | L | Supported endpoint-security exclusion query and coverage reporting. |
-| L2-NFS-005 | test gap | L | Real-export silly-rename artifact tolerance across the applicable managed paths. |
+| L2-NFS-005 | feature gap | L | Resolve enrollment artifact refusal and qualify tolerance across managed paths. |
 | L2-NFS-008 | test gap | L | Target server/export/backing-storage durability qualification. |
 
 ## JSON conformance and fuzzing
@@ -190,12 +191,25 @@ applicability; a test without a supported query cannot close the gap.
 **Existing evidence.** Explicit producer file lists avoid recursive discovery.
 `remove_empty_area` in [mover-fs/src/lib.rs](../rust/crates/mover-fs/src/lib.rs)
 preserves a nonempty private directory on `NOTEMPTY`/`EXIST` rather than removing
-unknown contents. This is existing preservation behavior to qualify, not proof
-of complete `.nfsXXXX` tolerance. In particular, `discard_retained_source` also
+unknown contents. This covers preservation on that path, not complete
+`.nfsXXXX` tolerance.
+In `create_source_enrollment` in
+[enrollment.rs](../rust/crates/mover-fs/src/enrollment.rs), the source
+`.file-mover` namespace is listed and any entry except `.`, `..`, the source
+marker and coordinator lock is refused as `source namespace is not unused`.
+A `.nfsXXXX` artifact there is a known refusal, not merely missing test evidence.
+In particular, `discard_retained_source` also
 checks object identity and post-unlink link count; its outcome with a real
 silly rename must be observed, not assumed or bypassed.
 
-**Test to add.** Add
+**Work needed / user decision.** D11’s approved backlog decision (2026-11-22)
+retains artifact tolerance. Design how enrollment can tolerate verified artifacts
+without adopting or deleting unknown data, or seek a separate explicit approval
+for a fail-closed enrollment exception. That exception has not been approved.
+Preservation elsewhere remains partly covered by inspection. Add regression
+coverage for enrollment’s current refusal and the eventually approved behavior.
+
+**Qualification to add after the design.** Add
 `held_open_unlink_preserves_silly_name_and_original_custody` to the disposable
 real-export cases in [nfs_runtime.py](../scripts/nfs_runtime.py). Use controlled
 open/unlink operations that actually produce a silly-rename artifact, recording
@@ -204,9 +218,9 @@ client's open alone will produce it. Cover source, private custody and destinati
 directories as applicable, including restart and authorized fixture-only cleanup.
 Check that unrelated artifacts are preserved and not adopted, normal listed work
 can proceed, and cleanup does not turn an artifact into a false unexpected-entry
-failure. Keep exact ownership, link-count and byte-integrity assertions. If the
-case shows the implementation cannot meet the requirement, stop and reclassify
-the demonstrated path as a feature gap before proposing a change.
+failure. Keep exact ownership, link-count and byte-integrity assertions. The
+known enrollment divergence requires design work now; further failing
+paths must be reported without weakening checks.
 
 **Proposed disposition after evidence:** at most Partly tested for a bounded
 qualification-build/export matrix; name the remaining paths and profiles.
@@ -244,8 +258,9 @@ alone enable production NFS, source deletion, deployment or close the FR gates.
 The index contains exactly the ten `Open` IDs in `TRACE-L2.md` at the stated
 base. No row is proposed as already covered: nearby tests, console status,
 partial unit hardening and earlier NFS experiments do not satisfy the missing
-obligations. Six feature gaps go to the user; four verification gaps remain
-backlog proposals, with platform prerequisites stated above.
+obligations. Seven feature gaps and three verification gaps remain approved backlog
+(2026-11-22, D11/D12); implementation and platform qualification need separate
+scoped work, with prerequisites stated above.
 
 Only documentation is added. No test, CI tier, dependency, host policy or runtime
 behavior is changed, and no disposition or requirement is rewritten. No Rust,
