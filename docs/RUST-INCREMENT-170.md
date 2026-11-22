@@ -240,6 +240,50 @@ none of these configuration/local-service tests qualifies production NFS.
 `python3 scripts/check_trace.py` checks references/dispositions; it does not
 prove that the evidence meets the requirement. All release gates remain open.
 
+## Follow-up: POSIX and COPY
+
+2026-11-22, initially from main `10a47b5`, rebased onto `83bc74d` after
+CLI/ARC PR99 merged: 23 more requirements mapped (12 POSIX and 11 COPY).
+Both batches are retained, bringing the combined trace to **140 of 199**, with
+**59 remaining**. This batch adds:
+
+- **Tested (3):** COPY-005/007/010: temporary payload names, exact manifest
+  lengths (including current UUID/v2 and retained
+  legacy/v1 evidence), and safe byte-zero restart into a fresh owned attempt.
+- **Partly tested (13):** POSIX-006 through 012; COPY-001/002/003/006/008/009.
+  COPY-002 tests configuration ranges and direct session acceptance/refusal;
+  propagation of the configured size into the copy loop is by inspection.
+  Identical output bytes do not prove which valid buffer size was used.
+  Tests show selected metadata/identity refusals, retained source, staging/
+  publication recovery, sync-failure gating, preserved numeric errno, actual
+  concurrent file delivery and copies larger than the configured buffer.
+  Exact syscall flags/order, memory bounds and pool maximums are identified by
+  inspection, not inferred from successful output or a test's name.
+- **Inspection (2):** POSIX-001 and COPY-004: configured source roots are
+  opened rather than created; concurrency uses explicitly bounded settings,
+  not CPU count. No targeted missing-root or CPU-topology test is claimed.
+- **Deviation (needs approval) (4):** POSIX-002/003/004/005: explicit producer
+  paths, per-file refusal/partial custody, immutable first indices and reserved
+  path rejection differ from a sorted, all-or-nothing discovery inventory.
+  Proposals reconcile L2 wording with the approved frozen producer contract;
+  they do not authorize rollback, source scanning or index changes.
+- **Not applicable (needs approval) (1):** COPY-011's conditional kernel-copy
+  fallback, because the optional kernel-copy backend is absent. Buffered-only
+  copying is not treated as permission to implement an optimization.
+
+All cited test bodies and relevant effect/worker helpers were read. The payload
+fault test has two different branches: sync/read/write/publication failures are
+injected only with `nfs-qualification`; production ignores the controls and
+checks normal delivery. It does not test those failures in production builds.
+The local abrupt-exit test invokes its ignored child explicitly in either build;
+it is not a qualification-feature-only test. None of this establishes real NFS
+errno/durability, server-reboot or physical-power-loss qualification. Production
+NFS remains disabled, and approved move cleanup/confirmed deletion remain intact.
+
+Checks for this documentation batch: `python3 scripts/check_trace.py`, diff and
+local link/count checks. No Rust builds/tests, SLES gates or NFS labs were run.
+Mapping and reference validation do not close requirements or release gates.
+
 ## Decisions for the user (all families so far)
 
 - **L2-DPR-005:** accept the no-clobber link fallback, or reword the
@@ -338,10 +382,24 @@ prove that the evidence meets the requirement. All release gates remain open.
 - **L2-ARC-008 (Open):** define a Rust/native-dependency sanitizer strategy
   including the requested separate TSan tier, or explicitly approve scope/
   wording changes; existing CI has no TSan tier.
+- **L2-POSIX-002/003/004/005:** reconcile recursive-inventory wording with
+  approved explicit producer paths, per-file checks/partial claims, reserved
+  component refusal and durable first path/index order. Do not add an inventory
+  scanner, rollback earlier claims or reorder stored indices without a separate
+  approved design. Request-identity sorting is not source enumeration.
+- **L2-POSIX-012:** confirm whether bounded operation/errno diagnostics and
+  narrow scheduling hints satisfy the intended NFS classification contract, or
+  require a structured NFS-error taxonomy before any production NFS approval.
+  Synthetic errno tests and diagnostic strings do not supply production NFS
+  qualification or automatic retry authority.
+- **L2-COPY-011 (proposed not applicable):** accept the conditional kernel-copy
+  fallback obligation as inapplicable while the optional backend is absent, or
+  clarify its intended scope. The current engine is always buffered; this is
+  not an authorization to add a kernel-copy feature.
 
 ## Not covered
 
-- 82 L2 requirements remain unmapped, along with L3 and the L1 roll-up.
+- 59 L2 requirements remain unmapped, along with L3 and the L1 roll-up.
   Mapped rows marked partial, deviation, proposed not applicable or Open are not
   requirement closure; their outstanding evidence/decisions remain above.
 - Test evidence does not qualify NFS, systemd or physical faults.
