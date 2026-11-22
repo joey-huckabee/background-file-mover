@@ -203,6 +203,43 @@ disabled and no lab evidence is promoted to production qualification.
 The same PR restores the 2026-11-03 workflow history line alongside the current
 2026-11-21 role decision. It changes no product code or requirements.
 
+## Follow-up: CLI and ARC
+
+2026-11-22, from main `aa683fd`: 19 more requirements mapped (11 CLI and 8 ARC),
+bringing the trace to **117 of 199**, with **82 remaining**. This batch adds:
+
+- **Partly tested (5):** CLI-003/004/005/011 and ARC-004. Real executable tests
+  cover lifecycle JSON/success, qualification-only incomplete-stop exit 2,
+  offline inspection JSON and migration argument dispatch/refusal. Credential
+  refusal and configuration downgrade tests cover selected fail-closed paths,
+  not every operational failure. Other exits/streams/branches are inspected,
+  not upgraded to Tested.
+- **Inspection (5):** CLI-007 and ARC-001/002/005/006. Read/validate/construct
+  stages, explicit typed construction, per-mode components and command-local
+  arguments are visible in code. Safety validation uses errors; internal
+  debug-accounting/unreachable assertions are explicitly named, not ignored.
+- **Deviation (needs approval) (7):** CLI-001/002/006/008/009/010 and
+  ARC-003. Flag-based commands, HTTP-only submission,
+  current service stream routing, approved readable errors and concrete effect
+  dependencies differ from the full L2 mechanisms. These are proposals to
+  reconcile the requirements, not permission to implement additional commands,
+  dependencies, diagnostics or configuration.
+- **Not applicable (needs approval) (1):** ARC-007, the C++11/GCC warning
+  contract. Rust/target audits remain required; only the user can approve this
+  language-specific retirement/rewording.
+- **Open (1):** ARC-008, no separate TSan CI tier found. Ordinary concurrency
+  tests and Rust ownership are not substituted for sanitizer evidence.
+
+Every cited test body and its relevant helpers/code were read. In particular,
+`shutdown_deadline_does_not_release_ownership_of_non_yielding_tls_workers`
+returns immediately without `nfs-qualification`; it is explicitly labelled
+qualification-only, not evidence from production builds. Other cited TLS
+credential cases need the gate's disposable certificates. No Rust tests, builds
+or SLES gates run for this documentation batch. Production NFS remains disabled;
+none of these configuration/local-service tests qualifies production NFS.
+`python3 scripts/check_trace.py` checks references/dispositions; it does not
+prove that the evidence meets the requirement. All release gates remain open.
+
 ## Decisions for the user (all families so far)
 
 - **L2-DPR-005:** accept the no-clobber link fallback, or reword the
@@ -281,9 +318,30 @@ The same PR restores the 2026-11-03 workflow history line alongside the current
   scope, or require broader subscriber-failure isolation (including callback
   panic protection and failure-to-one/delivery-to-another evidence).
 
+- **L2-CLI-001:** accept/reword the current flag-only CLI without general
+  short/long option aliases, or separately authorize the requested options.
+- **L2-CLI-002/008/009:** accept the approved producer HTTP submission and
+  operator API surfaces instead of the requested CLI submission/list/retry/
+  statistics commands, or retain those commands as a separate deliverable.
+  `--transfer-one` is not a nonblocking submission command.
+- **L2-CLI-006:** accept/reword the service's current stdout readiness/stderr
+  operational messages, or require the specified severity-based stream split.
+- **L2-CLI-010:** reconcile the logged-traceback obligation with approved
+  increment133 readable errors; decide any additional panic/backtrace contract
+  without authorizing secret disclosure.
+- **L2-ARC-003:** accept the pure-core/concrete runtime effects design, or
+  retain injectable filesystem/clock/delay/repository/integrity interfaces as
+  further product work. Qualification-only faults do not provide that API.
+- **L2-ARC-007 (proposed not applicable):** retire/reword the C++11/GCC 4.8.5
+  warning requirement for the approved Rust implementation, preserving native
+  dependency and target-platform audits.
+- **L2-ARC-008 (Open):** define a Rust/native-dependency sanitizer strategy
+  including the requested separate TSan tier, or explicitly approve scope/
+  wording changes; existing CI has no TSan tier.
+
 ## Not covered
 
-- 101 L2 requirements remain unmapped, along with L3 and the L1 roll-up.
+- 82 L2 requirements remain unmapped, along with L3 and the L1 roll-up.
   Mapped rows marked partial, deviation, proposed not applicable or Open are not
   requirement closure; their outstanding evidence/decisions remain above.
 - Test evidence does not qualify NFS, systemd or physical faults.
