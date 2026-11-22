@@ -134,8 +134,13 @@ existing `check_expected_sizes`). Implements the reviewed
 
 - The Allocate/deadline race runs only in qualification builds (CI's
   qualification gate, and locally with the feature).
-- Continuous producer traffic is exercised with one other job's replays every
-  50 ms, not a saturating load.
+- [Increment171](RUST-INCREMENT-171.md) adds six unpaced senders and 16 late
+  files with a no-progress check. Coordinator WSL debug runs with gate SQLite
+  flags passed 3/3 loaded and 2/2 baseline at `1416575`; loaded late handoff was
+  17.643 s versus 16.686 s baseline, with no observed starvation. These are
+  local results; SLES evidence belongs to PR98 CI. The original increment163
+  evidence remains one other job's replays every 50 ms and is not retroactively
+  counted as saturating-load evidence.
 - A writer pausing longer than the settle time can still be claimed mid-write
   (documented residual risk; mitigated by the settle setting and expected
   sizes).
