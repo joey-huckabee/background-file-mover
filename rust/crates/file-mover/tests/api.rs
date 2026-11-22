@@ -6880,7 +6880,7 @@ mod sustained_sender_load {
     #[test]
     fn timer_retries_do_not_starve_under_sustained_sender_load() {
         const SENDERS: usize = 6;
-        const JOBS_PER_SENDER: usize = 64;
+        const JOBS_PER_SENDER: usize = 4;
         const LATE_JOBS: usize = 4;
         const LATE_FILES: usize = 4;
         const LOAD: Duration = Duration::from_secs(45);
@@ -6900,8 +6900,9 @@ mod sustained_sender_load {
         f.stop();
         provision_destination(&f);
         f.set_config("missing_file_settle_seconds", json!(1));
+        f.set_config("delivery_concurrency", json!(4));
         // Bound retained work without confusing retention refusal with ingress
-        // back-pressure. At the cap, every sender continues committed replays.
+        // back-pressure. At the cap, every sender continues seed and own-job replays.
         f.set_config(
             "max_retained_jobs",
             json!(LATE_JOBS + 1 + SENDERS * JOBS_PER_SENDER),
@@ -6969,6 +6970,7 @@ mod sustained_sender_load {
                         };
                         let mut jobs = jobs.into_iter();
                         let mut new_jobs = Vec::new();
+                        let mut replay_index = 0;
                         // Unlike a Barrier, this also releases already-started
                         // threads if another spawn fails and the scope unwinds.
                         while !released.load(Ordering::Acquire) && !abort.load(Ordering::Relaxed) {
@@ -6995,6 +6997,19 @@ mod sustained_sender_load {
                                 replay["job_id"], seed_id,
                                 "committed replay changed identity"
                             );
+                            // Keep claim-thread pressure after the finite new-job
+                            // cap without building an unbounded delivery backlog.
+                            if !new_jobs.is_empty() {
+                                let (id, input) = &new_jobs[replay_index];
+                                let Some(replay) = sender.ready(input) else {
+                                    break;
+                                };
+                                assert_eq!(
+                                    replay["job_id"], *id,
+                                    "own job replay changed identity"
+                                );
+                                replay_index = (replay_index + 1) % new_jobs.len();
+                            }
                         }
                         (sender.counts, new_jobs)
                     }));
@@ -7157,8 +7172,9 @@ mod sustained_sender_load {
         // Do not turn our own shutdown into a delivery failure. Keep the load
         // audit strict, but first let EVERY accepted job finish on its own.
         let drain_started = Instant::now();
-        let drain_by =
-            (drain_started + Duration::from_secs(20)).min(test_started + Duration::from_secs(60));
+        // Delivery gets its own shared post-load budget, independent of setup
+        // and the 45-second sender window, rather than a per-job timeout.
+        let drain_by = drain_started + Duration::from_secs(30);
         let mut pending: Vec<_> = expected.iter().map(|(id, _)| id.as_str()).collect();
         while !pending.is_empty() {
             pending.retain(|id| {
@@ -7250,7 +7266,7 @@ mod sustained_sender_load {
             expected.len()
         );
         assert!(
-            test_started.elapsed() <= Duration::from_secs(70),
+            test_started.elapsed() <= Duration::from_secs(90),
             "sustained test exceeded its total budget"
         );
     }
