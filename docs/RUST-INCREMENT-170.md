@@ -156,6 +156,47 @@ These families describe features of the earlier design.
 - **Checker:** `scripts/...` evidence (CI tests in other languages) is now
   accepted, checked for existence only.
 
+## Follow-up: CFG and EVT (2026-11-22)
+
+L2-CFG-001 to 011 and L2-EVT-001 to 005 add 16 mappings (98 of 199 total):
+
+- **Partly tested (6):** CFG-002, 003, 004, 006 and 007; EVT-003.
+  Binding/policy tests demonstrate selected unknown/missing fields and ranges;
+  actual protected/native startup refusals leave no state or endpoints. Remaining
+  deserialization/validator coverage and startup sequencing are by inspection.
+  Jobs commit without admin subscriptions, and full/disconnected progress channels
+  do not block the sender; authoritative transition ownership is by inspection.
+  `--check-state` also validates configuration without starting the service, but
+  needs existing state and exclusion; its invalid-config path is by inspection.
+- **Inspection (2):** CFG-001 and EVT-004. The bounded config loader uses pinned
+  Serde dependencies and standard file I/O. Store writes/version notifications
+  serialize on the SQLite worker; the progress board has a mutex. There is no
+  dedicated concurrent-publication/multiple-subscriber race test cited.
+- **Deviation (needs approval) (7):** CFG-005, 008, 009 and 010; EVT-001, 002
+  and 005. Runtime configuration snapshots are shared but the public `Config`
+  type is mutable and has no distinct validated form. Validation is fail-fast, with
+  incomplete field/value/range diagnostics. Approved SSE notifications use
+  versions and progress snapshots, not a typed immutable event bus or identifiers
+  on every transfer notification. Bounded stream failures are handled, but the
+  single trusted store callback has no panic boundary and general subscriber
+  fault isolation is not demonstrated.
+- **Open (1):** CFG-011 (no common option-definition/documentation generator
+  found). This absence is not an approved scope exclusion.
+
+Each cited test body and the associated code was read, including the config
+loader, nested policy/ingress validators, startup entry points, store callback,
+SSE send/wait loop and progress IPC/board. In particular, the shutdown range test
+checks rejection, not diagnostic completeness, and the timed-wake test uses one
+sender: neither is counted as proof of a broader reporting/concurrency property.
+The event mapping preserves the approved increment136 live-update behavior and
+asks only how to reconcile the L2 wording. Cited tests have no qualification-only
+fault branch; native TLS cases require the gate's disposable credentials. This
+batch runs the trace checker, not Rust tests or SLES gates; production NFS stays
+disabled and no lab evidence is promoted to production qualification.
+
+The same PR restores the 2026-11-03 workflow history line alongside the current
+2026-11-21 role decision. It changes no product code or requirements.
+
 ## Decisions for the user (all families so far)
 
 - **L2-DPR-005:** accept the no-clobber link fallback, or reword the
@@ -205,7 +246,32 @@ These families describe features of the earlier design.
 - **L2-JSON-005 (Open):** whether to add a JSON conformance corpus and fuzzing
   (product and test work, possibly new tooling).
 
+- **L2-CFG-005:** accept shared runtime snapshots with validation at service
+  entry points, or require a distinct immutable validated configuration type.
+- **L2-CFG-007:** confirm whether guarded `--check-state` (which validates
+  configuration and then existing state without starting the service) satisfies
+  the intended workflow, or require a standalone configuration check. The L2
+  wording does not explicitly require configuration-only behavior; the existing
+  command still needs a supported state and exclusive ownership.
+- **L2-CFG-008:** accept first-error validation, or keep aggregate configuration
+  diagnostics as product work.
+- **L2-CFG-009/010:** agree consistent secret-safe section/option/reason and
+  valid-option/range context, including whether/how offending values may be
+  shown, or accept/reword the current partial diagnostics. This mapping does
+  not authorize echoing sensitive values.
+- **L2-CFG-011 (Open):** add a shared option definition/documentation generator,
+  or explicitly accept separately maintained validation and instructions.
+- **L2-EVT-001/005:** reconcile the approved advisory SSE versions and per-job
+  progress snapshots with immutable typed event records and job/file identifiers
+  on each transfer event. Accept/reword that mechanism or retain further work;
+  this is not a unilateral decision that the old requirements are inapplicable.
+- **L2-EVT-002:** accept the actual trusted single-callback/bounded SSE-stream
+  scope, or require broader subscriber-failure isolation (including callback
+  panic protection and failure-to-one/delivery-to-another evidence).
+
 ## Not covered
 
-- 192 L2 requirements remain, along with L3 and the L1 roll-up.
+- 101 L2 requirements remain unmapped, along with L3 and the L1 roll-up.
+  Mapped rows marked partial, deviation, proposed not applicable or Open are not
+  requirement closure; their outstanding evidence/decisions remain above.
 - Test evidence does not qualify NFS, systemd or physical faults.
