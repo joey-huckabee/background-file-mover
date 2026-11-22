@@ -1,6 +1,7 @@
 # Local coordinator and bounded cloud fan-out
 
 Established 2026-11-01 in Cloudroom project `proj_yhjr5wn4cn`.
+Updated 2026-11-03 with the user's approved small-team workflow.
 Updated 2026-11-21 with the user's standing coordinator/worker/reviewer roles.
 Fan-out means delegating independent tasks in parallel, then integrating their results. It
 does not promise a fixed quality percentage or replace executable validation.
