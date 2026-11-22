@@ -284,6 +284,50 @@ Checks for this documentation batch: `python3 scripts/check_trace.py`, diff and
 local link/count checks. No Rust builds/tests, SLES gates or NFS labs were run.
 Mapping and reference validation do not close requirements or release gates.
 
+## Follow-up: CTL
+
+2026-11-22, initially from main `83bc74d`, rebased onto `4115a8c` after
+POSIX/COPY PR101 merged: 20 control-plane requirements mapped. All earlier rows,
+including COPY-002's reviewed Partly tested disposition, are retained. The
+combined trace is **160 of 199**, with **39 remaining**. This batch adds:
+
+- **Partly tested (7):** CTL-003/004/008/009/015/018/020. Actual service tests
+  show header-only 413, selected framing/message refusals, same-state exclusion,
+  signal/IPC stop, responsiveness, lost-response survival and selected startup/
+  teardown behavior. Allocation timing, all hostile bytes, process-wide SIGPIPE
+  policy and full unwind order are not inferred from those finite cases.
+- **Inspection (1):** CTL-007. TCP bind errors propagate and local prepared
+  listeners drop on construction errors; source-lock contention is not used as
+  proof of address-in-use behavior. No occupied-port test is cited.
+- **Deviation (needs approval) (10):** CTL-001/002/005/006/010/013/014/016/017/019.
+  Explicit binds, audience-specific errors, HTML/SSE, bounded reactor/TLS/control
+  isolation, versioned routes, effectful handlers, Tokio signal tasks and the
+  guarded state inspector differ from the full older mechanisms. Native TLS is
+  already expressly approved; its row proposes requirement reconciliation, not
+  a new proxy decision or a product defect. Config-only validation is stricter
+  here than the CFG-007 wording because CTL-019 forbids opening durable state.
+- **Open (2):** CTL-011/012. Console readiness, private lifecycle snapshots,
+  request-driven health and dashboard SSE heartbeats are not service-manager
+  notifications or a periodic manager watchdog. Deployment/shipping remain
+  separate, not implicitly qualified by local service tests.
+
+Every cited test body and relevant helpers/code were read, including actual
+HTTP response parsing, fixture signal selection, local control framing and
+startup/drop paths. The repeated-stop/deadline test is qualification-only;
+ordinary stop helpers select INT or TERM by a global fixture counter, so a
+single helper-using test is not a forced two-signal matrix. The 64 KiB native
+TLS framing test needs disposable gate credentials but is not feature-only.
+Malformed-input tests are not treated as exhaustive fuzz/panic coverage.
+Upstream Rust runtime source was also inspected for SIGPIPE: it documents the
+Unix SIG_IGN default before main. The absence of custom application signal setup
+is not called a defect; a dropped response is not a forced-EPIPE/disposition
+test of the pinned target executable.
+
+Checks: `python3 scripts/check_trace.py`, diff, local link and count checks.
+No Rust builds/tests, SLES gates, systemd exercise or NFS labs run for this
+documentation batch. Production NFS remains disabled; all release gates stay
+open. This mapping changes neither product behavior nor approved contracts.
+
 ## Decisions for the user (all families so far)
 
 - **L2-DPR-005:** accept the no-clobber link fallback, or reword the
@@ -397,9 +441,32 @@ Mapping and reference validation do not close requirements or release gates.
   clarify its intended scope. The current engine is always buffered; this is
   not an authorization to add a kernel-copy feature.
 
+- **L2-CTL-001/002/005/010/013:** reconcile explicit binding, ordinary JSON
+  framing, producer non-disclosure errors and versioned audience-separated
+  status/job routes with the approved contract. Preserve approved admin
+  HTML/assets/SSE; do not add old-route aliases or unauthenticated reads merely
+  to satisfy obsolete generic wording.
+- **L2-CTL-006/014:** reconcile the approved bounded reactor/TLS/lifecycle and
+  typed dispatch/effect separation with a dedicated control thread-pool and
+  pure request-plus-view handler contract, or retain additional architecture
+  work explicitly rather than changing it through trace documentation.
+- **L2-CTL-011/012 (Open):** define and qualify service-manager readiness/
+  stopping notifications and a hung-service liveness/restart policy, or approve
+  explicit scope/wording changes. The candidate Type=simple/Restart=no unit,
+  console readiness, /healthz and SSE do not implement manager notifications.
+- **L2-CTL-016:** reconcile the old reverse-proxy prohibition with the already
+  approved native Rust HTTPS decision (2026-11-08); do not reopen or undo it.
+- **L2-CTL-017:** reconcile volatile sig_atomic_t/main-loop wording with
+  Tokio-delivered asynchronous signal notifications; any signal-safety proof
+  must distinguish runtime OS handlers from task-context lifecycle locking.
+- **L2-CTL-019:** retain a dedicated config-only mode/secret-safe diagnostic
+  contract, or explicitly accept/reword the guarded --check-state approach.
+  That command opens durable state and cannot satisfy the literal no-store
+  requirement, even though it validates configuration before effects.
+
 ## Not covered
 
-- 59 L2 requirements remain unmapped, along with L3 and the L1 roll-up.
+- 39 L2 requirements remain unmapped, along with L3 and the L1 roll-up.
   Mapped rows marked partial, deviation, proposed not applicable or Open are not
   requirement closure; their outstanding evidence/decisions remain above.
 - Test evidence does not qualify NFS, systemd or physical faults.
