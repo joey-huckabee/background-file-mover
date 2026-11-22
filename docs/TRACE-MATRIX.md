@@ -38,7 +38,15 @@ Progress: **Step 1 (L2 mapping) is complete: 199/199 requirements mapped.**
 Families: DPR, DST, DEL, CLN, SUB, FS, REC, RTY, LIF, CORE, BWL, RSM, REN, XFR,
 MGR, STO, ENV, DASH, JSON, CFG, EVT, CLI, ARC, POSIX, COPY, CTL, JOB, SEC and NFS.
 Complete mapping is not verification closure or release qualification; user
-decisions, L3 and the L1 roll-up remain open.
+answers are recorded in [TRACE-DECISIONS.md](TRACE-DECISIONS.md), while approved
+backlog, verification gaps, L3 and the L1 roll-up remain open.
+
+Disposition counts after the user’s 2026-11-22 answers: **Tested 33; Partly tested
+93; Inspection 45; Deviation (needs approval) 7; Out of scope (approved) 11;
+Open 10; Not applicable (needs approval) 0.** These sum to 199. The seven retained
+deviations are approved backlog, not waivers or unanswered sheet decisions.
+**Follow-up:** update L2-REQ.md wording to the approved requirement statements
+recorded in the trace row notes; its source text is unchanged in this PR.
 
 All eight release gates remain open. Product approvals and source/state safety
 requirements are unchanged by source cleanup.

@@ -373,53 +373,58 @@ state were run/accessed for this documentation batch. No release gate is closed.
 
 ## Decisions for the user (all families so far)
 
+**Decision record:** all choices below are answered. The original questions are
+retained for history; dated D01–D12 markers identify the accepted answers in
+[TRACE-DECISIONS.md](TRACE-DECISIONS.md). Option (a) approves the revised trace
+wording, (c) excludes first-release features and (b) retains approved backlog.
+Mixed entries follow their individual IDs, not a blanket scope waiver.
+
 - **L2-DPR-005:** accept the no-clobber link fallback, or reword the
-  requirement to "atomic, no-clobber publication".
+  requirement to "atomic, no-clobber publication". **Decided 2026-11-22: D02 (a); user accepted the recommendation.**
 - **L2-DPR-006:** reword the requirement to exempt explicit, operator-confirmed
-  deletion (increments 143/144). The same decision covers L2-DEL-004 and L2-CLN-002.
+  deletion (increments 143/144). The same decision covers L2-DEL-004 and L2-CLN-002. **Decided 2026-11-22: D01 (a); user accepted the recommendation.**
 - **L2-CLN-004:** whether the mover should report (route to an operator) an
   unexpected extra file left in a private folder after removing its copy.
-  Today it is kept silently.
+  Today it is kept silently. **Decided 2026-11-22: D12 (b); user accepted the recommendation.**
 - **L2-SUB-004:** accept the durable SQLite job, file list and claim records as
   the submission manifest (the written manifest is `COMMITTED.json` at
-  delivery), or reword the requirement.
+  delivery), or reword the requirement. **Decided 2026-11-22: D03 (a); user accepted the recommendation.**
 - **L2-REC-002:** accept removing stale partial copies after delivery (or by
-  confirmed deletion) instead of at re-queue, or reword.
+  confirmed deletion) instead of at re-queue, or reword. **Decided 2026-11-22: D01 (a); user accepted the recommendation.**
 - **L2-RTY-002:** accept "bounded attempts, then review" for failures that are
-  not explicitly classified, or reword.
+  not explicitly classified, or reword. **Decided 2026-11-22: D05 (a); user accepted the recommendation.**
 - **L2-RTY-005:** accept the fixed retry limit and delays (three failures; 30
   and 60 s for capacity, 5 s otherwise), or make them configurable (a product
-  change).
+  change). **Decided 2026-11-22: D05 (a); user accepted the recommendation.**
 - **L2-LIF-001:** accept that cancel keeps incomplete destination files, with
-  deletion as a separate confirmed action, or reword.
+  deletion as a separate confirmed action, or reword. **Decided 2026-11-22: D01 (a); user accepted the recommendation.**
 - **L2-LIF-002:** accept cooperative cancellation at step boundaries (no
-  buffer-level stop, no pause), or reword.
+  buffer-level stop, no pause), or reword. **Decided 2026-11-22: D01 (a); user accepted the recommendation.**
 - **L2-LIF-004:** confirm job pause and resume are out of scope, or keep them
-  (Open; a product change).
+  (Open; a product change). **Decided 2026-11-22: D04 (c); user accepted the recommendation.**
 - **L2-CORE-002:** accept the split job model (core recording plus SQLite
   records; no byte counters in the core), or reword. This also settles the
-  scope of L2-CORE-001.
+  scope of L2-CORE-001. **Decided 2026-11-22: D03 (a); user accepted the recommendation.**
 - **L2-LIF-005:** reword the requirement to match the approved behavior:
-  unknown or finished jobs are skipped in bulk cancel, not refused.
+  unknown or finished jobs are skipped in bulk cancel, not refused. **Decided 2026-11-22: D01 (a); user accepted the recommendation.**
 - **BWL, RSM, REN-001/002:** confirm bandwidth limiting, byte-offset resume and
   rename templates/collision policies are out of the first-release scope, or
-  keep any of them (Open; product work).
+  keep any of them (Open; product work). **Decided 2026-11-22: D04 (c); user accepted the recommendation.**
 - **L2-MGR-001:** accept worker threads without a condition-variable queue,
-  or reword.
+  or reword. **Decided 2026-11-22: D06 (a); user accepted the recommendation.**
 - **L2-XFR-004:** accept errno numbers plus dashboard labels instead of errno
-  text, or reword.
-- **L2-XFR-002, L2-MGR-002:** settled by the DPR-005 and CORE-002 decisions.
+  text, or reword. **Decided 2026-11-22: D07 (a); user accepted the recommendation.**
+- **L2-XFR-002, L2-MGR-002:** settled by the DPR-005 and CORE-002 decisions. **Decided 2026-11-22: D02 (a), D03 (a); user accepted the recommendation.**
 - **L2-STO-001/003/004:** accept direct POSIX storage without an adapter
-  interface or object-storage identity, or keep it as future product work.
+  interface or object-storage identity, or keep it as future product work. **Decided 2026-11-22: D06 (a); user accepted the recommendation.**
 - **L2-ENV-001 to 003:** accept startup refusal instead of a capability
-  diagnostic (002 and 003 proposed not applicable), or reword.
+  diagnostic (002 and 003 proposed not applicable), or reword. **Decided 2026-11-22: D07 (a); user accepted the recommendation.**
 - **L2-DASH-001:** accept SSE plus admin reads instead of polling
-  `/api/status`, or reword.
+  `/api/status`, or reword. **Decided 2026-11-22: D08 (a); user accepted the recommendation.**
 - **L2-JSON-001:** accept the approved `serde_json` dependency with project
-  strictness rules, or reword.
+  strictness rules, or reword. **Decided 2026-11-22: D06 (a); user accepted the recommendation.**
 - **L2-JSON-005 (Open):** whether to add a JSON conformance corpus and fuzzing
-  (product and test work, possibly new tooling).
-
+  (product and test work, possibly new tooling). **Decided 2026-11-22: D12 (b); user accepted the recommendation.**
 - **L2-CFG-004 — decided: keep as today (user decision, 2026-11-21).**
   `missing_file_retry_window_seconds` keeps its current behavior: there is no
   application range check, and any `u32` is accepted, including zero. Zero
@@ -427,122 +432,139 @@ state were run/accessed for this documentation batch. No release gate is closed.
   127 years. No range check is requested by this decision. The L2-CFG-004 row's
   validation facts and disposition remain unchanged.
 - **L2-CFG-005:** accept shared runtime snapshots with validation at service
-  entry points, or require a distinct immutable validated configuration type.
+  entry points, or require a distinct immutable validated configuration type. **Decided 2026-11-22: D06 (a); user accepted the recommendation.**
 - **L2-CFG-007:** confirm whether guarded `--check-state` (which validates
   configuration and then existing state without starting the service) satisfies
   the intended workflow, or require a standalone configuration check. The L2
   wording does not explicitly require configuration-only behavior; the existing
-  command still needs a supported state and exclusive ownership.
+  command still needs a supported state and exclusive ownership. **Decided 2026-11-22: D12 (b); user accepted the recommendation.**
 - **L2-CFG-008:** accept first-error validation, or keep aggregate configuration
-  diagnostics as product work.
+  diagnostics as product work. **Decided 2026-11-22: D07 (a); user accepted the recommendation.**
 - **L2-CFG-009/010:** agree consistent secret-safe section/option/reason and
   valid-option/range context, including whether/how offending values may be
   shown, or accept/reword the current partial diagnostics. This mapping does
-  not authorize echoing sensitive values.
+  not authorize echoing sensitive values. **Decided 2026-11-22: D07 (a); user accepted the recommendation.**
 - **L2-CFG-011 (Open):** add a shared option definition/documentation generator,
-  or explicitly accept separately maintained validation and instructions.
+  or explicitly accept separately maintained validation and instructions. **Decided 2026-11-22: D12 (b); user accepted the recommendation.**
 - **L2-EVT-001/005:** reconcile the approved advisory SSE versions and per-job
   progress snapshots with immutable typed event records and job/file identifiers
   on each transfer event. Accept/reword that mechanism or retain further work;
-  this is not a unilateral decision that the old requirements are inapplicable.
+  this is not a unilateral decision that the old requirements are inapplicable. **Decided 2026-11-22: D08 (a); user accepted the recommendation.**
 - **L2-EVT-002:** accept the actual trusted single-callback/bounded SSE-stream
   scope, or require broader subscriber-failure isolation (including callback
-  panic protection and failure-to-one/delivery-to-another evidence).
-
+  panic protection and failure-to-one/delivery-to-another evidence). **Decided 2026-11-22: D08 (a); user accepted the recommendation.**
 - **L2-CLI-001:** accept/reword the current flag-only CLI without general
-  short/long option aliases, or separately authorize the requested options.
+  short/long option aliases, or separately authorize the requested options. **Decided 2026-11-22: D07 (a); user accepted the recommendation.**
 - **L2-CLI-002/008/009:** accept the approved producer HTTP submission and
   operator API surfaces instead of the requested CLI submission/list/retry/
   statistics commands, or retain those commands as a separate deliverable.
-  `--transfer-one` is not a nonblocking submission command.
+  `--transfer-one` is not a nonblocking submission command. **Decided 2026-11-22: D07 (a); user accepted the recommendation.**
 - **L2-CLI-006:** accept/reword the service's current stdout readiness/stderr
-  operational messages, or require the specified severity-based stream split.
+  operational messages, or require the specified severity-based stream split. **Decided 2026-11-22: D07 (a); user accepted the recommendation.**
 - **L2-CLI-010:** reconcile the logged-traceback obligation with approved
   increment133 readable errors; decide any additional panic/backtrace contract
-  without authorizing secret disclosure.
+  without authorizing secret disclosure. **Decided 2026-11-22: D07 (a); user accepted the recommendation.**
 - **L2-ARC-003:** accept the pure-core/concrete runtime effects design, or
   retain injectable filesystem/clock/delay/repository/integrity interfaces as
-  further product work. Qualification-only faults do not provide that API.
+  further product work. Qualification-only faults do not provide that API. **Decided 2026-11-22: D06 (a); user accepted the recommendation.**
 - **L2-ARC-007 (proposed not applicable):** retire/reword the C++11/GCC 4.8.5
   warning requirement for the approved Rust implementation, preserving native
-  dependency and target-platform audits.
+  dependency and target-platform audits. **Decided 2026-11-22: D06 (a); user accepted the recommendation.**
 - **L2-ARC-008 (Open):** define a Rust/native-dependency sanitizer strategy
   including the requested separate TSan tier, or explicitly approve scope/
-  wording changes; existing CI has no TSan tier.
+  wording changes; existing CI has no TSan tier. **Decided 2026-11-22: D12 (b); user accepted the recommendation.**
 - **L2-POSIX-002/003/004/005:** reconcile recursive-inventory wording with
   approved explicit producer paths, per-file checks/partial claims, reserved
   component refusal and durable first path/index order. Do not add an inventory
   scanner, rollback earlier claims or reorder stored indices without a separate
-  approved design. Request-identity sorting is not source enumeration.
+  approved design. Request-identity sorting is not source enumeration. **Decided 2026-11-22: D02 (a); user accepted the recommendation.**
 - **L2-POSIX-012:** confirm whether bounded operation/errno diagnostics and
   narrow scheduling hints satisfy the intended NFS classification contract, or
   require a structured NFS-error taxonomy before any production NFS approval.
   Synthetic errno tests and diagnostic strings do not supply production NFS
-  qualification or automatic retry authority.
+  qualification or automatic retry authority. **Decided 2026-11-22: D11 (b); user accepted the recommendation.**
 - **L2-COPY-011 (proposed not applicable):** accept the conditional kernel-copy
   fallback obligation as inapplicable while the optional backend is absent, or
   clarify its intended scope. The current engine is always buffered; this is
-  not an authorization to add a kernel-copy feature.
-
+  not an authorization to add a kernel-copy feature. **Decided 2026-11-22: D04 (c); user accepted the recommendation.**
 - **L2-CTL-001/002/005/010/013:** reconcile explicit binding, ordinary JSON
   framing, producer non-disclosure errors and versioned audience-separated
   status/job routes with the approved contract. Preserve approved admin
   HTML/assets/SSE; do not add old-route aliases or unauthenticated reads merely
-  to satisfy obsolete generic wording.
+  to satisfy obsolete generic wording. **Decided 2026-11-22: D09 (a); user accepted the recommendation.**
 - **L2-CTL-006/014:** reconcile the approved bounded reactor/TLS/lifecycle and
   typed dispatch/effect separation with a dedicated control thread-pool and
   pure request-plus-view handler contract, or retain additional architecture
-  work explicitly rather than changing it through trace documentation.
+  work explicitly rather than changing it through trace documentation. **Decided 2026-11-22: D06 (a); user accepted the recommendation.**
 - **L2-CTL-011/012 (Open):** define and qualify service-manager readiness/
   stopping notifications and a hung-service liveness/restart policy, or approve
   explicit scope/wording changes. The candidate Type=simple/Restart=no unit,
-  console readiness, /healthz and SSE do not implement manager notifications.
+  console readiness, /healthz and SSE do not implement manager notifications. **Decided 2026-11-22: D12 (b); user accepted the recommendation.**
 - **L2-CTL-016:** reconcile the old reverse-proxy prohibition with the already
-  approved native Rust HTTPS decision (2026-11-08); do not reopen or undo it.
+  approved native Rust HTTPS decision (2026-11-08); do not reopen or undo it. **Decided 2026-11-22: D09 (a); user accepted the recommendation.**
 - **L2-CTL-017:** reconcile volatile sig_atomic_t/main-loop wording with
   Tokio-delivered asynchronous signal notifications; any signal-safety proof
-  must distinguish runtime OS handlers from task-context lifecycle locking.
+  must distinguish runtime OS handlers from task-context lifecycle locking. **Decided 2026-11-22: D06 (a); user accepted the recommendation.**
 - **L2-CTL-019:** retain a dedicated config-only mode/secret-safe diagnostic
   contract, or explicitly accept/reword the guarded --check-state approach.
   That command opens durable state and cannot satisfy the literal no-store
-  requirement, even though it validates configuration before effects.
+  requirement, even though it validates configuration before effects. **Decided 2026-11-22: D12 (b); user accepted the recommendation.**
 - **L2-JOB-001/007/010/011:** reconcile historical per-file deferrals and the
   creation-time/integrity-mode/FAILED-error/automatic-first-boot wording with
   approved durable per-file custody, completion manifests, informational
   problems/review and explicit original-state enrollment. Do not change frozen
-  producer/manifest v2 or retained legacy bytes through trace reconciliation.
+  producer/manifest v2 or retained legacy bytes through trace reconciliation. **Decided 2026-11-22: D03 (a); user accepted the recommendation.**
 - **L2-JOB-003/004:** reword per-caller SQLite connections and automatic
   startup migrations for the approved owner-thread/guarded offline upgrade
-  contract; do not restore unsafe automatic conversion.
+  contract; do not restore unsafe automatic conversion. **Decided 2026-11-22: D03 (a); user accepted the recommendation.**
 - **L2-JOB-013/014:** define intent/commit boundaries and phase-specific state
   write failure handling precisely, preserving source and uncertain custody;
   empty allocation/observation is distinct from payload relocation. Do not
   require discarding an already admitted job or successfully writing review
-  state to failed storage.
+  state to failed storage. **Decided 2026-11-22: D02 (a); user accepted the recommendation.**
 - **L2-SEC-002/006/008:** reconcile preceding-stat identity checks,
   absolute canonicalization and literal
   fork/execvp wording with protected service-owned descriptors, exact relative
   producer paths and Rust argv launch. Any stronger threat model or permission
-  expansion requires separate design/approval, not a trace-only change.
+  expansion requires separate design/approval, not a trace-only change. **Decided 2026-11-22: D10 (b), D06 (a); user accepted the recommendation.**
 - **L2-SEC-009/010/011:** define timeout/progress and missing-both external-failure
   classification against actual worker lifetime, durable queues and bounded
   retry/review semantics; no timer or signal proves blocked remote effects
-  settled. Preserve approved custody, cancellation and move-cleanup behavior.
+  settled. Preserve approved custody, cancellation and move-cleanup behavior. **Decided 2026-11-22: D10 (b); user accepted the recommendation.**
 - **L2-SEC-013/014/016 (Open):** retain and qualify target MAC, full systemd
   hardening and endpoint-security exclusion verification, or explicitly approve
-  applicability/scope changes. Candidate units/default labels are not closure.
+  applicability/scope changes. Candidate units/default labels are not closure. **Decided 2026-11-22: D12 (b); user accepted the recommendation.**
 - **L2-NFS-001/004/005:** settle per-tree strategy logging, ESTALE scheduling
   authority and tested silly-rename tolerance before claiming those properties;
-  unknown effects/files must remain protected. Production NFS stays disabled.
+  unknown effects/files must remain protected. Production NFS stays disabled. **Decided 2026-11-22: D11 (b); user accepted the recommendation.**
 - **L2-NFS-007/008:** reconcile two-hop rename wording with the approved staged
   copy/verify/publication protocol, and retain actual consumer-cache/server/
   export/storage durability qualification as a separate authorized deliverable.
-  Lab/protocol facts are not production NFS approval or a power-loss guarantee.
+  Lab/protocol facts are not production NFS approval or a power-loss guarantee. **Decided 2026-11-22: D02 (a), D11 (b); user accepted the recommendation.**
 
 ## Not covered
 
-- All 199 L2 requirements are mapped. L3, the L1 roll-up, user decisions and
-  verification gaps remain open.
+- All 199 L2 requirements are mapped. L3, the L1 roll-up, approved backlog and
+  verification gaps remain open. The sheet’s user choices were decided on
+  2026-11-22; approval does not close their retained obligations.
   Mapped rows marked partial, deviation, proposed not applicable or Open are not
   requirement closure; their outstanding evidence/decisions remain above.
 - Test evidence does not qualify NFS, systemd or physical faults.
+
+## Follow-up: approved trace decisions (2026-11-22)
+
+The user accepted all twelve recommendations in TRACE-DECISIONS.md. The 79-row
+original approval cohort is retained for audit. D01–D03/D05–D09 have short
+approved requirement statements in TRACE-L2.md; evidence remains conservative
+(Inspection or Partly tested), without any new Tested claim. D04’s 11 rows are
+Out of scope (approved) for the first release. D10–D12 retain 21 original and
+supplementary IDs in a single Approved backlog list. Their original dispositions
+remain, with dated backlog notes; the seven remaining “needs approval” deviation
+labels describe unresolved compliance, not unanswered ballot choices.
+
+Current totals: **199/199 mapped: Tested 33, Partly tested 93, Inspection 45,
+Deviation (needs approval) 7, Out of scope (approved) 11, Open 10; proposed Not
+applicable 0.** Earlier batch counts above are historical snapshots. L2-REQ.md
+wording changes are a follow-up; no requirement source text or runtime was
+changed. The two 2026-11-21 decisions remain settled. Production NFS remains
+disabled and no release gate is closed by these decisions.
