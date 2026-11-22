@@ -135,8 +135,9 @@ existing `check_expected_sizes`). Implements the reviewed
 - The Allocate/deadline race runs only in qualification builds (CI's
   qualification gate, and locally with the feature).
 - Sustained sender-load qualification is pending: [increment171](RUST-INCREMENT-171.md)
-  adds six unpaced senders and 32 late files; the revised scenario awaits rerun
-  after local setup/backoff and shutdown diagnostics recorded there.
+  adds six unpaced senders and 16 late files with a no-progress check; the revised
+  scenario awaits rerun after local backoff, throughput and shutdown diagnostics
+  recorded there.
   The existing increment163 evidence remains one other job's replays every 50 ms;
   it is not retroactively counted as saturating-load evidence.
 - A writer pausing longer than the settle time can still be claimed mid-write
