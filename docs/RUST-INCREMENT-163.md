@@ -134,8 +134,10 @@ existing `check_expected_sizes`). Implements the reviewed
 
 - The Allocate/deadline race runs only in qualification builds (CI's
   qualification gate, and locally with the feature).
-- Continuous producer traffic is exercised with one other job's replays every
-  50 ms, not a saturating load.
+- Sustained sender-load qualification is pending: [increment171](RUST-INCREMENT-171.md)
+  adds six unpaced senders and 32 late files, with runtime results still unobserved.
+  The existing increment163 evidence remains one other job's replays every 50 ms;
+  it is not retroactively counted as saturating-load evidence.
 - A writer pausing longer than the settle time can still be claimed mid-write
   (documented residual risk; mitigated by the settle setting and expected
   sizes).
