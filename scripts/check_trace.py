@@ -12,7 +12,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 CRATES = ROOT / "rust" / "crates"
 ALLOWED = {
     "Tested", "Partly tested", "Inspection", "Deviation (needs approval)",
-    "Not applicable (needs approval)", "Open",
+    "Not applicable (needs approval)", "Out of scope (approved)", "Open",
 }
 
 
@@ -52,7 +52,7 @@ def main() -> int:
         if not notes:
             errors.append(f"line {number}: notes are required")
         refs = [r.strip() for r in evidence.split(";") if r.strip()]
-        if disposition not in ("Open", "Not applicable (needs approval)") and not refs:
+        if disposition not in ("Open", "Not applicable (needs approval)", "Out of scope (approved)") and not refs:
             errors.append(f"line {number}: {disposition} needs evidence")
         for ref in refs:
             path, _, test = ref.partition("::")
