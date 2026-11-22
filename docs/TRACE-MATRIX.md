@@ -34,8 +34,11 @@ time, each a small reviewed PR:
 4. **L1 roll-up:** an L1 requirement is traced when all its L2 children are
    Tested, or accepted as deviations or not applicable.
 
-Progress: DPR, DST, DEL, CLN, SUB, FS, REC, RTY, LIF, CORE, BWL, RSM, REN, XFR,
-MGR, STO, ENV, DASH, JSON, CFG, EVT, CLI, ARC, POSIX, COPY and CTL (160 of 199 L2) mapped.
+Progress: **Step 1 (L2 mapping) is complete: 199/199 requirements mapped.**
+Families: DPR, DST, DEL, CLN, SUB, FS, REC, RTY, LIF, CORE, BWL, RSM, REN, XFR,
+MGR, STO, ENV, DASH, JSON, CFG, EVT, CLI, ARC, POSIX, COPY, CTL, JOB, SEC and NFS.
+Complete mapping is not verification closure or release qualification; user
+decisions, L3 and the L1 roll-up remain open.
 
 All eight release gates remain open. Product approvals and source/state safety
 requirements are unchanged by source cleanup.
