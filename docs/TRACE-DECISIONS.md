@@ -22,7 +22,7 @@ approvals remain in force until a separate explicit change is agreed.
 
 **Question:** Should the requirements describe the approved separate cancellation, deletion and cleanup actions?
 
-**Today and difference:** Cancellation is cooperative between steps, preserves source and unfinished destination data, and skips unknown/finished jobs in bulk. Explicitly confirmed deletion can remove held copies of cancelled or copy-mode jobs without a verified destination. Uncertain partials stay until proven safe cleanup after delivery or confirmed deletion, rather than disappearing at requeue.
+**Today and difference:** Cancellation is cooperative between steps, preserves source and unfinished destination data, and skips unknown/finished jobs in bulk. Explicitly confirmed deletion can remove held copies of delivered copy-mode jobs (without move mode’s fresh re-check of the delivered set) and of settled cancelled jobs whose files were never published. Uncertain partials stay until proven safe cleanup after delivery or confirmed deletion, rather than disappearing at requeue.
 
 - **(a)** Accept and reword these rules, including the explicit-deletion exception. Risk: a deliberate confirmed deletion can remove the remaining held copy; cancellation itself must never imply deletion.
 - **(b)** Keep the literal older rules in the backlog for contract reconciliation. Cost: different cancel/delete timing and semantics need a separately reviewed design and compatibility assessment; existing approvals do not silently change.
@@ -116,7 +116,7 @@ approvals remain in force until a separate explicit change is agreed.
 
 **Today and difference:** The embedded page uses admin reads and advisory/coalesced SSE changes, not GET /api/status polling. Store notifications use a trusted version callback; each SSE receiver is independent. Progress aggregates active files by job and reports a representative per-job file index, rather than identifiers on every immutable transfer event. A general subscriber panic-isolation contract is not demonstrated.
 
-- **(a)** Accept and reword this limited trusted-callback/snapshot scope. Risk: no authoritative event history or general subscriber-failure guarantee; callback isolation evidence is not waived by accepting SSE.
+- **(a)** Accept and reword this limited trusted-callback/snapshot scope. Risk: no authoritative event history or general subscriber-failure guarantee; the trusted SQLite-thread callback has no panic boundary, so general subscriber panic isolation is explicitly not promised.
 - **(b)** Keep a generic typed event-bus/fault-isolation contract in the backlog. Cost: additional publication, identity, buffering and concurrency design/tests; transfers remain independent of dashboard sessions.
 
 **Recommendation: (a).** This preserves the approved live-update design without promoting notifications into custody evidence.
@@ -153,7 +153,7 @@ approvals remain in force until a separate explicit change is agreed.
 
 **Question:** Should NFS error, artifact, visibility and durability obligations remain pending until separately authorized target-export qualification?
 
-**Today and difference:** Production NFS is disabled. There is no dedicated ESTALE scheduling class or complete silly-rename policy proof; numeric errno details are not retry authority. Strategy logging is incomplete. Mount/attribute observations are limited, and local fallback tests plus controlled real-export labs do not qualify actual NAS backing-storage, cross-client caches or power-loss durability. D02 can reconcile publication wording without closing these limits.
+**Today and difference:** Production NFS is disabled. There is no dedicated ESTALE scheduling class or complete silly-rename policy proof; numeric errno details are not retry authority. Strategy logging is incomplete. Mount/attribute observations are limited, and local fallback tests plus controlled real-export labs do not qualify actual NAS backing-storage, cross-client caches or power-loss durability. D02 covers L2-NFS-007’s publication-mechanism rewording; D11 retains its separate cross-client visibility and server/export/storage qualification limits.
 
 - **(a)** Limit requirements to today's local-only capability and existing lab evidence. Risk: this narrows the intended NFS release promise and cannot enable production NFS.
 - **(b)** Retain phase-aware NFS classification/artifact handling and target visibility/server/export/storage qualification in the backlog. Cost: controlled target environments, hardware/fault access and separate authorization; no retry or takeover may be inferred from timeouts.
