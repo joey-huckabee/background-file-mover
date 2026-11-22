@@ -1,13 +1,23 @@
 # Local coordinator and bounded cloud fan-out
 
 Established 2026-11-01 in Cloudroom project `proj_yhjr5wn4cn`.
-Updated 2026-11-03 with the user's approved small-team workflow. Fan-out means
-delegating independent tasks in parallel, then integrating their results. It
+Updated 2026-11-21 with the user's standing coordinator/worker/reviewer roles.
+Fan-out means delegating independent tasks in parallel, then integrating their results. It
 does not promise a fixed quality percentage or replace executable validation.
 
-- Local coordinator: thread `thr_grm8wj2gt7`, Codex, with canonical checkout
-  `D:\GIT\GIT-GitHub\joey-huckabee\background-file-mover`.
-- Former reviewer: thread `thr_xnjapdndei`, Codex `gpt-6.1-sol`. It is retained
+- Local coordinator: thread `thr_grm8wj2gt7` ("Coordinator Agent"), with
+  canonical checkout `D:\GIT\GIT-GitHub\joey-huckabee\background-file-mover`.
+  **User decision 2026-11-21:** the coordinator does not do implementation
+  or documentation work. It plans, delegates to the worker, sends reviews, integrates and merges,
+  and runs the testing that must be local (SLES gates and other tests in WSL,
+  real-service TLS tests, demo runs and screenshots). It makes implementation or
+  documentation changes only when that local testing requires them.
+- Worker: cloud thread `thr_vve4njpt8u` ("Background-File-Mover worker"),
+  OpenAI `gpt-6.1-sol`, medium effort, a child of the coordinator. It does the
+  implementation and documentation work on its own branches and pushes them for
+  review and local testing. Send it tasks with `room-cli thread tell
+  thr_vve4njpt8u "<task>"`.
+- Former reviewer: thread `thr_xnjapdndei`, OpenAI `gpt-6.1-sol`. It is retained
   as history and replaced by the Repository Review Agent below for new reviews.
   Reviews are independent and read-only; any implementation assignment must be
   explicit, already authorized and have exclusive file ownership.
@@ -19,7 +29,7 @@ does not promise a fixed quality percentage or replace executable validation.
   agents serve every repository:
   - **Repository Review Agent** (`repository-review-agent`): Claude Opus 5.5 1M, high
     effort, read-only. Used as needed, for example on every PR. It replaces the
-    Codex reviewer `thr_xnjapdndei` for new reviews.
+    former OpenAI `gpt-6.1-sol` reviewer `thr_xnjapdndei` for new reviews.
   - **Repository Mega Review Agent** (`repository-mega-review`): Claude Fable
     5.2, max effort, whole-repository and read-only. It runs **only when the
     user explicitly asks**. For a cloud run, pass
@@ -38,25 +48,34 @@ The coordinator owns integration and local validation. Cloud work starts from
 pushed GitHub commits; uncommitted Windows changes do not arrive there. Commit
 and push delegated inputs first, using `git pull --rebase` before every push.
 Cloud work returns on its own branch; review and integrate explicitly without
-overwriting concurrent local work. Start a review with `~/.claude/agents/spawn-agent.sh
-repository-review-agent "<task>"`, or continue a running one with `room-cli thread
-tell <thread>`. When the bundled PowerShell
+overwriting concurrent local work. The standing reviewer is the
+cloud thread `thr_6r6ddcuvm6` ("Repository Review Agent (cloud)", Opus 5.5 1M,
+high effort), a child of the coordinator. Send it each review with `room-cli
+thread tell thr_6r6ddcuvm6 "<task>"` after pushing, because it sees pushed
+commits only. A fresh reviewer can be started with `~/.claude/agents/spawn-agent.sh
+repository-review-agent "<task>"`. When the bundled PowerShell
 launcher returns no output, invoke its adjacent `room-cli` script through Node.
 
 ## Team size and responsibility
 
-Use a coordinator and independent reviewer for substantial work. Add one
-temporary specialist only when a useful task can proceed independently. The
-normal maximum is three active agents including the coordinator, with one
-delegation level. Do not create a permanent specialist or duplicate every task.
-Small fixes and straightforward documentation edits can stay with the coordinator.
+The standing team has three roles: the coordinator, the worker and the
+independent Repository Review Agent. All implementation and documentation
+changes, including trivial fixes, go to the worker. The coordinator changes
+code or documentation only when required by local testing. Use one delegation
+level and do not duplicate every task.
+
+The Repository Mega Review Agent runs only when the user asks. A temporary
+specialist is an exception: record a concrete reason why its bounded independent
+task needs another agent. Do not create a permanent specialist or start an extra
+agent merely to occupy an available slot.
 
 | Role | Location | Ownership |
 |---|---|---|
-| Coordinator / implementer | Canonical Windows checkout and WSL2 test clone | Break down approved work, implement/integrate, resolve findings, own validation and delivery. Only the coordinator integrates into the development branch and reports release readiness. |
+| Coordinator | Canonical Windows checkout and WSL2 test clone | Break down approved work, delegate it to the worker, request reviews, run required local testing, integrate and merge, and report to the user. Changes code or documentation only when local testing requires it. Only the coordinator integrates into the development branch and reports release readiness. |
+| Worker | Cloud child `thr_vve4njpt8u` ("Background-File-Mover worker", OpenAI `gpt-6.1-sol`, medium) | Implement the assigned increment on its own branch: code, tests and docs. Push for review and local testing, and fix findings. |
 | Independent reviewer | Repository Review Agent child (Opus 5.5 1M, high) | Check approved requirements, actual diff and failure paths. Prioritize custody, integrity, recovery, deletion, schema and authentication changes. Report concrete defects, test gaps or unsupported claims; no requirement to find an issue. |
 | Repository Mega Review | Child thread on request (Claude Fable) | Only when the user asks: one deep, read-only review of the whole repository at a named commit, with the focus the user gives. It reports findings to the coordinator; it does not edit, push or decide product questions. |
-| Specialist, when useful | Separate cloud thread/branch | Audit documentation, investigate a bounded test gap or implement an independent approved component with assigned files. Return findings or commits to the coordinator. |
+| Temporary specialist, with a stated reason | Separate cloud thread/branch | Audit documentation, investigate a bounded test gap or implement an independent approved component with assigned files. Return findings or commits to the coordinator. |
 
 Use Cloudroom's `room-cli` for child management; do not launch agent CLIs or
 untracked harness subagents. Start additional children only for the assigned
@@ -86,10 +105,10 @@ conflicts against the approved behavior; do not let an agent silently change
 product scope or substitute its own approval for the user's decision. Routine
 engineering choices remain autonomous within the already authorized task.
 
-For example, an offline-bundle increment can split into coordinator-owned
-packaging implementation, a reviewer checking state/overwrite safety, and an
-optional specialist auditing disconnected-use instructions and prerequisites.
-These are distinct assignments, not three agents independently rewriting packaging.
+For example, in an offline-bundle increment the worker implements packaging and
+its documentation, the reviewer checks state/overwrite safety and instructions,
+and the coordinator runs the required local gates before integration and merge.
+These are distinct responsibilities, not agents independently rewriting packaging.
 
 ## Review and validation order
 
@@ -139,8 +158,8 @@ current schema/identity limitations remain unchanged.
 ## Current implementation boundaries
 
 Current planning artifact: [consolidated REST proposal](REST-CONTRACT-PROPOSAL.md).
-The coordinator owns the draft and integration; the cloud child reviews contract
-consistency. Groups1-53 approve the written v2 engineering contract; remaining admin/session/
+The coordinator plans and integrates; the worker drafts and the reviewer reviews
+contract consistency. Groups1-53 approve the written v2 engineering contract; remaining admin/session/
 action implementation and remote deployment stay separate. Separately authorized work includes bounded offline history
 clear and the build/packaging increments [107](RUST-INCREMENT-107.md),
 [108](RUST-INCREMENT-108.md) and [109](RUST-INCREMENT-109.md), compatibility/backup
