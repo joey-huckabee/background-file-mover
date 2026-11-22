@@ -247,10 +247,13 @@ CLI/ARC PR99 merged: 23 more requirements mapped (12 POSIX and 11 COPY).
 Both batches are retained, bringing the combined trace to **140 of 199**, with
 **59 remaining**. This batch adds:
 
-- **Tested (4):** COPY-002/005/007/010: configured/validated buffers, temporary
-  payload names, exact manifest lengths (including current UUID/v2 and retained
+- **Tested (3):** COPY-005/007/010: temporary payload names, exact manifest
+  lengths (including current UUID/v2 and retained
   legacy/v1 evidence), and safe byte-zero restart into a fresh owned attempt.
-- **Partly tested (12):** POSIX-006 through 012; COPY-001/003/006/008/009.
+- **Partly tested (13):** POSIX-006 through 012; COPY-001/002/003/006/008/009.
+  COPY-002 tests configuration ranges and direct session acceptance/refusal;
+  propagation of the configured size into the copy loop is by inspection.
+  Identical output bytes do not prove which valid buffer size was used.
   Tests show selected metadata/identity refusals, retained source, staging/
   publication recovery, sync-failure gating, preserved numeric errno, actual
   concurrent file delivery and copies larger than the configured buffer.
