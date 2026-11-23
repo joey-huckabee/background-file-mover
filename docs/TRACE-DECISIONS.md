@@ -8,7 +8,9 @@ supplementary pending items from
 The index preserves that original cohort after the approved mapping changes;
 it is not a second ballot or the set of rows still awaiting a decision.
 
-The user accepted every recommendation. Decisions D01–D03 and D05–D09 accept
+The original ballot accepted every recommendation; the later CLI-006 logging
+decision below supersedes only its no-managed-log-files clause and static stream
+policy. Decisions D01–D03 and D05–D09 originally accepted
 rewording; D04 excludes its features from the first release; D10–D12 retain
 requirements as approved backlog. Each affected trace row records its decision.
 The short approved requirement wording is in the row notes; updating L2-REQ.md
@@ -20,6 +22,36 @@ dependency or operational-state authorization. NFS remains disabled in productio
 and all release gates remain open. The two decisions settled on 2026-11-21
 remain separate. Frozen v2/legacy bytes, original-state recovery and prior
 safety authorizations are unchanged.
+
+## Later user decisions and logging backlog (2026-11-22)
+
+- **Accepted 2026-11-22 — L2-JOB-014 (D02):** the restored rule that a failed
+  record/unrecorded effect never authorizes source deletion or silent continuation.
+- **Accepted 2026-11-22 — L2-SEC-008 (D06):** the restored unconditional ban on
+  `system(3)`/shell invocation; Rust Command with explicit argv is the mechanism,
+  not a restriction of that ban to worker launches.
+- **Rejected 2026-11-22 — L2-CLI-006 (supersedes this part of D07):** the
+  software-manages-no-log-files clause. Replace it with configurable daemon
+  logging: leveled journal stderr plus an explicitly enabled managed/rotated
+  file; default OFF; configuration-file levels off/error/warn/info/debug;
+  restart applies changes. Enablement requires both configuration opt-in and a
+  file path/name. Sinks must not block copy/claim/delivery loops or convert log
+  write/full-disk errors into transfer failures. Secret redaction, non-terminal
+  service/automation and command-result stdout remain required.
+
+**Approved backlog (2026-11-22): L2-CLI-006 — configurable logging, pending
+review of [LOGGING-DESIGN.md](LOGGING-DESIGN.md) before implementation.** This
+is a later obligation, additional to the original D10–D12 backlog table below;
+it is not an approval of the design's proposed limits or unresolved assumptions.
+Confirm minimal OFF-mode readiness/error stderr versus total silence. Today's
+readiness actually uses stdout; the proposed stream move is identified in the
+design. No new crate is approved, and no runtime behavior changes here.
+
+The original 79-ID cohort, D07 answer and index below remain historical audit
+records. CLI-006's existing trace Inspection describes the old implementation,
+not coverage of this newly approved backlog. Its formal requirement/disposition
+and checker bookkeeping must be reconciled together after design review;
+recording the decision does not claim logging shipped or overwrite evidence.
 
 ## D01 — Cancellation, deletion and retained partials
 
@@ -115,6 +147,10 @@ safety authorizations are unchanged.
 ## D07 — CLI, startup diagnostics and operator text
 
 **Decided 2026-11-22: (a) — user accepted the recommendation.**
+
+**Later clarification, 2026-11-22:** CLI-006’s no-managed-files/static logging
+limit is superseded by the approved logging backlog above. This answer is the
+original ballot record, not acceptance of that superseded clause.
 
 **Question:** Should the current flag-based CLI and fail-closed, secret-safe diagnostic contract replace broader CLI/reporting prescriptions?
 
