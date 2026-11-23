@@ -218,17 +218,12 @@ fn copy_rejects_staging_size_changed_after_the_last_write() {
     let mut changed = false;
     // Mutate after the last payload write so the initial empty-stage check
     // succeeds and the final staging-size guard, not that earlier guard, fires.
-    let error = mover_fs::copy_effect_observed(
-        &transfer,
-        &intent,
-        64 * 1024,
-        &mut |count| {
-            assert_eq!(count, bytes.len() as u64);
-            assert!(!changed);
-            interferer.write_all(b"!").unwrap();
-            changed = true;
-        },
-    )
+    let error = mover_fs::copy_effect_observed(&transfer, &intent, 64 * 1024, &mut |count| {
+        assert_eq!(count, bytes.len() as u64);
+        assert!(!changed);
+        interferer.write_all(b"!").unwrap();
+        changed = true;
+    })
     .unwrap_err();
     assert!(changed, "the mutation must run inside the real copy effect");
     assert_eq!(error.to_string(), "staging size mismatch");
@@ -259,21 +254,19 @@ fn verification_rejects_staging_size_changed_during_the_reread() {
     let copied = copy_stage(&store, &intent_phase).unwrap();
     let (intent, _) = store.claim_intent(1, 0).unwrap().unwrap();
     let mut changed = false;
-    let error = mover_fs::verify_effect_observed(
-        &copied,
-        &intent,
-        64 * 1024,
-        &mut |count| {
-            assert_eq!(count, bytes.len() as u64);
-            assert!(!changed);
-            // Initial identity matched. The subsequent EOF metadata check must
-            // catch truncation even though the reread already counted all bytes.
-            interferer.set_len(0).unwrap();
-            changed = true;
-        },
-    )
+    let error = mover_fs::verify_effect_observed(&copied, &intent, 64 * 1024, &mut |count| {
+        assert_eq!(count, bytes.len() as u64);
+        assert!(!changed);
+        // Initial identity matched. The subsequent EOF metadata check must
+        // catch truncation even though the reread already counted all bytes.
+        interferer.set_len(0).unwrap();
+        changed = true;
+    })
     .unwrap_err();
-    assert!(changed, "the mutation must run inside the real verification");
+    assert!(
+        changed,
+        "the mutation must run inside the real verification"
+    );
     assert_eq!(error.to_string(), "verification size/identity changed");
     assert_eq!(std::fs::metadata(f.stage(1)).unwrap().len(), 0);
     assert_eq!(store.transfer(1, 0).unwrap(), Some(copied.clone()));
