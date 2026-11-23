@@ -5,6 +5,9 @@ has exactly one L1 **Parent** and a declared verification method. L2 requirement
 decompose further into L3 implementation obligations (`docs/L3-REQ.md`). Live status is
 tracked in `docs/TRACE-MATRIX.md`.
 
+Every requirement statement is a normative **SHALL** obligation, including
+imperative rewordings: “Publish…” means “The software shall publish…”.
+
 Verification method codes: **T** = Test, **I** = Inspection, **A** = Analysis,
 **D** = Demonstration.
 
@@ -47,8 +50,9 @@ destination hash values before source deletion.
 
 #### L2-DPR-005
 
-The software shall publish a completed destination file using an atomic rename within
-the destination filesystem.
+Publish verified staging with same-filesystem no-clobber rename, or exclusive link/unlink when the rename flag is unsupported; preserve recoverable intermediate custody.
+
+**Reworded 2026-11-22** (D02; previous wording in git history).
 
 **Parent**: L1-SYS-003
 
@@ -56,8 +60,9 @@ the destination filesystem.
 
 #### L2-DPR-006
 
-The software shall delete a claimed source file only after the corresponding
-destination file has reached the published-and-verified state.
+Automatic source removal requires move mode and a freshly verified committed set; separate confirmed deletion may remove held copies of delivered copy-mode or settled cancelled jobs, never producer originals.
+
+**Reworded 2026-11-22** (D01; previous wording in git history).
 
 **Parent**: L1-SYS-003
 
@@ -110,8 +115,9 @@ the service.
 
 #### L2-CFG-005
 
-The software shall represent validated runtime configuration using immutable typed
-objects.
+Validate typed configuration at entry points and share runtime snapshots by immutable references; no distinct immutable validated Config type is promised.
+
+**Reworded 2026-11-22** (D06; previous wording in git history).
 
 **Parent**: L1-SYS-009
 
@@ -137,8 +143,9 @@ transfer service.
 
 #### L2-CFG-008
 
-The software shall report all configuration issues together rather than failing on the
-first.
+Report the first configuration error rather than aggregate independent issues.
+
+**Reworded 2026-11-22** (D07; previous wording in git history).
 
 **Parent**: L1-SYS-010
 
@@ -146,8 +153,9 @@ first.
 
 #### L2-CFG-009
 
-Each reported configuration issue shall identify the section, option, offending value,
-and reason.
+Return secret-safe textual configuration errors without promising uniform section/option/value/reason records or echoing offending values.
+
+**Reworded 2026-11-22** (D07; previous wording in git history).
 
 **Parent**: L1-SYS-008
 
@@ -155,7 +163,9 @@ and reason.
 
 #### L2-CFG-010
 
-Configuration errors shall provide valid-option and range context to the operator.
+Include selected option/range guidance where implemented, without promising complete valid-value context for every diagnostic.
+
+**Reworded 2026-11-22** (D07; previous wording in git history).
 
 **Parent**: L1-SYS-008
 
@@ -174,7 +184,9 @@ generated documentation.
 
 #### L2-EVT-001
 
-The software shall represent operational events using typed immutable event records.
+Use advisory watch versions and progress snapshots rather than a general immutable operational-event bus.
+
+**Reworded 2026-11-22** (D08; previous wording in git history).
 
 **Parent**: L1-SYS-007
 
@@ -182,8 +194,9 @@ The software shall represent operational events using typed immutable event reco
 
 #### L2-EVT-002
 
-The software shall isolate event-subscriber failures so one subscriber cannot prevent
-delivery to other subscribers.
+Use one trusted SQLite-thread version callback without panic isolation and independent bounded SSE streams; general subscriber-failure isolation is not promised.
+
+**Reworded 2026-11-22** (D08; previous wording in git history).
 
 **Parent**: L1-SYS-007
 
@@ -208,8 +221,9 @@ The event publisher shall support concurrent event emission safely.
 
 #### L2-EVT-005
 
-Each transfer event shall include a job identifier and, when applicable, a file
-identifier.
+Identify jobs in aggregated progress snapshots and expose a representative per-job file index; version invalidations need not identify every transfer event.
+
+**Reworded 2026-11-22** (D08; previous wording in git history).
 
 **Parent**: L1-SYS-007
 
@@ -219,10 +233,9 @@ identifier.
 
 #### L2-CLI-001
 
-The command-line interface shall use the approved Rust dependency graph and
-qualified platform interfaces, and shall accept both short (`-v`) and long
-(`--log-level`) option forms. These remain requirements, not claims that every
-option is implemented by the current prototype.
+Use the existing mode flags and standard Rust argv parser without a general short/long alias or log-level option contract.
+
+**Reworded 2026-11-22** (D07; previous wording in git history).
 
 **Parent**: L1-SYS-008
 
@@ -230,8 +243,9 @@ option is implemented by the current prototype.
 
 #### L2-CLI-002
 
-The CLI shall provide separate commands for submission, status, listing, retry,
-diagnostics, recovery, statistics, and service execution.
+Use local mode flags for lifecycle/offline operations and approved HTTP APIs for producer submission and job operations.
+
+**Reworded 2026-11-22** (D07; previous wording in git history).
 
 **Parent**: L1-SYS-008
 
@@ -263,38 +277,23 @@ The CLI shall write machine output to stdout with no interleaved logging.
 
 #### L2-CLI-006
 
-The software shall write its output to the standard streams and shall manage no log
-files, with the stream contract differing by process type:
+Send local command results to stdout and prompts/diagnostics to stderr; service readiness uses stdout and operational messages stderr without a severity dispatcher. The software shall manage no log files: it shall never open, name, rotate or delete a log file, and shall not require a terminal.
 
-- **CLI invocations** shall write the command **result** to stdout and all diagnostics,
-  warnings and errors to stderr. Nothing but the result reaches stdout.
-- **The service** (`service run`) shall write its log event stream to the standard
-  streams, split by severity: `INFO` and `DEBUG` to stdout, `WARNING` and above to
-  stderr.
-
-The software shall never open, name, rotate or delete a log file, and shall not require
-a terminal.
+**Reworded 2026-11-22** (D07; previous wording in git history).
 
 **Parent**: L1-SYS-008
 
 **Verification Method**: Test (T)
 
-The two process types have **opposite** stdout contracts, which is the part that gets
-implemented wrongly if it is not written down. A CLI's output *is* its result, so a
-stray log line on stdout corrupts it — `--output json` piped into a parser is the case
-that breaks. A daemon has no result, so its logs *are* its output.
-
-This satisfies twelve-factor XI (logs as an event stream the environment routes, never
-app-managed files) while keeping the Unix convention that `WARNING` and above belong on
-stderr, so `journalctl -p warning` and `2>/dev/null` both behave as an operator expects.
-Under the default systemd deployment journald captures both streams and applies the
-priority split; under a container runtime both are captured as the container log.
-
-Previously this requirement read only "The CLI shall write diagnostics and logs to
-stderr" — correct as far as it went, but silent on the service, which is the process
-that actually produces the logs. The service half was specified only in the retired
-`L3-PY-013`, so deleting the Python requirements left it with no requirement at all
-until this revision. Full contract and operator guidance in `docs/LOGGING.md`.
+Command stdout is the command result; diagnostics and prompts go to stderr.
+The service has no command result: readiness goes to stdout and operational
+messages go to stderr. D07 accepts this stream policy without a severity
+dispatcher; no journald priority split follows from these stream choices alone.
+The environment may capture and route either stream; the mover manages no log
+files. Interactive account input may use a terminal, but explicit `--stdin`
+provides the non-terminal automation path. External test/gate capture files are
+not application-managed logs. See `docs/LOGGING.md` for operator context; older
+severity-split descriptions do not override this approved requirement.
 
 #### L2-CLI-007
 
@@ -307,8 +306,9 @@ configuration file.
 
 #### L2-CLI-008
 
-The submit command shall succeed only after the job and its complete claimed file
-inventory have been durably recorded.
+Submit recordings through producer HTTP; the local transfer-one command operates on an already accepted job.
+
+**Reworded 2026-11-22** (D07; previous wording in git history).
 
 **Parent**: L1-SYS-002
 
@@ -316,8 +316,9 @@ inventory have been durably recorded.
 
 #### L2-CLI-009
 
-The submit command shall not wait for hashing, copying, verification, or source
-deletion before returning.
+Separate producer HTTP acceptance from asynchronous service delivery; do not promise a nonblocking submit CLI.
+
+**Reworded 2026-11-22** (D07; previous wording in git history).
 
 **Parent**: L1-SYS-002
 
@@ -325,8 +326,9 @@ deletion before returning.
 
 #### L2-CLI-010
 
-The CLI shall convert top-level exceptions into a controlled nonzero exit code with a
-logged traceback.
+Print readable Display-based errors and return failure for top-level command errors; do not promise a traceback or top-level panic catcher.
+
+**Reworded 2026-11-22** (D07; previous wording in git history).
 
 **Parent**: L1-SYS-010
 
@@ -363,8 +365,9 @@ use constructor reflection.
 
 #### L2-ARC-003
 
-The software shall support injection of filesystem, clock, delay, repository, and
-integrity dependencies.
+Use pure core transitions and explicitly supplied concrete store/guard dependencies, without universal injectable filesystem/clock/delay/hash interfaces.
+
+**Reworded 2026-11-22** (D06; previous wording in git history).
 
 **Parent**: L1-SYS-010
 
@@ -397,8 +400,9 @@ command or mode.
 
 #### L2-ARC-007
 
-All production code shall compile under `-std=c++11 -Wall -Wextra -Werror` on GCC 4.8.5
-without warnings, and shall carry no per-object warning exemption.
+Use the pinned Rust fmt/Clippy and cargo-libc/glibc/ELF/native audit gates rather than a C++11/GCC compilation contract.
+
+**Reworded 2026-11-22** (D06; previous wording in git history).
 
 **Parent**: L1-SYS-009
 
@@ -476,7 +480,9 @@ The software shall require source roots to pre-exist and shall never auto-create
 
 #### L2-POSIX-002
 
-The software shall reject symbolic links encountered during inventory.
+Validate each producer-listed path using descriptor-relative no-follow traversal; do not require a recursive discovery inventory.
+
+**Reworded 2026-11-22** (D02; previous wording in git history).
 
 **Parent**: L1-SYS-004
 
@@ -484,7 +490,9 @@ The software shall reject symbolic links encountered during inventory.
 
 #### L2-POSIX-003
 
-The software shall reject the entire inventory if any listed path is unreadable.
+Keep earlier durable claims and reservations when a later listed file cannot be claimed; withhold whole-set handoff instead of rolling back custody.
+
+**Reworded 2026-11-22** (D02; previous wording in git history).
 
 **Parent**: L1-SYS-004
 
@@ -492,7 +500,9 @@ The software shall reject the entire inventory if any listed path is unreadable.
 
 #### L2-POSIX-004
 
-The software shall enumerate files in a deterministic sorted relative-path order.
+Preserve the first durable path/index order and accept order-independent replay; identity sorting does not reorder custody.
+
+**Reworded 2026-11-22** (D02; previous wording in git history).
 
 **Parent**: L1-SYS-007
 
@@ -500,7 +510,9 @@ The software shall enumerate files in a deterministic sorted relative-path order
 
 #### L2-POSIX-005
 
-The software shall exclude claim directories from source discovery.
+Reject reserved components in explicit producer paths at any depth, rather than exclude them during discovery.
+
+**Reworded 2026-11-22** (D02; previous wording in git history).
 
 **Parent**: L1-SYS-004
 
@@ -578,8 +590,9 @@ The software shall make source cleanup idempotent.
 
 #### L2-CLN-002
 
-During recovery, a missing source shall be treated as completed cleanup only after the
-published destination is verified.
+Authorize automatic cleanup only after set verification; separate confirmed deletion of eligible delivered or settled cancelled jobs may count an already absent held copy as deleted.
+
+**Reworded 2026-11-22** (D01; previous wording in git history).
 
 **Parent**: L1-SYS-005
 
@@ -614,8 +627,9 @@ recorded identity.
 
 #### L2-STO-001
 
-The transfer workflow shall depend on capability interfaces rather than raw POSIX
-operations.
+Run direct rustix/POSIX storage effects in supervised children rather than a general storage capability interface.
+
+**Reworded 2026-11-22** (D06; previous wording in git history).
 
 **Parent**: L1-SYS-001
 
@@ -632,8 +646,9 @@ filesystems.
 
 #### L2-STO-003
 
-The storage interfaces shall permit a future object-storage adapter without changing
-the durable workflow.
+Support the concrete POSIX workflow; an object-storage adapter is not part of the current interface contract.
+
+**Reworded 2026-11-22** (D06; previous wording in git history).
 
 **Parent**: L1-SYS-001
 
@@ -641,7 +656,9 @@ the durable workflow.
 
 #### L2-STO-004
 
-Typed file metadata shall support both POSIX identity and future object identity.
+Identify stored objects with POSIX device/inode/owner/size/time/link facts; do not promise object-storage identities.
+
+**Reworded 2026-11-22** (D06; previous wording in git history).
 
 **Parent**: L1-SYS-007
 
@@ -758,6 +775,8 @@ is safely replaced.
 
 #### L2-COPY-011
 
+**Out of scope for the first release (approved 2026-11-22, D04).**
+
 The software may use a kernel-assisted file copy when configured and available, and shall
 fall back to the bounded buffered copy without failing the transfer when it is not.
 
@@ -768,6 +787,8 @@ fall back to the bounded buffered copy without failing the transfer when it is n
 ## BWL — Bandwidth limiting
 
 #### L2-BWL-001
+
+**Out of scope for the first release (approved 2026-11-22, D04).**
 
 The software shall support a configurable maximum aggregate copy throughput, expressed in
 bytes per second, that bounds how fast source data is transferred. Because a
@@ -785,6 +806,8 @@ copies and silently ignore it whenever the kernel path is taken.
 
 #### L2-BWL-002
 
+**Out of scope for the first release (approved 2026-11-22, D04).**
+
 The maximum copy throughput shall be adjustable at runtime, through the control interface,
 without restarting the service, and the new limit shall apply to transfers already in
 progress.
@@ -795,6 +818,8 @@ progress.
 
 #### L2-BWL-003
 
+**Out of scope for the first release (approved 2026-11-22, D04).**
+
 The throughput limit shall be enforced across all concurrent file copies in aggregate, not
 independently per file.
 
@@ -803,6 +828,8 @@ independently per file.
 **Verification Method**: Test (T)
 
 #### L2-BWL-004
+
+**Out of scope for the first release (approved 2026-11-22, D04).**
 
 A configured throughput limit of zero shall mean unlimited, imposing no throttling.
 
@@ -814,9 +841,9 @@ A configured throughput limit of zero shall mean unlimited, imposing no throttli
 
 #### L2-LIF-001
 
-The software shall provide an operator command to cancel a transfer job; cancellation
-shall retain the claimed source data and discard only the incomplete temporary
-destination.
+Cancellation preserves held source and incomplete destination data; deletion is a separate confirmed action.
+
+**Reworded 2026-11-22** (D01; previous wording in git history).
 
 **Parent**: L1-SYS-003
 
@@ -824,8 +851,9 @@ destination.
 
 #### L2-LIF-002
 
-The software shall stop an in-flight copy for a pause or cancel request cooperatively, at
-a safe buffer boundary, without a forced kill and without losing already-durable data.
+Cancel cooperatively between delivery steps and settle only after active work exits; do not promise buffer-level interruption or pause.
+
+**Reworded 2026-11-22** (D01; previous wording in git history).
 
 **Parent**: L1-SYS-008
 
@@ -842,6 +870,8 @@ retained.
 
 #### L2-LIF-004
 
+**Out of scope for the first release (approved 2026-11-22, D04).**
+
 The software shall provide pause and resume commands; a paused job shall perform no
 further work until resumed, and resume shall return it to the runnable queue.
 
@@ -851,8 +881,9 @@ further work until resumed, and resume shall return it to the runnable queue.
 
 #### L2-LIF-005
 
-Lifecycle commands shall reject an unknown job or an invalid state transition with a
-typed error, never panicking or corrupting durable state.
+Reject invalid core transitions without state change, never panicking or corrupting durable state; bulk cancellation skips unknown or finished jobs and reports its outcomes.
+
+**Reworded 2026-11-22** (D01; previous wording in git history).
 
 **Parent**: L1-SYS-008
 
@@ -861,6 +892,8 @@ typed error, never panicking or corrupting durable state.
 ## RSM — Partial-file byte-offset resume
 
 #### L2-RSM-001
+
+**Out of scope for the first release (approved 2026-11-22, D04).**
 
 The software shall be able to resume an interrupted file copy from the byte offset of its
 fsynced partial destination rather than re-copying the file from byte zero. Where a
@@ -877,6 +910,8 @@ starting over, and it is not excluded by the sentence above it.
 
 #### L2-RSM-002
 
+**Out of scope for the first release (approved 2026-11-22, D04).**
+
 An interrupted partial destination — whether left by a crash (reconciled at startup) or by
 an operator pause — shall be preserved for resume when resume is enabled, and removed when it
 is disabled so the file restarts from byte zero instead of colliding with the exclusive
@@ -887,6 +922,8 @@ create.
 **Verification Method**: Test (T)
 
 #### L2-RSM-003
+
+**Out of scope for the first release (approved 2026-11-22, D04).**
 
 A resumed partial that fails size or hash verification shall be discarded so the next
 attempt restarts the file from zero; unverified bytes shall never be published.
@@ -899,10 +936,9 @@ attempt restarts the file from zero; unverified bytes shall never be published.
 
 #### L2-ENV-001
 
-The software shall verify that the required interpreter and platform capabilities are
-present — an `AF_UNIX` socket, `fcntl` locking, SQLite WAL journaling, the configured hash
-algorithm, Python 3.10 or later, and POSIX termination signals — and report a missing
-required capability as a failure.
+Check mandatory capabilities at startup and refuse unsafe or unsupported operation, rather than emit a complete optional-capability diagnostic report.
+
+**Reworded 2026-11-22** (D07; previous wording in git history).
 
 **Parent**: L1-SYS-008
 
@@ -910,8 +946,9 @@ required capability as a failure.
 
 #### L2-ENV-002
 
-The software shall report the availability of optional capabilities (kernel-assisted copy,
-`O_NOFOLLOW`) as advisories, without failing the diagnostic when they are absent.
+Treat no-follow access as mandatory and omit an optional kernel-copy capability report because that backend is not used.
+
+**Reworded 2026-11-22** (D07; previous wording in git history).
 
 **Parent**: L1-SYS-008
 
@@ -919,8 +956,9 @@ The software shall report the availability of optional capabilities (kernel-assi
 
 #### L2-ENV-003
 
-A capability probe shall never crash the diagnostic; a probe that raises shall be reported
-as an unavailable capability with its error detail.
+Return startup capability refusals through ordinary error handling without requiring a separate capability-probe command.
+
+**Reworded 2026-11-22** (D07; previous wording in git history).
 
 **Parent**: L1-ROB-001
 
@@ -938,7 +976,9 @@ The software shall classify an operational error before deciding to retry.
 
 #### L2-RTY-002
 
-The software shall not retry a permanent error merely because it is an OSError.
+Send binding refusals straight to review and bound other unclassified delivery failures to three persisted failures before review; retries grant no new effect authority.
+
+**Reworded 2026-11-22** (D05; previous wording in git history).
 
 **Parent**: L1-SYS-010
 
@@ -962,7 +1002,9 @@ Retry state shall survive a service restart.
 
 #### L2-RTY-005
 
-The software shall use a configurable bounded backoff delay and maximum attempt count.
+Use a fixed three-failure review limit with capacity delays of 30/60 seconds before subsequent attempts and five seconds for other failures.
+
+**Reworded 2026-11-22** (D05; previous wording in git history).
 
 **Parent**: L1-SYS-010
 
@@ -1049,7 +1091,9 @@ The software shall revalidate file identity immediately before deletion.
 
 #### L2-DEL-004
 
-The software shall not delete a source when destination verification is incomplete.
+Require verified committed delivery for automatic removal; exempt separately confirmed deletion of eligible delivered or settled cancelled held copies.
+
+**Reworded 2026-11-22** (D01; previous wording in git history).
 
 **Parent**: L1-SYS-003
 
@@ -1059,8 +1103,9 @@ The software shall not delete a source when destination verification is incomple
 
 #### L2-CTL-001
 
-Clients and the service shall communicate over an HTTP/1.1 REST interface bound to the
-configured address and port, defaulting to loopback.
+Require explicit binding and audience-separated transports: loopback plaintext, native HTTPS or protected Unix producer ingress, with private local control.
+
+**Reworded 2026-11-22** (D09; previous wording in git history).
 
 **Parent**: L1-API-001
 
@@ -1068,9 +1113,9 @@ configured address and port, defaulting to loopback.
 
 #### L2-CTL-002
 
-Request and response bodies shall be UTF-8 JSON delimited by `Content-Length`; the
-service shall not accept chunked request bodies and shall close the connection after
-each response.
+Use length/close framing for ordinary JSON exchanges; allow approved admin documents/assets and open SSE streams their respective content/framing.
+
+**Reworded 2026-11-22** (D09; previous wording in git history).
 
 **Parent**: L1-API-003
 
@@ -1095,8 +1140,9 @@ A malformed control message shall never crash the service.
 
 #### L2-CTL-005
 
-The software shall reject unknown routes with HTTP 404, unsupported methods on a known
-route with HTTP 405, and malformed JSON with HTTP 400, each carrying a JSON error body.
+Use ordinary API route/method/schema errors where applicable, with producer-audience forbidden-route precedence to prevent disclosure.
+
+**Reworded 2026-11-22** (D09; previous wording in git history).
 
 **Parent**: L1-API-001
 
@@ -1104,7 +1150,9 @@ route with HTTP 405, and malformed JSON with HTTP 400, each carrying a JSON erro
 
 #### L2-CTL-006
 
-The control server shall run on a thread pool separate from the transfer workers.
+Isolate bounded asynchronous HTTP, fixed TLS executors, local lifecycle IPC and supervised transfer work instead of requiring one control-server thread pool.
+
+**Reworded 2026-11-22** (D06; previous wording in git history).
 
 **Parent**: L1-SYS-008
 
@@ -1137,17 +1185,9 @@ The service shall handle SIGTERM and SIGINT and shut down cleanly.
 
 #### L2-CTL-017
 
-A signal handler shall do nothing but assign to a `volatile sig_atomic_t` flag
-that the main loop observes; it shall not log, allocate, take a lock, or touch
-durable state.
+Receive TERM/interrupt through Tokio signal tasks and request lifecycle stop in task context, not through an application C signal-flag protocol. Only async-signal-safe code shall run in OS signal handlers, including handlers installed by dependencies.
 
-Only async-signal-safe functions may run in a handler, and almost nothing this
-service does qualifies. The failure this prevents is specific and ugly: a
-SIGTERM arriving while a thread holds the allocator or the durable-store lock
-deadlocks the process against itself during shutdown, which presents as a
-service that will not stop and gets `SIGKILL`ed by systemd's `TimeoutStopSec`
-— converting a clean shutdown into exactly the abrupt termination the
-commit-point invariants have to survive.
+**Reworded 2026-11-22** (D06; previous wording in git history).
 
 **Parent**: L1-SYS-008
 
@@ -1200,8 +1240,9 @@ operator cannot diagnose and systemd will not restart correctly.
 
 #### L2-CTL-010
 
-The software shall expose service status and aggregate job statistics at
-`GET /api/status`.
+Expose audience-separated job, retention, health and lifecycle reads instead of a universal api/status aggregate.
+
+**Reworded 2026-11-22** (D09; previous wording in git history).
 
 **Parent**: L1-OBS-002
 
@@ -1227,8 +1268,9 @@ restart a hung service.
 
 #### L2-CTL-013
 
-The REST interface shall expose `POST /api/jobs`, `GET /api/jobs`,
-`GET /api/jobs/{id}`, `GET /api/status`, and `GET /`.
+Expose the approved versioned producer/operator/admin routes and admin documents without unversioned aliases or audience merging.
+
+**Reworded 2026-11-22** (D09; previous wording in git history).
 
 **Parent**: L1-API-002
 
@@ -1236,8 +1278,9 @@ The REST interface shall expose `POST /api/jobs`, `GET /api/jobs`,
 
 #### L2-CTL-014
 
-Route handlers shall be pure functions of request and job-manager view, unit-testable
-without opening a socket.
+Separate typed dispatch, validation and concrete effects; handlers may perform stream, store and session operations and need not be pure functions.
+
+**Reworded 2026-11-22** (D06; previous wording in git history).
 
 **Parent**: L1-API-001
 
@@ -1255,8 +1298,9 @@ the connection, never by terminating.
 
 #### L2-CTL-016
 
-The software shall not implement TLS in-process, and shall document the reverse-proxy
-termination path for deployments requiring encrypted transport.
+Terminate producer HTTPS in Rust with mTLS authorization; keep explicit loopback HTTP separate and never fall back to it after a TLS error.
+
+**Reworded 2026-11-22** (D09; previous wording in git history).
 
 **Parent**: L1-API-005
 
@@ -1266,8 +1310,9 @@ termination path for deployments requiring encrypted transport.
 
 #### L2-JOB-001
 
-The software shall persist every job durably in SQLite. Per-file records are deferred
-to v1.1 with `L1-SYS-003` and `L1-SYS-006`.
+Persist accepted jobs and per-file custody transactionally before returning admission; preserve them on same-state recovery, without the historical per-file-record deferral.
+
+**Reworded 2026-11-22** (D03; previous wording in git history).
 
 **Parent**: L1-SYS-007
 
@@ -1284,7 +1329,9 @@ state database.
 
 #### L2-JOB-003
 
-The software shall give each thread its own database connection.
+Serialize repository commands through one SQLite-owner thread and its connection, rather than per-caller connections.
+
+**Reworded 2026-11-22** (D03; previous wording in git history).
 
 **Parent**: L1-SYS-007
 
@@ -1292,7 +1339,9 @@ The software shall give each thread its own database connection.
 
 #### L2-JOB-004
 
-The software shall apply schema migrations idempotently at startup.
+Refuse incompatible or migration-required state at ordinary startup; upgrades use the explicit guarded offline command.
+
+**Reworded 2026-11-22** (D03; previous wording in git history).
 
 **Parent**: L1-SYS-005
 
@@ -1316,9 +1365,9 @@ The software shall query jobs by state and produce aggregate statistics.
 
 #### L2-JOB-007
 
-The durable job record and the job manifest shall record consistent job metadata — the
-same creation time and the same integrity policy (mode and hash algorithm) — for every
-accepted job. Deferred to v1.1 with `L1-SYS-006`; there is no manifest at v1.0.0.
+Share recording identity, file paths and measured integrity facts between stored jobs and completion manifests; use fixed SHA-256 without shared creation-time or integrity-mode fields.
+
+**Reworded 2026-11-22** (D03; previous wording in git history).
 
 **Parent**: L1-SYS-007
 
@@ -1345,12 +1394,9 @@ other translation unit shall include the database header or embed SQL.
 
 #### L2-JOB-010
 
-A persisted job record shall carry an error description that is present and non-empty
-if and only if the recorded state is FAILED.
+Keep bounded latest per-job problems and compose status from phases, cancellation and retry/review; problems are not an iff-FAILED field.
 
-This is the core state machine's durable-transition invariant carried into the
-durable layer, so a record that could not have been produced by a legal transition also
-cannot be stored or read back.
+**Reworded 2026-11-22** (D03; previous wording in git history).
 
 **Parent**: L1-SYS-023
 
@@ -1358,8 +1404,9 @@ cannot be stored or read back.
 
 #### L2-JOB-011
 
-The software shall treat an absent state store as first boot — starting successfully
-with zero recorded jobs — rather than as an error.
+Require explicit fresh-source enrollment and guarded state preparation; never silently replace an enrolled source’s missing database.
+
+**Reworded 2026-11-22** (D03; previous wording in git history).
 
 **Parent**: L1-SYS-016
 
@@ -1381,14 +1428,9 @@ record of jobs whose source files may still exist.
 
 #### L2-JOB-013
 
-The intent to move a file shall be durably recorded **before** any filesystem
-action is taken, and a failure to record it shall mean no action is taken.
+Persist claim intent before payload relocation; read-only observation and empty private-area allocation may precede intent. If intent cannot be recorded, the software shall perform no payload relocation.
 
-This is the ordering whose absence loses track of a file: rename first and
-record second, and a crash between them leaves the move done with nothing
-identifying where it went. Recording first makes the failure mode harmless —
-the worst outcome is a recorded intent for a move that never started, which
-recovery discards.
+**Reworded 2026-11-22** (D02; previous wording in git history).
 
 **Parent**: L1-SEC-003
 
@@ -1396,25 +1438,9 @@ recovery discards.
 
 #### L2-JOB-014
 
-A failure to durably record state shall be handled according to the phase in
-which it occurs:
+Roll back failed admission transactions, but retain admitted jobs and uncertain post-effect facts for phase-aware reconciliation; do not require successful review writes on failed storage. Never delete the source or continue silently after an unrecorded effect.
 
-* **Before the commit point** — the move shall be aborted. Nothing has
-  happened, the source is untouched, and the entry is discarded.
-* **After the commit point** — the move shall halt. The source shall **not**
-  be deleted, the job shall be marked as requiring operator attention, and the
-  condition shall be logged at high severity.
-
-In neither case shall the software continue silently.
-
-A write failure is two different conditions wanting opposite handling. Before
-the commit, continuing means acting with no durable record — a crash then
-leaves an orphaned file nobody can account for. After the commit, the move is
-real but unrecorded; proceeding to source deletion would leave reality and the
-record disagreeing, which is precisely the ambiguity `L1-SEC-002` exists to
-prevent. Treating both as a non-fatal counter permits the durable record to
-drift from the filesystem, which is the one property this layer must
-guarantee.
+**Reworded 2026-11-22** (D02; previous wording in git history).
 
 **Parent**: L1-SEC-002
 
@@ -1463,7 +1489,9 @@ Submission shall reject an invalid or empty source inventory without claiming an
 
 #### L2-SUB-004
 
-Submission shall write a durable manifest for the claimed set.
+Persist the accepted inventory and claim identities in SQLite; write COMMITTED.json on completed delivery, not submission.
+
+**Reworded 2026-11-22** (D03; previous wording in git history).
 
 **Parent**: L1-SYS-007
 
@@ -1489,8 +1517,9 @@ The software shall reconcile non-terminal jobs against the filesystem at startup
 
 #### L2-REC-002
 
-The software shall re-queue an interrupted in-progress job and remove its stale
-temporary destination files.
+Restart interrupted copies in fresh owned attempts; preserve stale partials until safe post-delivery cleanup or separate confirmed deletion.
+
+**Reworded 2026-11-22** (D01; previous wording in git history).
 
 **Parent**: L1-SYS-005
 
@@ -1518,8 +1547,9 @@ retry time has passed — up to the configured job concurrency.
 
 #### L2-CORE-001
 
-The core shall define the job state set and the legal-transition relation as pure
-functions performing no I/O.
+Keep pure recording transitions in the core and cancellation, retry/review and cleanup transitions in the store, with explicit effect boundaries.
+
+**Reworded 2026-11-22** (D03; previous wording in git history).
 
 **Parent**: L1-SYS-022
 
@@ -1527,8 +1557,9 @@ functions performing no I/O.
 
 #### L2-CORE-002
 
-The core shall represent a job with identity, source path, destination path, state,
-creation, update and finish timestamps, byte counters, and an error field.
+Split durable job facts between core recording and SQLite records, with live progress outside the core.
+
+**Reworded 2026-11-22** (D03; previous wording in git history).
 
 **Parent**: L1-SYS-021
 
@@ -1555,8 +1586,9 @@ The core shall accept timestamps from the caller and shall not read the system c
 
 #### L2-JSON-001
 
-The JSON codec shall be implemented by the project and shall not delegate parsing to a
-third-party library.
+Use pinned serde_json with strict project duplicate-key, UTF-8/BOM, trailing-data and field-shape rules for producer decoding.
+
+**Reworded 2026-11-22** (D06; previous wording in git history).
 
 **Parent**: L1-SYS-009
 
@@ -1603,6 +1635,8 @@ coverage-guided fuzzing, with every fuzzer finding retained as a regression case
 
 #### L2-REN-001
 
+**Out of scope for the first release (approved 2026-11-22, D04).**
+
 The rename engine shall expand a configured template, supporting timestamp, sequence,
 and original-name fields, into the target filename.
 
@@ -1611,6 +1645,8 @@ and original-name fields, into the target filename.
 **Verification Method**: Test (T)
 
 #### L2-REN-002
+
+**Out of scope for the first release (approved 2026-11-22, D04).**
 
 The rename engine shall apply a configured collision policy when the target name
 already exists.
@@ -1632,8 +1668,9 @@ cross-device renames.
 
 #### L2-MGR-001
 
-The manager shall dispatch queued jobs to a configured number of worker threads through
-a mutex- and condition-variable-protected queue.
+Use a configured bounded delivery-worker set and active-job exclusion rather than a condition-variable queue.
+
+**Reworded 2026-11-22** (D06; previous wording in git history).
 
 **Parent**: L1-SYS-017
 
@@ -1641,8 +1678,9 @@ a mutex- and condition-variable-protected queue.
 
 #### L2-MGR-002
 
-The manager shall drive every job state change exclusively through the CORE transition
-function.
+Route recording transitions through the core and cancellation, retry and cleanup transitions through the store.
+
+**Reworded 2026-11-22** (D03; previous wording in git history).
 
 **Parent**: L1-SYS-022
 
@@ -1674,26 +1712,20 @@ change to every caller rather than an addition behind one.
 
 #### L2-XFR-002
 
-The copy strategy shall write to a temporary name, fsync, then rename to the final
-name, so the destination never appears under its final name partially written.
+Copy into staging, sync and verify before no-clobber rename or exclusive link/unlink publication.
+
+**Reworded 2026-11-22** (D02; previous wording in git history).
 
 **Parent**: L1-SYS-014
 
 **Verification Method**: Test (T)
 
-**Note**: this requirement is only reachable once cross-filesystem copying exists
-(`L1-SEC-007`). A same-filesystem move is an atomic rename with no partial state to
-expose, so the temporary-name pattern has nothing to protect against until copying
-does. The same pattern is separately required by `L2-NFS-007` for delivery into a
-directory consumers watch, where cross-client visibility — not partial writing — is
-the hazard.
-
-This was previously written as a `**v1.0.0 Status**: Deferred → v1.1` field, which
-read as authoritative and was never honoured: the current scope review distinguishes
-by **L1** status only, so the deferral had no effect and the requirement counted in
-scope regardless. A status field nothing reads is worse than no field, so it is now
-ordinary prose. **Deferral is expressible only at L1**, where it is actually
-enforced — see the parenting note under COPY for how that is done.
+**Note:** cross-filesystem copying exists in the current Rust mover. Delivery
+copies to destination-side staging, verifies it and publishes without clobber;
+this requirement is active, not conditional on future copy support. The
+publication-mechanism rewording also applies to L2-NFS-007, while actual
+cross-client visibility and server durability remain separately qualified
+obligations. Historical deferral wording is preserved in git history.
 
 > **L2-XFR-003 was removed and its identifier is retired.** It required an
 > external-command transfer strategy launched via `fork`/`execvp`. The transfer protocol requires this boundary: a
@@ -1711,8 +1743,9 @@ enforced — see the parenting note under COPY for how that is done.
 
 #### L2-XFR-004
 
-Every strategy failure shall produce a human-readable error string including `errno`
-text where applicable.
+Report bounded operation, numeric errno and safe-action diagnostics without native error text; use dashboard labels for known errno values.
+
+**Reworded 2026-11-22** (D07; previous wording in git history).
 
 **Parent**: L1-SYS-023
 
@@ -1722,8 +1755,9 @@ text where applicable.
 
 #### L2-DASH-001
 
-The dashboard shall be a single embedded HTML and JavaScript page polling
-`GET /api/status` at a fixed interval.
+Serve an embedded authenticated dashboard using admin reads and advisory SSE updates instead of api/status polling.
+
+**Reworded 2026-11-22** (D08; previous wording in git history).
 
 **Parent**: L1-OBS-001
 
@@ -1842,9 +1876,9 @@ unsupported by the kernel or filesystem, the software shall fall back to
 
 #### L2-SEC-008
 
-The software shall never invoke `system(3)` or any shell. External commands
-shall be launched with `fork` and `execvp` using an argument vector, so no
-shell metacharacter interpretation exists to inject into.
+Never invoke system(3) or a shell; launch external processes with Rust Command and an explicit argument vector rather than a prescribed fork/execvp implementation.
+
+**Reworded 2026-11-22** (D06; previous wording in git history).
 
 **Parent**: L1-SEC-005
 
@@ -2020,10 +2054,9 @@ and the qualification checklist shall record the mount options in effect.
 
 #### L2-NFS-007
 
-Delivery into a destination directory that consumers observe shall use a
-two-hop rename — into a temporary name in the destination directory, fsync,
-then rename to the final name — because a rename is not atomically visible
-across NFS clients.
+Use same-filesystem staging, sync/verification, no-clobber rename or exclusive link/unlink and set-manifest commitment; qualify cross-client visibility separately instead of prescribing two-hop rename.
+
+**Reworded 2026-11-22** (D02; previous wording in git history).
 
 **Parent**: L1-SYS-014
 
