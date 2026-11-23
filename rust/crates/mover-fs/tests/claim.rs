@@ -412,6 +412,52 @@ fn child_claim() {
 }
 
 #[test]
+fn discard_retained_copy_preserves_nonempty_private_folder_and_extra_file() {
+    use std::os::unix::fs::MetadataExt;
+
+    let f = Fixture::new();
+    let store = f.store();
+    f.write("sub/data", b"retained payload");
+    let job = store
+        .accept(&f.input("extra-file", &[("sub/data", None)]), &f.context())
+        .unwrap();
+    claim(&store, job.job_id, 0).unwrap();
+    let (intent, _) = store.claim_intent(job.job_id, 0).unwrap().unwrap();
+    let area = f.0.join(".file-mover").join(&intent.private_name);
+    let extra = area.join("unmanaged-extra");
+    std::fs::write(&extra, b"must stay untouched").unwrap();
+    let before = std::fs::metadata(&extra).unwrap();
+    let directory = std::fs::metadata(&area).unwrap();
+    f.write("sub/data", b"producer reused this name");
+
+    // Removed reports the retained copy, not removal of the containing folder.
+    assert_eq!(discard_retained_source(&intent).unwrap(), Discarded::Removed);
+    assert!(!area.join("data").exists());
+    assert!(area.is_dir(), "nonempty private folder must be kept");
+    let after_directory = std::fs::metadata(&area).unwrap();
+    assert_eq!(after_directory.dev(), directory.dev());
+    assert_eq!(after_directory.ino(), directory.ino());
+    assert_eq!(std::fs::read(&extra).unwrap(), b"must stay untouched");
+    let after = std::fs::metadata(&extra).unwrap();
+    assert_eq!(after.dev(), before.dev());
+    assert_eq!(after.ino(), before.ino());
+    assert_eq!(after.mode(), before.mode());
+    assert_eq!(after.mtime(), before.mtime());
+    assert_eq!(after.mtime_nsec(), before.mtime_nsec());
+    assert_eq!(after.nlink(), before.nlink());
+    assert_eq!(
+        std::fs::read(f.0.join("recording/sub/data")).unwrap(),
+        b"producer reused this name"
+    );
+    assert_eq!(
+        discard_retained_source(&intent).unwrap(),
+        Discarded::AlreadyAbsent
+    );
+    assert!(area.is_dir(), "repeat discard must also preserve the folder");
+    assert_eq!(std::fs::read(extra).unwrap(), b"must stay untouched");
+}
+
+#[test]
 fn discard_removes_only_the_exact_retained_copy() {
     let f = Fixture::new();
     let store = f.store();
