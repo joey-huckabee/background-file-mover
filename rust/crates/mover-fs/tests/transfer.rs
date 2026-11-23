@@ -202,6 +202,88 @@ fn sha256_known_vectors_include_empty_files() {
     }
 }
 #[test]
+fn copy_rejects_staging_size_changed_after_the_last_write() {
+    use std::io::Write;
+
+    let f = Fixture::new(false);
+    let bytes = b"source bytes stay retained";
+    f.accept_claim(bytes);
+    let store = f.store();
+    let transfer = prepare_transfer(&store, 1).unwrap();
+    let (intent, _) = store.claim_intent(1, 0).unwrap().unwrap();
+    let mut interferer = std::fs::OpenOptions::new()
+        .append(true)
+        .open(f.stage(1))
+        .unwrap();
+    let mut changed = false;
+    // Mutate after the last payload write so the initial empty-stage check
+    // succeeds and the final staging-size guard, not that earlier guard, fires.
+    let error = mover_fs::copy_effect_observed(
+        &transfer,
+        &intent,
+        64 * 1024,
+        &mut |count| {
+            assert_eq!(count, bytes.len() as u64);
+            assert!(!changed);
+            interferer.write_all(b"!").unwrap();
+            changed = true;
+        },
+    )
+    .unwrap_err();
+    assert!(changed, "the mutation must run inside the real copy effect");
+    assert_eq!(error.to_string(), "staging size mismatch");
+    assert_eq!(
+        std::fs::metadata(f.stage(1)).unwrap().len(),
+        bytes.len() as u64 + 1
+    );
+    assert_eq!(store.transfer(1, 0).unwrap(), Some(transfer.clone()));
+    assert!(authorize_publication(&store, &transfer).is_err());
+    assert_eq!(std::fs::read(f.claimed()).unwrap(), bytes);
+    assert!(!f.final_path().exists());
+    assert!(!f.destination.join("1/COMMITTED.json").exists());
+}
+
+#[test]
+fn verification_rejects_staging_size_changed_during_the_reread() {
+    let f = Fixture::new(false);
+    let bytes = b"verified source stays retained";
+    f.accept_claim(bytes);
+    let store = f.store();
+    let intent_phase = prepare_transfer(&store, 1).unwrap();
+    // Keep an already-open writer across chmod(0400), just as a stale writer
+    // can survive a pathname permission change. Only this fixture is mutated.
+    let interferer = std::fs::OpenOptions::new()
+        .write(true)
+        .open(f.stage(1))
+        .unwrap();
+    let copied = copy_stage(&store, &intent_phase).unwrap();
+    let (intent, _) = store.claim_intent(1, 0).unwrap().unwrap();
+    let mut changed = false;
+    let error = mover_fs::verify_effect_observed(
+        &copied,
+        &intent,
+        64 * 1024,
+        &mut |count| {
+            assert_eq!(count, bytes.len() as u64);
+            assert!(!changed);
+            // Initial identity matched. The subsequent EOF metadata check must
+            // catch truncation even though the reread already counted all bytes.
+            interferer.set_len(0).unwrap();
+            changed = true;
+        },
+    )
+    .unwrap_err();
+    assert!(changed, "the mutation must run inside the real verification");
+    assert_eq!(error.to_string(), "verification size/identity changed");
+    assert_eq!(std::fs::metadata(f.stage(1)).unwrap().len(), 0);
+    assert_eq!(store.transfer(1, 0).unwrap(), Some(copied.clone()));
+    assert!(authorize_publication(&store, &copied).is_err());
+    assert_eq!(std::fs::read(f.claimed()).unwrap(), bytes);
+    assert!(!f.final_path().exists());
+    assert!(!f.destination.join("1/COMMITTED.json").exists());
+}
+
+#[test]
 fn corrupted_staging_with_restored_metadata_fails_independent_hash() {
     let f = Fixture::new(false);
     f.accept_claim(b"abc");
