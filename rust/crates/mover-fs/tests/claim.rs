@@ -431,7 +431,10 @@ fn discard_retained_copy_preserves_nonempty_private_folder_and_extra_file() {
     f.write("sub/data", b"producer reused this name");
 
     // Removed reports the retained copy, not removal of the containing folder.
-    assert_eq!(discard_retained_source(&intent).unwrap(), Discarded::Removed);
+    assert_eq!(
+        discard_retained_source(&intent).unwrap(),
+        Discarded::Removed
+    );
     assert!(!area.join("data").exists());
     assert!(area.is_dir(), "nonempty private folder must be kept");
     let after_directory = std::fs::metadata(&area).unwrap();
@@ -453,7 +456,10 @@ fn discard_retained_copy_preserves_nonempty_private_folder_and_extra_file() {
         discard_retained_source(&intent).unwrap(),
         Discarded::AlreadyAbsent
     );
-    assert!(area.is_dir(), "repeat discard must also preserve the folder");
+    assert!(
+        area.is_dir(),
+        "repeat discard must also preserve the folder"
+    );
     assert_eq!(std::fs::read(extra).unwrap(), b"must stay untouched");
 }
 
