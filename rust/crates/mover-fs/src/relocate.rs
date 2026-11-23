@@ -226,7 +226,9 @@ mod tests {
         let source_device = std::fs::metadata(&source_fixture.0).unwrap().dev();
         let destination_device = std::fs::metadata(&destination_fixture.0).unwrap().dev();
         if source_device == destination_device {
-            eprintln!("SKIP cross-device relocation: /dev/shm and temporary root share device {source_device}");
+            eprintln!(
+                "SKIP cross-device relocation: /dev/shm and temporary root share device {source_device}"
+            );
             return;
         }
         assert_ne!(source_device, destination_device);
