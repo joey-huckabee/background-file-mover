@@ -3,6 +3,7 @@
 > are preserved unchanged as history, not current Rust implementation obligations.
 > Rust L3 obligations are written only where a test plan needs them, using **new
 > IDs**. Retired L3 IDs are never reused. See [the trace plan](TRACE-MATRIX.md#plan).
+> **Historical text follows verbatim**, including its earlier current-tense claims.
 
 # L3 - Implementation obligations
 

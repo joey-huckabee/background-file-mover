@@ -37,8 +37,12 @@ time, each a small reviewed PR:
    `python3 scripts/trace_l1.py --write`; CI runs the script without `--write`
    to reject drift. The worst child decides: approved backlog Deviation/Open
    means Backlog; otherwise Partly tested/Inspection means Partly traced;
-   otherwise all Tested/Out of scope (approved) means Traced. No children
-   means Backlog for missing derivation, never automatic verification.
+   otherwise all Tested/Out of scope (approved) are eligible for Traced only
+   after an explicit full-parent-coverage review. Known incomplete or unreviewed
+   coverage caps that result at Partly traced; no children means Backlog for
+   missing derivation. The script records the L1-SYS-006 coverage mismatch and
+   refuses contradictory coverage confirmations. Child completeness alone is
+   never a full L1 coverage claim.
 
 Progress: **Step 1 (L2 mapping) is complete: 199/199 requirements mapped.**
 Families: DPR, DST, DEL, CLN, SUB, FS, REC, RTY, LIF, CORE, BWL, RSM, REN, XFR,

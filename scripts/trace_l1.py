@@ -15,12 +15,28 @@ STATUS = {
     "Deviation (needs approval)": "Backlog",
     "Open": "Backlog",
 }
+# A complete-child result is necessary, not sufficient: parent wording and
+# derivation completeness need an explicit review before an L1 can be Traced.
+# Add a nonempty review rationale only after that review; never infer it from
+# the child dispositions. No parent has that full-coverage review recorded yet.
+COVERAGE_CONFIRMED: dict[str, str] = {}
+COVERAGE_GAPS = {
+    "L1-SYS-006": "COPY-007 covers byte counts, not configurable integrity verification; "
+                  "JOB-007 describes fixed SHA-256 and does not cover this parent.",
+}
 
 
 def generate(l1: str, l2: str, trace: str) -> tuple[str, Counter]:
     parents = re.findall(r"^### (L1-[A-Z]+-\d{3})$", l1, re.M)
     if not parents or len(parents) != len(set(parents)):
         raise ValueError("missing or duplicate L1 IDs")
+    if (set(COVERAGE_CONFIRMED) | set(COVERAGE_GAPS)) - set(parents):
+        raise ValueError("coverage review references an unknown L1")
+    if set(COVERAGE_CONFIRMED) & set(COVERAGE_GAPS):
+        raise ValueError("known incomplete coverage cannot be confirmed")
+    if any(not isinstance(reason, str) or not reason.strip()
+           for reason in [*COVERAGE_CONFIRMED.values(), *COVERAGE_GAPS.values()]):
+        raise ValueError("coverage review needs an explicit rationale")
     children = defaultdict(list)
     declared = set()
     for ident, body in re.findall(
@@ -52,24 +68,33 @@ def generate(l1: str, l2: str, trace: str) -> tuple[str, Counter]:
         "Each L2 child comes from its Parent field in [L2-REQ.md](L2-REQ.md).",
         "The worst child decides: approved backlog Deviation or Open => **Backlog**;",
         "otherwise any Partly tested or Inspection => **Partly traced**; otherwise",
-        "all children Tested or Out of scope (approved) => **Traced**.",
+        "all children Tested or Out of scope (approved) are eligible for **Traced**",
+        "only after explicit full-parent-coverage review. Unreviewed or known",
+        "incomplete parent coverage caps that result at **Partly traced**.",
         "An L1 with no declared L2 children is **Backlog** (missing derivation),",
         "never a vacuous pass. Child dispositions come from [TRACE-L2.md](TRACE-L2.md).", "",
-        "This is a roll-up of mapped L2 evidence and approved scope, not independent",
-        "verification of literal L1 wording or release qualification. Approved L2",
+        "The Coverage boundary column records known gaps and unreviewed derivations;",
+        "a complete-child result alone is never a full-coverage claim. Approved L2",
         "rewordings do not silently rewrite L1; residual L1 wording reconciliation",
         "and missing derivations remain explicit follow-up work. Production NFS",
         "remains disabled and all release gates remain open.", "",
-        "| L1 requirement | L2 children | Roll-up status |",
-        "|---|---|---|",
+        "| L1 requirement | L2 children | Roll-up status | Coverage boundary |",
+        "|---|---|---|---|",
     ]
     counts = Counter()
     for parent in parents:
         ids = sorted(children[parent])
         status = max((STATUS[dispositions[i]] for i in ids), key=RANK.get) if ids else "Backlog"
+        if not ids and parent in COVERAGE_CONFIRMED:
+            raise ValueError(f"{parent}: no children for confirmed coverage")
+        if status == "Traced" and parent not in COVERAGE_CONFIRMED:
+            status = "Partly traced"
+        boundary = COVERAGE_GAPS.get(parent) or COVERAGE_CONFIRMED.get(parent)
+        if boundary is None:
+            boundary = "Full parent coverage not reviewed." if ids else "Missing L2 derivation."
         counts[status] += 1
         links = ", ".join(ids) if ids else "None — missing L2 derivation"
-        lines.append(f"| {parent} | {links} | {status} |")
+        lines.append(f"| {parent} | {links} | {status} | {boundary} |")
     lines.extend(["", f"Totals: **{len(parents)} L1 requirements; " +
                   "; ".join(f"{name} {counts[name]}" for name in RANK) + ".**", ""])
     return "\n".join(lines), counts
