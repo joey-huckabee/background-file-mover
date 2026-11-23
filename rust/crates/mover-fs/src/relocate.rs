@@ -197,6 +197,72 @@ mod tests {
         }
     }
     #[test]
+    fn cross_device_relocation_refuses_before_any_namespace_effect() {
+        use std::os::unix::fs::MetadataExt;
+
+        let source_fixture = Fixture::new();
+        let path = PathBuf::from("/dev/shm").join(source_fixture.0.file_name().unwrap());
+        match std::fs::create_dir(&path) {
+            Ok(()) => (),
+            Err(error)
+                if matches!(
+                    error.kind(),
+                    std::io::ErrorKind::NotFound | std::io::ErrorKind::PermissionDenied
+                ) =>
+            {
+                eprintln!(
+                    "SKIP cross-device relocation: second-device fixture unavailable: {error}"
+                );
+                return;
+            }
+            Err(error) => panic!("cannot create exclusive second-device fixture: {error}"),
+        }
+        let destination_fixture = Fixture(path);
+        std::fs::set_permissions(
+            &destination_fixture.0,
+            std::fs::Permissions::from_mode(0o700),
+        )
+        .unwrap();
+        let source_device = std::fs::metadata(&source_fixture.0).unwrap().dev();
+        let destination_device = std::fs::metadata(&destination_fixture.0).unwrap().dev();
+        if source_device == destination_device {
+            eprintln!("SKIP cross-device relocation: /dev/shm and temporary root share device {source_device}");
+            return;
+        }
+        assert_ne!(source_device, destination_device);
+        let old_dir = source_fixture.directory();
+        let new_dir = destination_fixture.directory();
+        let expected = source_fixture.expected();
+        let mut checkpoint_ran = false;
+        let error = owned(
+            &old_dir,
+            "old",
+            &new_dir,
+            "new",
+            &expected,
+            &mut |_| checkpoint_ran = true,
+            "",
+        )
+        .err()
+        .expect("cross-device relocation must refuse");
+        assert!(matches!(
+            error,
+            ClaimError::Blocked("relocation requires one-link same-device intent")
+        ));
+        assert!(!checkpoint_ran, "no namespace effect may be reached");
+        assert_eq!(source_fixture.expected(), expected);
+        assert_eq!(
+            std::fs::read(source_fixture.0.join("old")).unwrap(),
+            b"owned payload"
+        );
+        assert_eq!(std::fs::read_dir(&source_fixture.0).unwrap().count(), 1);
+        assert_eq!(
+            std::fs::read_dir(&destination_fixture.0).unwrap().count(),
+            0,
+            "destination must have no allocated names"
+        );
+    }
+    #[test]
     fn unsupported_rename_uses_exclusive_link_without_extra_payload_read() {
         for errno in [Errno::INVAL, Errno::NOSYS, Errno::OPNOTSUPP] {
             let f = Fixture::new();
