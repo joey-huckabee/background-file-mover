@@ -5,6 +5,9 @@ has exactly one L1 **Parent** and a declared verification method. L2 requirement
 decompose further into L3 implementation obligations (`docs/L3-REQ.md`). Live status is
 tracked in `docs/TRACE-MATRIX.md`.
 
+Every requirement statement is a normative **SHALL** obligation, including
+imperative rewordings: “Publish…” means “The software shall publish…”.
+
 Verification method codes: **T** = Test, **I** = Inspection, **A** = Analysis,
 **D** = Demonstration.
 
@@ -274,7 +277,7 @@ The CLI shall write machine output to stdout with no interleaved logging.
 
 #### L2-CLI-006
 
-Send local command results to stdout and prompts/diagnostics to stderr; service readiness uses stdout and operational messages stderr without a severity dispatcher.
+Send local command results to stdout and prompts/diagnostics to stderr; service readiness uses stdout and operational messages stderr without a severity dispatcher. The software shall manage no log files: it shall never open, name, rotate or delete a log file, and shall not require a terminal.
 
 **Reworded 2026-11-22** (D07; previous wording in git history).
 
@@ -282,22 +285,15 @@ Send local command results to stdout and prompts/diagnostics to stderr; service 
 
 **Verification Method**: Test (T)
 
-The two process types have **opposite** stdout contracts, which is the part that gets
-implemented wrongly if it is not written down. A CLI's output *is* its result, so a
-stray log line on stdout corrupts it — `--output json` piped into a parser is the case
-that breaks. A daemon has no result, so its logs *are* its output.
-
-This satisfies twelve-factor XI (logs as an event stream the environment routes, never
-app-managed files) while keeping the Unix convention that `WARNING` and above belong on
-stderr, so `journalctl -p warning` and `2>/dev/null` both behave as an operator expects.
-Under the default systemd deployment journald captures both streams and applies the
-priority split; under a container runtime both are captured as the container log.
-
-Previously this requirement read only "The CLI shall write diagnostics and logs to
-stderr" — correct as far as it went, but silent on the service, which is the process
-that actually produces the logs. The service half was specified only in the retired
-`L3-PY-013`, so deleting the Python requirements left it with no requirement at all
-until this revision. Full contract and operator guidance in `docs/LOGGING.md`.
+Command stdout is the command result; diagnostics and prompts go to stderr.
+The service has no command result: readiness goes to stdout and operational
+messages go to stderr. D07 accepts this stream policy without a severity
+dispatcher; no journald priority split follows from these stream choices alone.
+The environment may capture and route either stream; the mover manages no log
+files. Interactive account input may use a terminal, but explicit `--stdin`
+provides the non-terminal automation path. External test/gate capture files are
+not application-managed logs. See `docs/LOGGING.md` for operator context; older
+severity-split descriptions do not override this approved requirement.
 
 #### L2-CLI-007
 
@@ -885,7 +881,7 @@ further work until resumed, and resume shall return it to the runnable queue.
 
 #### L2-LIF-005
 
-Reject invalid core transitions without state change; bulk cancellation skips unknown or finished jobs and reports its outcomes.
+Reject invalid core transitions without state change, never panicking or corrupting durable state; bulk cancellation skips unknown or finished jobs and reports its outcomes.
 
 **Reworded 2026-11-22** (D01; previous wording in git history).
 
@@ -1189,7 +1185,7 @@ The service shall handle SIGTERM and SIGINT and shut down cleanly.
 
 #### L2-CTL-017
 
-Receive TERM/interrupt through Tokio signal tasks and request lifecycle stop in task context, not through an application C signal-flag protocol.
+Receive TERM/interrupt through Tokio signal tasks and request lifecycle stop in task context, not through an application C signal-flag protocol. Only async-signal-safe code shall run in OS signal handlers, including handlers installed by dependencies.
 
 **Reworded 2026-11-22** (D06; previous wording in git history).
 
@@ -1432,7 +1428,7 @@ record of jobs whose source files may still exist.
 
 #### L2-JOB-013
 
-Persist claim intent before payload relocation; read-only observation and empty private-area allocation may precede intent.
+Persist claim intent before payload relocation; read-only observation and empty private-area allocation may precede intent. If intent cannot be recorded, the software shall perform no payload relocation.
 
 **Reworded 2026-11-22** (D02; previous wording in git history).
 
@@ -1442,7 +1438,7 @@ Persist claim intent before payload relocation; read-only observation and empty 
 
 #### L2-JOB-014
 
-Roll back failed admission transactions, but retain admitted jobs and uncertain post-effect facts for phase-aware reconciliation; do not require successful review writes on failed storage.
+Roll back failed admission transactions, but retain admitted jobs and uncertain post-effect facts for phase-aware reconciliation; do not require successful review writes on failed storage. Never delete the source or continue silently after an unrecorded effect.
 
 **Reworded 2026-11-22** (D02; previous wording in git history).
 
@@ -1724,19 +1720,12 @@ Copy into staging, sync and verify before no-clobber rename or exclusive link/un
 
 **Verification Method**: Test (T)
 
-**Note**: this requirement is only reachable once cross-filesystem copying exists
-(`L1-SEC-007`). A same-filesystem move is an atomic rename with no partial state to
-expose, so the temporary-name pattern has nothing to protect against until copying
-does. The same pattern is separately required by `L2-NFS-007` for delivery into a
-directory consumers watch, where cross-client visibility — not partial writing — is
-the hazard.
-
-This was previously written as a `**v1.0.0 Status**: Deferred → v1.1` field, which
-read as authoritative and was never honoured: the current scope review distinguishes
-by **L1** status only, so the deferral had no effect and the requirement counted in
-scope regardless. A status field nothing reads is worse than no field, so it is now
-ordinary prose. **Deferral is expressible only at L1**, where it is actually
-enforced — see the parenting note under COPY for how that is done.
+**Note:** cross-filesystem copying exists in the current Rust mover. Delivery
+copies to destination-side staging, verifies it and publishes without clobber;
+this requirement is active, not conditional on future copy support. The
+publication-mechanism rewording also applies to L2-NFS-007, while actual
+cross-client visibility and server durability remain separately qualified
+obligations. Historical deferral wording is preserved in git history.
 
 > **L2-XFR-003 was removed and its identifier is retired.** It required an
 > external-command transfer strategy launched via `fork`/`execvp`. The transfer protocol requires this boundary: a
@@ -1887,7 +1876,7 @@ unsupported by the kernel or filesystem, the software shall fall back to
 
 #### L2-SEC-008
 
-Launch runtime workers through Rust Command with explicit argv and no shell interpretation, rather than a prescribed fork/execvp implementation.
+Never invoke system(3) or a shell; launch external processes with Rust Command and an explicit argument vector rather than a prescribed fork/execvp implementation.
 
 **Reworded 2026-11-22** (D06; previous wording in git history).
 
