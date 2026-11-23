@@ -2640,7 +2640,10 @@ fn two_delivery_jobs_overlap_at_the_copy_pause() {
                     return pid;
                 }
             }
-            assert!(Instant::now() < deadline, "delivery did not reach copy_chunk");
+            assert!(
+                Instant::now() < deadline,
+                "delivery did not reach copy_chunk"
+            );
             std::thread::sleep(Duration::from_millis(10));
         }
     }
@@ -2695,7 +2698,9 @@ fn two_delivery_jobs_overlap_at_the_copy_pause() {
     let workers = lifecycle["workers"].as_array().unwrap();
     for pid in &pids {
         assert!(
-            workers.iter().any(|value| value.as_u64() == Some(u64::from(*pid))),
+            workers
+                .iter()
+                .any(|value| value.as_u64() == Some(u64::from(*pid))),
             "paused child {pid} is not an owned live worker: {lifecycle}"
         );
         let cmdline = std::fs::read(format!("/proc/{pid}/cmdline")).unwrap();
