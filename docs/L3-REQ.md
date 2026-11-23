@@ -1,3 +1,9 @@
+> **Retired 2026-11-22 — user approved.** This document describes the earlier
+> Python design, including `hashlib` and `ManifestWriter`. Its contents below
+> are preserved unchanged as history, not current Rust implementation obligations.
+> Rust L3 obligations are written only where a test plan needs them, using **new
+> IDs**. Retired L3 IDs are never reused. See [the trace plan](TRACE-MATRIX.md#plan).
+
 # L3 - Implementation obligations
 
 The functional obligations below remain specified. Their Rust derivation and

@@ -2,7 +2,8 @@
 
 Level 2 requirements derive software behavior from the L1 system requirements. Each L2
 has exactly one L1 **Parent** and a declared verification method. L2 requirements
-decompose further into L3 implementation obligations (`docs/L3-REQ.md`). Live status is
+use new Rust L3 IDs only where a test plan needs them; the earlier Python
+`docs/L3-REQ.md` is retired history and its IDs are never reused. Live status is
 tracked in `docs/TRACE-MATRIX.md`.
 
 Verification method codes: **T** = Test, **I** = Inspection, **A** = Analysis,

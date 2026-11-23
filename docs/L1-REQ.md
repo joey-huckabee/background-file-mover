@@ -2,8 +2,9 @@
 
 Level 1 requirements state *what* the Background File Mover system must accomplish.
 Each is a single SHALL statement with a declared verification method. L1 requirements
-decompose into L2 architectural derivations (`docs/L2-REQ.md`), which decompose into L3
-implementation obligations (`docs/L3-REQ.md`). Live verification status is tracked in
+decompose into L2 architectural derivations (`docs/L2-REQ.md`). The earlier
+Python L3 (`docs/L3-REQ.md`) is retired history; Rust L3 obligations use new IDs
+only where a test plan needs them. Live verification status is tracked in
 the `docs/TRACE-MATRIX.md` status record, not here.
 
 Verification method codes: **T** = Test, **I** = Inspection, **A** = Analysis,

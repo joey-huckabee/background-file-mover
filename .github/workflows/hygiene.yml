@@ -33,5 +33,7 @@ jobs:
         run: node scripts/admin-ui/no-html-sinks.test.js
       - name: L2 traceability references
         run: python3 scripts/check_trace.py
+      - name: L1 roll-up matches L2 parents and evidence
+        run: python3 scripts/trace_l1.py
       - name: Embedded retry-context vectors match the contract copy
         run: cmp docs/api/retry-context.candidate.vectors.json rust/crates/file-mover/src/retry_context.vectors.json
