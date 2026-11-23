@@ -2604,6 +2604,143 @@ fn unsafe_startup_configuration_is_rejected() {
     }
 }
 #[test]
+fn two_delivery_jobs_overlap_at_the_copy_pause() {
+    if !cfg!(feature = "nfs-qualification") {
+        eprintln!("SKIP: delivery overlap rendezvous requires nfs-qualification");
+        return;
+    }
+    struct PausedService {
+        fixture: Fixture,
+        rendezvous: PathBuf,
+    }
+    impl Drop for PausedService {
+        fn drop(&mut self) {
+            // Release children before fixture teardown even when an assertion
+            // unwinds. Stop only this owned service, never scan/kill other PIDs.
+            let _ = std::fs::write(self.rendezvous.join("go"), b"");
+            if self.fixture.child.is_some()
+                && std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    self.fixture.stop();
+                }))
+                .is_err()
+            {
+                eprintln!("delivery overlap cleanup could not stop its service cleanly");
+            }
+        }
+    }
+    fn paused_pid(path: &std::path::Path) -> u32 {
+        let deadline = Instant::now() + Duration::from_secs(20);
+        loop {
+            if let Ok(marker) = std::fs::read_to_string(path) {
+                let fields: Vec<_> = marker.split_whitespace().collect();
+                if fields.len() == 2
+                    && fields[1] == "copy_chunk"
+                    && let Ok(pid) = fields[0].parse::<u32>()
+                {
+                    return pid;
+                }
+            }
+            assert!(Instant::now() < deadline, "delivery did not reach copy_chunk");
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+
+    let f = Fixture::uninitialized(300);
+    f.set_config("delivery_concurrency", json!(2));
+    assert!(
+        initialize_source(&f.root.join("config.json"))
+            .status
+            .success()
+    );
+    provision_destination(&f);
+    let rendezvous = f.root.join("overlapping-copy");
+    std::fs::create_dir(&rendezvous).unwrap();
+    std::fs::set_permissions(&rendezvous, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let mut owned = PausedService {
+        fixture: f,
+        rendezvous: rendezvous.clone(),
+    };
+    let f = &mut owned.fixture;
+    let mut command = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap());
+    command
+        .env("FILE_MOVER_QUALIFICATION_PAUSE", "copy_chunk")
+        .env("FILE_MOVER_QUALIFICATION_RENDEZVOUS", &rendezvous);
+    f.start_command(command);
+    let mut jobs = Vec::new();
+    let mut pids = Vec::new();
+    for n in 0..2 {
+        let name = format!("overlap-{n}");
+        f.write(&name, format!("independent payload {n}").as_bytes());
+        let (code, response) = post_unbusy(f, &f.input(&name, json!([name.as_str()])));
+        assert_eq!(code, 202, "{response}");
+        assert!(handed_off(&response), "{response}");
+        jobs.push(response["job_id"].as_str().unwrap().to_owned());
+        pids.push(paused_pid(&rendezvous.join("ready")));
+        if n == 0 {
+            // The first child keeps its directory FD and waits for go. Moving
+            // its marker lets a second child use the existing exclusive marker
+            // protocol without releasing the first or changing runtime hooks.
+            std::fs::rename(rendezvous.join("ready"), rendezvous.join("first-ready")).unwrap();
+        }
+    }
+    assert_ne!(jobs[0], jobs[1]);
+    assert_ne!(
+        pids[0], pids[1],
+        "two distinct delivery children must be paused"
+    );
+    assert!(!rendezvous.join("go").exists());
+    let (ok, lifecycle) = local_status(f);
+    assert!(ok, "{lifecycle}");
+    assert_eq!(lifecycle["phase"], "Running");
+    let workers = lifecycle["workers"].as_array().unwrap();
+    for pid in &pids {
+        assert!(
+            workers.iter().any(|value| value.as_u64() == Some(u64::from(*pid))),
+            "paused child {pid} is not an owned live worker: {lifecycle}"
+        );
+        let cmdline = std::fs::read(format!("/proc/{pid}/cmdline")).unwrap();
+        assert!(
+            cmdline
+                .split(|byte| *byte == 0)
+                .any(|arg| arg == b"--internal-delivery-worker")
+        );
+    }
+    // Each separate job has copied bytes but cannot have persisted a copy
+    // receipt or published. Both owned child PIDs are live before either go.
+    for (n, id) in jobs.iter().enumerate() {
+        let (code, current) = status(f, id);
+        assert_eq!(code, 200, "{current}");
+        assert_eq!(current["details"]["files"][0]["transfer_phase"], "Intent");
+        assert_eq!(
+            std::fs::read(f.destination(id, ".staging/1.part")).unwrap(),
+            format!("independent payload {n}").as_bytes()
+        );
+        assert!(!f.destination(id, &format!("overlap-{n}")).exists());
+        assert!(!f.destination(id, "COMMITTED.json").exists());
+    }
+    std::fs::write(rendezvous.join("go"), b"").unwrap();
+    for (n, id) in jobs.iter().enumerate() {
+        wait_manifest(f, id); // Includes the applied Committed receipt before stop.
+        assert_eq!(
+            std::fs::read(f.destination(id, &format!("overlap-{n}"))).unwrap(),
+            format!("independent payload {n}").as_bytes()
+        );
+    }
+    f.stop();
+    let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+    for id in &jobs {
+        let current = store.status(id.parse().unwrap()).unwrap().unwrap();
+        assert!(current.job.recording.is_committed());
+        assert!(
+            current.delivery.is_none(),
+            "unexpected delivery failure/deferral"
+        );
+        assert_eq!(current.transfers.len(), 1);
+        assert_eq!(current.transfers[0].as_ref().unwrap().attempt, 1);
+    }
+}
+
+#[test]
 fn parallel_delivery_commits_every_job_exactly_once() {
     let mut f = Fixture::new(300);
     f.stop();
