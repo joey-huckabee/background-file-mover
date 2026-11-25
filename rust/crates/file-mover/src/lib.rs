@@ -1700,7 +1700,9 @@ impl SharedCustody {
                         "destination_serialized_fallback",
                         Some(id),
                         None,
-                        Some(crate::logging::Detail::error(error.as_ref())),
+                        Some(crate::logging::Detail::error(
+                            Box::<dyn std::error::Error>::from(error.clone()).as_ref()
+                        )),
                         eprintln!(
                             "Shared destination custody for delivery {id} unavailable ({error}); using the serialized lane"
                         )
