@@ -13,8 +13,8 @@ mod diagnostic;
 pub mod enrollment;
 mod http;
 pub mod ingress;
-mod missing_retry;
 pub mod logging;
+mod missing_retry;
 pub mod native;
 pub mod password;
 pub mod payload;
@@ -1672,9 +1672,15 @@ impl SharedCustody {
                     return Lane::Shared(lock);
                 }
                 Err(error) => {
-                    crate::logging::diagnostic_line!(Warn, "destination_serialized_fallback", Some(id), None, eprintln!(
-                        "Shared destination custody for delivery {id} unavailable ({error}); using the serialized lane"
-                    ));
+                    crate::logging::diagnostic_line!(
+                        Warn,
+                        "destination_serialized_fallback",
+                        Some(id),
+                        None,
+                        eprintln!(
+                            "Shared destination custody for delivery {id} unavailable ({error}); using the serialized lane"
+                        )
+                    );
                     return Lane::Serialized(serial);
                 }
             }

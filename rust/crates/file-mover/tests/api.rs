@@ -2542,12 +2542,18 @@ fn slow_client_does_not_block_health_and_concurrent_replays_are_bounded() {
 }
 fn configure_logging_measurement(f: &Fixture) -> String {
     let level = std::env::var("FILE_MOVER_TEST_LOGGING_LEVEL").unwrap_or_else(|_| "off".into());
-    assert!(["off", "info", "debug"].contains(&level.as_str()), "invalid measurement log level");
+    assert!(
+        ["off", "info", "debug"].contains(&level.as_str()),
+        "invalid measurement log level"
+    );
     if level != "off" {
         let directory = f.root.join("logs");
         std::fs::create_dir(&directory).unwrap();
         std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o700)).unwrap();
-        f.set_config("logging", json!({"enabled":true,"level":level,"file":directory.join("service.log")}));
+        f.set_config(
+            "logging",
+            json!({"enabled":true,"level":level,"file":directory.join("service.log")}),
+        );
     }
     level
 }
@@ -2558,97 +2564,175 @@ fn logging_fixed_work_delivery_benchmark() {
     let mut f = Fixture::uninitialized(300);
     let level = configure_logging_measurement(&f);
     f.set_config("delivery_concurrency", json!(4));
-    assert!(initialize_source(&f.root.join("config.json")).status.success());
+    assert!(
+        initialize_source(&f.root.join("config.json"))
+            .status
+            .success()
+    );
     provision_destination(&f);
     let bytes = vec![b'x'; 1024 * 1024];
-    for n in 0..8 { f.write(&format!("benchmark-{n}"), &bytes); }
+    for n in 0..8 {
+        f.write(&format!("benchmark-{n}"), &bytes);
+    }
     f.start();
-    let started = Instant::now(); let mut jobs = Vec::new();
+    let started = Instant::now();
+    let mut jobs = Vec::new();
     for n in 0..8 {
         let name = format!("benchmark-{n}");
         let (code, reply) = post_unbusy(&f, &f.input(&name, json!([name.as_str()])));
-        assert_eq!(code, 202, "{reply}"); jobs.push(reply["job_id"].as_str().unwrap().to_owned());
+        assert_eq!(code, 202, "{reply}");
+        jobs.push(reply["job_id"].as_str().unwrap().to_owned());
     }
     for (n, id) in jobs.iter().enumerate() {
         wait_manifest(&f, id);
-        assert_eq!(std::fs::read(f.destination(id, &format!("benchmark-{n}"))).unwrap(), bytes);
+        assert_eq!(
+            std::fs::read(f.destination(id, &format!("benchmark-{n}"))).unwrap(),
+            bytes
+        );
     }
-    let seconds = started.elapsed().as_secs_f64(); f.stop();
+    let seconds = started.elapsed().as_secs_f64();
+    f.stop();
     let store = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
     assert_eq!(store.job_count().unwrap(), 8);
-    for id in jobs { let status = store.status(id.parse().unwrap()).unwrap().unwrap();
-        assert!(status.job.recording.is_committed()); assert!(status.delivery.is_none()); }
-    eprintln!("LOGGING_DELIVERY level={level} jobs=8 bytes={} elapsed_seconds={seconds:.6} bytes_per_second={:.3}",
-        8 * bytes.len(), (8 * bytes.len()) as f64 / seconds);
+    for id in jobs {
+        let status = store.status(id.parse().unwrap()).unwrap().unwrap();
+        assert!(status.job.recording.is_committed());
+        assert!(status.delivery.is_none());
+    }
+    eprintln!(
+        "LOGGING_DELIVERY level={level} jobs=8 bytes={} elapsed_seconds={seconds:.6} bytes_per_second={:.3}",
+        8 * bytes.len(),
+        (8 * bytes.len()) as f64 / seconds
+    );
 }
 
 #[test]
 fn enabled_logging_keeps_secrets_out_of_private_leveled_files_and_refuses_root_overlap() {
     let mut f = Fixture::uninitialized(300);
-    let directory = f.root.join("logs"); std::fs::create_dir(&directory).unwrap();
+    let directory = f.root.join("logs");
+    std::fs::create_dir(&directory).unwrap();
     std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o700)).unwrap();
-    f.set_config("logging", json!({"enabled":true,"level":"debug","file":directory.join("service.log")}));
-    let mut c: file_mover::Config = serde_json::from_slice(&std::fs::read(f.root.join("config.json")).unwrap()).unwrap();
+    f.set_config(
+        "logging",
+        json!({"enabled":true,"level":"debug","file":directory.join("service.log")}),
+    );
+    let mut c: file_mover::Config =
+        serde_json::from_slice(&std::fs::read(f.root.join("config.json")).unwrap()).unwrap();
     assert!(c.validate().is_ok());
-    for root in [c.source_root.clone(), c.destination_root.clone(), f.root.join("state").to_str().unwrap().into()] {
-        c.logging.file = Some(format!("{root}/logs/service.log")); assert!(c.validate().is_err());
+    for root in [
+        c.source_root.clone(),
+        c.destination_root.clone(),
+        f.root.join("state").to_str().unwrap().into(),
+    ] {
+        c.logging.file = Some(format!("{root}/logs/service.log"));
+        assert!(c.validate().is_err());
     }
-    assert!(initialize_source(&f.root.join("config.json")).status.success());
-    provision_destination(&f); f.write("private-name-sentinel", b"password cookie token key-bytes-sentinel");
+    assert!(
+        initialize_source(&f.root.join("config.json"))
+            .status
+            .success()
+    );
+    provision_destination(&f);
+    f.write(
+        "private-name-sentinel",
+        b"password cookie token key-bytes-sentinel",
+    );
     f.start();
-    let (code, reply) = post_unbusy(&f, &f.input("logging-private", json!(["private-name-sentinel"])));
-    assert_eq!(code, 202, "{reply}"); let id = reply["job_id"].as_str().unwrap(); wait_manifest(&f, id);
+    let (code, reply) = post_unbusy(
+        &f,
+        &f.input("logging-private", json!(["private-name-sentinel"])),
+    );
+    assert_eq!(code, 202, "{reply}");
+    let id = reply["job_id"].as_str().unwrap();
+    wait_manifest(&f, id);
     f.stop();
     let text = std::fs::read_to_string(directory.join("service.log")).unwrap();
     assert!(text.contains("level=info code=service_ready"), "{text}");
-    assert!(text.contains("code=delivery_started")); assert!(text.contains("code=delivery_completed"));
-    assert!(!text.contains("private-name-sentinel")); assert!(!text.contains("key-bytes-sentinel"));
-    assert!(!text.contains("password")); assert!(!text.contains("cookie"));
+    assert!(text.contains("code=delivery_started"));
+    assert!(text.contains("code=delivery_completed"));
+    assert!(!text.contains("private-name-sentinel"));
+    assert!(!text.contains("key-bytes-sentinel"));
+    assert!(!text.contains("password"));
+    assert!(!text.contains("cookie"));
     assert!(text.lines().all(|line| line.len() <= 1024));
 }
 
 #[test]
 fn logging_off_preserves_exact_readiness_and_stderr_without_logger_resources() {
     let mut f = Fixture::uninitialized(300);
-    assert!(initialize_source(&f.root.join("config.json")).status.success());
+    assert!(
+        initialize_source(&f.root.join("config.json"))
+            .status
+            .success()
+    );
     let mut captured = Vec::new();
     for explicit_off in [false, true] {
         if explicit_off {
-            f.set_config("logging", json!({"enabled":false,"level":"off",
-                "file":f.root.join("never-created-logs/service.log")}));
+            f.set_config(
+                "logging",
+                json!({"enabled":false,"level":"off",
+                "file":f.root.join("never-created-logs/service.log")}),
+            );
         }
-        let c: file_mover::Config = serde_json::from_slice(
-            &std::fs::read(f.root.join("config.json")).unwrap()).unwrap();
-        f.child = Some(Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
-            .arg(f.root.join("config.json")).stdout(Stdio::piped()).stderr(Stdio::piped())
-            .spawn().unwrap());
+        let c: file_mover::Config =
+            serde_json::from_slice(&std::fs::read(f.root.join("config.json")).unwrap()).unwrap();
+        f.child = Some(
+            Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
+                .arg(f.root.join("config.json"))
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .unwrap(),
+        );
         let deadline = Instant::now() + Duration::from_secs(10);
         loop {
-            if let Ok(mut stream) = TcpStream::connect_timeout(&f.address, Duration::from_millis(100)) {
-                stream.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
-                stream.write_all(b"GET /healthz HTTP/1.1\r\nHost: localhost\r\n\r\n").unwrap();
+            if let Ok(mut stream) =
+                TcpStream::connect_timeout(&f.address, Duration::from_millis(100))
+            {
+                stream
+                    .set_read_timeout(Some(Duration::from_secs(1)))
+                    .unwrap();
+                stream
+                    .write_all(b"GET /healthz HTTP/1.1\r\nHost: localhost\r\n\r\n")
+                    .unwrap();
                 let mut response = String::new();
-                if stream.read_to_string(&mut response).is_ok() && response.starts_with("HTTP/1.1 200 ") { break; }
+                if stream.read_to_string(&mut response).is_ok()
+                    && response.starts_with("HTTP/1.1 200 ")
+                {
+                    break;
+                }
             }
-            assert!(f.child.as_mut().unwrap().try_wait().unwrap().is_none(), "OFF startup exited");
+            assert!(
+                f.child.as_mut().unwrap().try_wait().unwrap().is_none(),
+                "OFF startup exited"
+            );
             assert!(Instant::now() < deadline, "OFF readiness timeout");
             std::thread::sleep(Duration::from_millis(20));
         }
-        for task in std::fs::read_dir(format!("/proc/{}/task", f.child.as_ref().unwrap().id())).unwrap() {
+        for task in
+            std::fs::read_dir(format!("/proc/{}/task", f.child.as_ref().unwrap().id())).unwrap()
+        {
             let comm = std::fs::read_to_string(task.unwrap().path().join("comm")).unwrap();
             assert!(!comm.starts_with("mover-log-"), "OFF started {comm}");
         }
         let mut stdout = f.child.as_mut().unwrap().stdout.take().unwrap();
         let mut stderr = f.child.as_mut().unwrap().stderr.take().unwrap();
         f.stop();
-        let mut out = Vec::new(); let mut err = Vec::new();
-        stdout.read_to_end(&mut out).unwrap(); stderr.read_to_end(&mut err).unwrap();
+        let mut out = Vec::new();
+        let mut err = Vec::new();
+        stdout.read_to_end(&mut out).unwrap();
+        stderr.read_to_end(&mut err).unwrap();
         assert_eq!(out, format!("Ready on {}\n", f.address).as_bytes());
         let mut expected = String::new();
         if cfg!(feature = "nfs-qualification") {
-            expected.push_str("NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\n");
+            expected.push_str(
+                "NFS QUALIFICATION BUILD: isolated testing only; not approved for deployment\n",
+            );
         }
-        expected.push_str(&format!("Source-space admission policy: {}\n", serde_json::to_string(&c.source_space_admission).unwrap()));
+        expected.push_str(&format!(
+            "Source-space admission policy: {}\n",
+            serde_json::to_string(&c.source_space_admission).unwrap()
+        ));
         assert_eq!(err, expected.as_bytes());
         assert!(!f.root.join("never-created-logs").exists());
         captured.push((out, err));

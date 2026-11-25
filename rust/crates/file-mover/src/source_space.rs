@@ -256,10 +256,16 @@ impl Monitor {
         } else {
             None
         };
-        crate::logging::diagnostic_line!(Info, "source_space_policy", None, None, eprintln!(
-            "Source-space admission policy: {}",
-            serde_json::to_string(&handle.policy).expect("policy serialization")
-        ));
+        crate::logging::diagnostic_line!(
+            Info,
+            "source_space_policy",
+            None,
+            None,
+            eprintln!(
+                "Source-space admission policy: {}",
+                serde_json::to_string(&handle.policy).expect("policy serialization")
+            )
+        );
         Ok(Self {
             handle,
             thread,
@@ -288,7 +294,13 @@ fn decode(request: &Request, bytes: &[u8]) -> Result<SpaceStatistics, Failure> {
         {
             return Err(Failure::Unavailable);
         }
-        crate::logging::diagnostic_line!(Warn, "source_space_worker_refused", None, None, eprintln!("Source-space worker: {detail}"));
+        crate::logging::diagnostic_line!(
+            Warn,
+            "source_space_worker_refused",
+            None,
+            None,
+            eprintln!("Source-space worker: {detail}")
+        );
     }
     match (reply.statistics, reply.error) {
         (Some([available_blocks, total_blocks, fragment_size]), None)

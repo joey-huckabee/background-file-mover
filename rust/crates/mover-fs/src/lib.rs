@@ -105,10 +105,10 @@ pub const fn nfs_qualification_enabled() -> bool {
 }
 
 pub mod account_file;
-pub mod log_file;
 mod binding;
 pub mod credentials;
 pub mod ingress;
+pub mod log_file;
 pub mod terminal;
 /// SHA-256 in the existing qualified software provider, formatted as canonical hex.
 pub fn sha256_hex(bytes: &[u8]) -> String {

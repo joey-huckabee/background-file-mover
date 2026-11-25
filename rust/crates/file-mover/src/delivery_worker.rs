@@ -374,7 +374,13 @@ impl Session {
             {
                 return Err("invalid failure diagnostic".into());
             }
-            crate::logging::diagnostic_line!(Warn, "delivery_worker_refused", Some(self.job), None, eprintln!("Delivery worker sequence {}: {detail}", self.sequence));
+            crate::logging::diagnostic_line!(
+                Warn,
+                "delivery_worker_refused",
+                Some(self.job),
+                None,
+                eprintln!("Delivery worker sequence {}: {detail}", self.sequence)
+            );
             self.diagnostic = Some(detail.clone());
         }
         if capacity {
