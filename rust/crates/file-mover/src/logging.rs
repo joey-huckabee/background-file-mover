@@ -72,8 +72,8 @@ impl Logging {
         if self.active() && self.file.is_none() {
             return Err("enabled logging requires an absolute file path");
         }
-        if let Some(file) = &self.file {
-            if !file.starts_with('/')
+        if let Some(file) = &self.file
+            && (!file.starts_with('/')
                 || file.len() > 4095
                 || file[1..].split('/').any(|p| {
                     p.is_empty()
@@ -84,10 +84,9 @@ impl Logging {
                 })
                 || Path::new(file).file_name().is_none_or(|n| n.len() > 240)
                 || file.len() + 5 > 4095
-                || Path::new(file).parent() == Some(Path::new("/"))
-            {
-                return Err("invalid logging file path");
-            }
+                || Path::new(file).parent() == Some(Path::new("/")))
+        {
+            return Err("invalid logging file path");
         }
         Ok(())
     }

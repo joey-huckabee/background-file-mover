@@ -47,7 +47,7 @@ fn logging_file_creation_rotation_and_lock_keep_private_custody() {
     assert_eq!(stat.gid(), std::fs::metadata(&f.0).unwrap().gid());
     assert_eq!(stat.nlink(), 1);
     assert!(LogFile::open(&f.file(), 65536, 2).is_err());
-    let line = [b'x'; 1023].into_iter().chain([b'\n']).collect::<Vec<_>>();
+    let line = [b'x'; 1023].into_iter().chain(*b"\n").collect::<Vec<_>>();
     for _ in 0..200 {
         log.append(&line).unwrap();
     }
