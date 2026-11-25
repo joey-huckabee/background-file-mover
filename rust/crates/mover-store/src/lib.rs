@@ -19,12 +19,12 @@ use std::{
 mod admin_retry;
 mod cancellations;
 mod deletions;
-mod source_cleanups;
 mod private_leftovers;
-pub use private_leftovers::{PrivateLeftover, PRIVATE_LEFTOVERS};
+mod source_cleanups;
 pub use deletions::{
     DeleteKind, DeleteTarget, DeletionScope, DeletionStart, DeletionView, DestinationWork,
 };
+pub use private_leftovers::{PRIVATE_LEFTOVERS, PrivateLeftover};
 pub use source_cleanups::{CleanupWork, SourceCleanupView, backoff_seconds};
 mod problems;
 pub use cancellations::{CancelOutcome, CancelState, Cancellation};

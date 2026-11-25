@@ -194,7 +194,9 @@ struct Request {
     #[serde(default)]
     source_authorization: Option<mover_fs::SourceAuthorization>,
 }
-fn no_leftovers(value: &bool) -> bool { !*value }
+fn no_leftovers(value: &bool) -> bool {
+    !*value
+}
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Reply {
@@ -370,9 +372,17 @@ impl Session {
         if reply.version != 2 || reply.sequence != self.sequence {
             return Err("delivery receipt sequence mismatch".into());
         }
-        if reply.private_leftovers && (!removing || reply.error.is_some() || reply.transfer.is_some()
-            || reply.manifest.is_some() || reply.diagnostic.is_some() || reply.failure.is_some()
-            || reply.destination_authorization.is_some()) { return Err("invalid private-leftover receipt".into()); }
+        if reply.private_leftovers
+            && (!removing
+                || reply.error.is_some()
+                || reply.transfer.is_some()
+                || reply.manifest.is_some()
+                || reply.diagnostic.is_some()
+                || reply.failure.is_some()
+                || reply.destination_authorization.is_some())
+        {
+            return Err("invalid private-leftover receipt".into());
+        }
         let capacity = capacity_hint(&reply, copying)?;
         if let Some(detail) = &reply.diagnostic {
             if reply.error.is_none()
@@ -484,7 +494,10 @@ pub(crate) fn clean_sources(
             )?;
             let leftovers = receipt.private_leftovers;
             ok(receipt)?;
-            outcomes.push((index, leftovers.then(|| mover_store::PRIVATE_LEFTOVERS.to_owned())));
+            outcomes.push((
+                index,
+                leftovers.then(|| mover_store::PRIVATE_LEFTOVERS.to_owned()),
+            ));
             current = None;
         }
         Ok(())
@@ -1395,7 +1408,8 @@ pub fn worker() -> Result<()> {
                             {
                                 return Err("delivered set not verified".into());
                             }
-                            reply.private_leftovers = mover_fs::discard_retained_source_report(&c)?.1;
+                            reply.private_leftovers =
+                                mover_fs::discard_retained_source_report(&c)?.1;
                             return after(&mut checking_destination);
                         }
                         command => command,

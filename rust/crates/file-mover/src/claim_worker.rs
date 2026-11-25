@@ -107,7 +107,9 @@ enum Failure {
     ExpectedSizeMismatch,
     Blocked,
 }
-fn no_leftovers(value: &bool) -> bool { !*value }
+fn no_leftovers(value: &bool) -> bool {
+    !*value
+}
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Receipt {
@@ -140,8 +142,13 @@ fn request_diagnosed(
 ) -> Result<ClaimIntent, ClaimError> {
     request_reported(assignment, guard, stop, diagnostic, &mut false)
 }
-fn request_reported(assignment: &Assignment, guard: &LocalClaimLock, stop: &AtomicBool,
-    diagnostic: &mut Option<String>, leftovers: &mut bool) -> Result<ClaimIntent, ClaimError> {
+fn request_reported(
+    assignment: &Assignment,
+    guard: &LocalClaimLock,
+    stop: &AtomicBool,
+    diagnostic: &mut Option<String>,
+    leftovers: &mut bool,
+) -> Result<ClaimIntent, ClaimError> {
     let bytes = serde_json::to_vec(&Request {
         assignment: assignment.clone(),
         source_authorization: guard.source_authorization().cloned(),
@@ -160,7 +167,12 @@ fn request_reported(assignment: &Assignment, guard: &LocalClaimLock, stop: &Atom
         LIMIT as u64,
     )
     .map_err(|_| ClaimError::OutcomeUncertain)?;
-    decode_receipt_reported(&bytes, diagnostic, matches!(assignment, Assignment::Discard { .. }), leftovers)
+    decode_receipt_reported(
+        &bytes,
+        diagnostic,
+        matches!(assignment, Assignment::Discard { .. }),
+        leftovers,
+    )
 }
 #[cfg(test)]
 fn decode_receipt(bytes: &[u8]) -> Result<ClaimIntent, ClaimError> {
@@ -173,10 +185,20 @@ fn decode_receipt_diagnosed(
 ) -> Result<ClaimIntent, ClaimError> {
     decode_receipt_reported(bytes, diagnostic, false, &mut false)
 }
-fn decode_receipt_reported(bytes: &[u8], diagnostic: &mut Option<String>, allow_leftovers: bool,
-    leftovers: &mut bool) -> Result<ClaimIntent, ClaimError> {
+fn decode_receipt_reported(
+    bytes: &[u8],
+    diagnostic: &mut Option<String>,
+    allow_leftovers: bool,
+    leftovers: &mut bool,
+) -> Result<ClaimIntent, ClaimError> {
     let reply: Receipt = serde_json::from_slice(bytes).map_err(|_| ClaimError::OutcomeUncertain)?;
-    if reply.version != 1 || (reply.private_leftovers && (!allow_leftovers || reply.error.is_some() || reply.claim.is_none() || reply.diagnostic.is_some())) {
+    if reply.version != 1
+        || (reply.private_leftovers
+            && (!allow_leftovers
+                || reply.error.is_some()
+                || reply.claim.is_none()
+                || reply.diagnostic.is_some()))
+    {
         return Err(ClaimError::OutcomeUncertain);
     }
     if let Some(detail) = &reply.diagnostic {
@@ -790,7 +812,10 @@ mod tests {
         let bytes = br#"{"version":1,"claim":null,"error":"blocked","diagnostic":null,"private_leftovers":true}"#;
         for allowed in [false, true] {
             let mut warning = false;
-            assert!(matches!(decode_receipt_reported(bytes, &mut None, allowed, &mut warning), Err(ClaimError::OutcomeUncertain)));
+            assert!(matches!(
+                decode_receipt_reported(bytes, &mut None, allowed, &mut warning),
+                Err(ClaimError::OutcomeUncertain)
+            ));
             assert!(!warning);
         }
     }

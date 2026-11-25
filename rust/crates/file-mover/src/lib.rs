@@ -1303,10 +1303,18 @@ fn job_view(snapshot: &mover_store::JobStatus) -> JobView {
             .insert("cancellation".into(), cancellation_view(Some(c)));
     }
     if !snapshot.private_leftovers.is_empty() {
-        details.as_object_mut().expect("status object").insert("private_leftovers".into(),
-            serde_json::json!(snapshot.private_leftovers.iter().map(|w| serde_json::json!({
-                "file_id": w.file_index.to_string(), "folder_path": w.folder_path,
-            })).collect::<Vec<_>>()));
+        details.as_object_mut().expect("status object").insert(
+            "private_leftovers".into(),
+            serde_json::json!(
+                snapshot
+                    .private_leftovers
+                    .iter()
+                    .map(|w| serde_json::json!({
+                        "file_id": w.file_index.to_string(), "folder_path": w.folder_path,
+                    }))
+                    .collect::<Vec<_>>()
+            ),
+        );
     }
     if let Some(problem) = &snapshot.problem {
         details

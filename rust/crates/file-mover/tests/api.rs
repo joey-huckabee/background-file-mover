@@ -7763,12 +7763,28 @@ fn retained_copy_deletion_reports_kept_private_folder_without_deleting_extra_fil
     let before = std::fs::metadata(&extra).unwrap();
     {
         let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
-        let (_, digest) = s.deletion_preview(1, mover_store::DeletionScope::Source).unwrap().unwrap();
-        assert!(matches!(s.start_deletion(1, mover_store::DeletionScope::Source,
-            "dashboard-account", &"a".repeat(64), &digest, 100).unwrap(), mover_store::DeletionStart::Started(_)));
+        let (_, digest) = s
+            .deletion_preview(1, mover_store::DeletionScope::Source)
+            .unwrap()
+            .unwrap();
+        assert!(matches!(
+            s.start_deletion(
+                1,
+                mover_store::DeletionScope::Source,
+                "dashboard-account",
+                &"a".repeat(64),
+                &digest,
+                100
+            )
+            .unwrap(),
+            mover_store::DeletionStart::Started(_)
+        ));
     }
     f.start();
-    assert_eq!(wait_deletion(&f, "1"), json!({"completion_pending":false,"deleted_count":1,"failed_count":0}));
+    assert_eq!(
+        wait_deletion(&f, "1"),
+        json!({"completion_pending":false,"deleted_count":1,"failed_count":0})
+    );
     let expected = json!([{"file_id":"0","folder_path":area.to_str().unwrap()}]);
     let (_, body) = status(&f, "1");
     assert_eq!(body["details"]["private_leftovers"], expected);
@@ -7777,9 +7793,18 @@ fn retained_copy_deletion_reports_kept_private_folder_without_deleting_extra_fil
     assert!(area.is_dir());
     assert_eq!(std::fs::read(&extra).unwrap(), b"must stay untouched");
     let after = std::fs::metadata(&extra).unwrap();
-    assert_eq!((after.dev(), after.ino(), after.mode()), (before.dev(), before.ino(), before.mode()));
-    assert_eq!((after.mtime(), after.mtime_nsec()), (before.mtime(), before.mtime_nsec()));
-    assert_eq!(std::fs::read(f.destination("1", "data")).unwrap(), b"delivered payload");
+    assert_eq!(
+        (after.dev(), after.ino(), after.mode()),
+        (before.dev(), before.ino(), before.mode())
+    );
+    assert_eq!(
+        (after.mtime(), after.mtime_nsec()),
+        (before.mtime(), before.mtime_nsec())
+    );
+    assert_eq!(
+        std::fs::read(f.destination("1", "data")).unwrap(),
+        b"delivered payload"
+    );
     // Durable across restart; replay remains the same accepted job.
     f.stop();
     f.start();
@@ -7788,7 +7813,10 @@ fn retained_copy_deletion_reports_kept_private_folder_without_deleting_extra_fil
     f.stop();
     {
         let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
-        assert_eq!(s.admin_clear(1, |_| false).unwrap(), mover_store::ClearOutcome::Cleared);
+        assert_eq!(
+            s.admin_clear(1, |_| false).unwrap(),
+            mover_store::ClearOutcome::Cleared
+        );
     }
     // Clearing history forgets the warning; it does not clean unknown files.
     assert!(area.is_dir());
