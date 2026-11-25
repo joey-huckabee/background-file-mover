@@ -629,3 +629,30 @@ fn clock_diagnostics_use_a_reset_windows_own_start() {
         vec![job.job_id]
     );
 }
+
+#[test]
+fn discard_report_warns_for_kept_folder_on_removal_and_absence() {
+    let f = Fixture::new();
+    let store = f.store();
+    f.write("data", b"retained");
+    let job = store.accept(&f.input("report-leftovers", &[("data", None)]), &f.context()).unwrap();
+    claim(&store, job.job_id, 0).unwrap();
+    let (intent, _) = store.claim_intent(job.job_id, 0).unwrap().unwrap();
+    let area = f.0.join(".file-mover").join(&intent.private_name);
+    let extra = area.join("unmanaged-extra");
+    std::fs::write(&extra, b"untouched").unwrap();
+    assert_eq!(mover_fs::discard_retained_source_report(&intent).unwrap(), (Discarded::Removed, true));
+    assert!(!area.join("data").exists());
+    assert!(area.is_dir());
+    assert_eq!(std::fs::read(&extra).unwrap(), b"untouched");
+    // Reconcile a lost receipt: absence still reports the kept folder.
+    assert_eq!(mover_fs::discard_retained_source_report(&intent).unwrap(), (Discarded::AlreadyAbsent, true));
+    assert!(area.is_dir());
+    assert_eq!(std::fs::read(extra).unwrap(), b"untouched");
+    f.write("second", b"second copy");
+    let second = store.accept(&f.input("no-leftovers", &[("second", None)]), &f.context()).unwrap();
+    claim(&store, second.job_id, 0).unwrap();
+    let second = store.claim_intent(second.job_id, 0).unwrap().unwrap().0;
+    assert_eq!(mover_fs::discard_retained_source_report(&second).unwrap(), (Discarded::Removed, false));
+    assert_eq!(mover_fs::discard_retained_source_report(&second).unwrap(), (Discarded::AlreadyAbsent, false));
+}

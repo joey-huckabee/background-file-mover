@@ -4945,3 +4945,39 @@ fn file_name_search_matches_nested_paths_newest_first_in_bounded_chunks() {
         "{plan:?}"
     );
 }
+
+#[test]
+fn source_cleanup_leftover_warning_survives_restart_without_failure_or_retry() {
+    let f = Fixture::new();
+    let s = Store::open(f.db()).unwrap();
+    s.prepare_source_ownership("/mnt/recordings", "binding", "observed", "receipt").unwrap();
+    let job = history_job_with(&s, "leftover-warning", 4, true);
+    let work = s.next_source_cleanup(100, 16).unwrap().unwrap();
+    assert_eq!(work.job_id, job.job_id);
+    let intent = s.claim_intent(job.job_id, 0).unwrap().unwrap().0;
+    let expected = vec![PrivateLeftover { file_index: 0,
+        folder_path: format!("{}/.file-mover/{}", intent.root_path, intent.private_name) }];
+    // The warning must never bypass authorization before removal.
+    assert!(s.finish_source_cleanup(job.job_id, &[(0, Some(PRIVATE_LEFTOVERS.into()))], 101).is_err());
+    s.authorize_source_cleanup(job.job_id, 0, 101).unwrap();
+    s.finish_source_cleanup(job.job_id, &[(0, Some(PRIVATE_LEFTOVERS.into()))], 102).unwrap();
+    let status = s.status(job.job_id).unwrap().unwrap();
+    assert_eq!(status.private_leftovers, expected);
+    let cleanup = status.source_cleanup.unwrap();
+    assert_eq!((cleanup.removed, cleanup.pending, cleanup.failed), (1, 0, 0));
+    assert_eq!(cleanup.last_error, None);
+    assert_eq!(cleanup.next_attempt_at, None);
+    assert!(s.next_source_cleanup(200, 16).unwrap().is_none());
+    drop(s);
+    let s = Store::open(f.db()).unwrap();
+    assert_eq!(s.status(job.job_id).unwrap().unwrap().private_leftovers, expected);
+    // Group 50 clear forgets warnings together with all other job linkage.
+    assert_eq!(s.admin_clear(job.job_id, |_| false).unwrap(), ClearOutcome::Cleared);
+    assert!(s.status(job.job_id).unwrap().is_none());
+    drop(s);
+    let c = Connection::open(f.db()).unwrap();
+    for table in ["source_cleanups", "deletion_targets"] {
+        let count: i64 = c.query_row(&format!("SELECT count(*) FROM {table} WHERE job_id=?1"), [job.job_id], |r| r.get(0)).unwrap();
+        assert_eq!(count, 0);
+    }
+}

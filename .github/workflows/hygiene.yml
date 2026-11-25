@@ -31,6 +31,8 @@ jobs:
         run: node scripts/admin-ui/file-search.test.js
       - name: Dashboard has no HTML sinks or inline handlers
         run: node scripts/admin-ui/no-html-sinks.test.js
+      - name: Private leftover warning text and attention classification
+        run: node scripts/admin-ui/private-leftovers.test.js
       - name: L2 traceability references
         run: python3 scripts/check_trace.py
       - name: L1 roll-up matches L2 parents, evidence and coverage reviews
