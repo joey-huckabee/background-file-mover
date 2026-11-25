@@ -23,14 +23,14 @@ and all release gates remain open. The two decisions settled on 2026-11-21
 remain separate. Frozen v2/legacy bytes, original-state recovery and prior
 safety authorizations are unchanged.
 
-## Later user decisions and logging backlog (2026-11-22)
+## Later user decisions and logging backlog (2026-11-23)
 
-- **Accepted 2026-11-22 — L2-JOB-014 (D02):** the restored rule that a failed
+- **Accepted 2026-11-23 — L2-JOB-014 (D02):** the restored rule that a failed
   record/unrecorded effect never authorizes source deletion or silent continuation.
-- **Accepted 2026-11-22 — L2-SEC-008 (D06):** the restored unconditional ban on
+- **Accepted 2026-11-23 — L2-SEC-008 (D06):** the restored unconditional ban on
   `system(3)`/shell invocation; Rust Command with explicit argv is the mechanism,
   not a restriction of that ban to worker launches.
-- **Rejected 2026-11-22 — L2-CLI-006 (supersedes this part of D07):** the
+- **Rejected 2026-11-23 — L2-CLI-006 (supersedes this part of D07):** the
   software-manages-no-log-files clause. Replace it with configurable daemon
   logging: leveled journal stderr plus an explicitly enabled managed/rotated
   file; default OFF; configuration-file levels off/error/warn/info/debug;
@@ -39,18 +39,24 @@ safety authorizations are unchanged.
   write/full-disk errors into transfer failures. Secret redaction, non-terminal
   service/automation and command-result stdout remain required.
 
-**Approved backlog (2026-11-22): L2-CLI-006 — configurable logging, pending
-review of [LOGGING-DESIGN.md](LOGGING-DESIGN.md) before implementation.** This
-is a later obligation, additional to the original D10–D12 backlog table below;
-it is not an approval of the design's proposed limits or unresolved assumptions.
-Confirm minimal OFF-mode readiness/error stderr versus total silence. Today's
-readiness actually uses stdout; the proposed stream move is identified in the
-design. No new crate is approved, and no runtime behavior changes here.
+**Approved backlog (2026-11-23): L2-CLI-006 — configurable logging, following
+the #108 revision.** [LOGGING-DESIGN.md](LOGGING-DESIGN.md) is reviewed and updated
+with the 2026-11-25 answers, pending merge before implementation. This is a later
+obligation, additional to the original D10–D12 backlog table below.
+The user settled the design on **2026-11-25**: OFF keeps exact legacy output,
+readiness on stdout and all existing stderr lines, with no dispatcher or other
+logging resources. Enabling requires a file and sends leveled output to both
+stderr/journal and file. Shared disk is allowed; the default total rotation cap
+is approximately 1 GiB. Info transfers may be at most 2% slower than OFF under
+the sustained-load test and delivery benchmark. Shutdown waits at most 250 ms
+for stuck logging writers, then proceeds to exit under existing custody rules.
+No new crate is approved, and no runtime behavior changes here.
 
 The original 79-ID cohort, D07 answer and index below remain historical audit
 records. CLI-006's existing trace Inspection describes the old implementation,
 not coverage of this newly approved backlog. Its formal requirement/disposition
-and checker bookkeeping must be reconciled together after design review;
+and checker bookkeeping must be reconciled together during implementation after
+design-PR merge;
 recording the decision does not claim logging shipped or overwrite evidence.
 
 ## D01 — Cancellation, deletion and retained partials
@@ -148,7 +154,7 @@ recording the decision does not claim logging shipped or overwrite evidence.
 
 **Decided 2026-11-22: (a) — user accepted the recommendation.**
 
-**Later clarification, 2026-11-22:** CLI-006’s no-managed-files/static logging
+**Later clarification, 2026-11-23 (after #108 revision):** CLI-006’s no-managed-files/static logging
 limit is superseded by the approved logging backlog above. This answer is the
 original ballot record, not acceptance of that superseded clause.
 

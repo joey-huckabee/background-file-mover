@@ -1,7 +1,9 @@
-# Configurable logging — design for review
+# Configurable logging — reviewed design
 
-2026-11-23 draft, based on `main` at `e0a606e`. **Design only: review is
-required before implementation.** User decisions are dated 2026-11-22. No
+2026-11-23 design, based on `main` at `e0a606e`; reviewed and updated with
+**user answers dated 2026-11-25**. The JOB-014/SEC-008 acceptance and CLI-006
+decision followed the #108 revision on **2026-11-23**. Implementation starts
+on a separate branch only after PR #114 merges. No
 logging configuration, writer, rotation, unit modification or new dependency is
 implemented or qualified by this document.
 
@@ -23,18 +25,15 @@ compression, log viewer or new audit/receipt authority is included. Restart
 applies changes. Transfers, original-state custody, failure accounting and
 all existing control/shutdown deadlines are unchanged.
 
-**Assumption requiring user confirmation:** OFF preserves a small best-effort
-stderr safety stream: readiness, terminal startup/service errors, persistence
-failures and the qualification-build prohibition. Repeated identical errors are
-coalesced. OFF does not mean total silence. Actual readiness is currently
-`println!` on **stdout** (`lib.rs:2507/2512/2514`); proposing stderr readiness
-is a stream change, not a claim that today's output is already there. Update
-readiness-capture tests deliberately; do not change command JSON stdout or
-worker IPC. An alternative is total daemon silence when OFF, including readiness
-and errors; it hides startup/storage failures from journal users and is not
-recommended. Foreground command errors/prompts and exit codes still work.
+**Decided 2026-11-25: OFF means today's exact output, unchanged.** Readiness
+stays on stdout and the same lines appear on stderr, byte for byte: no prefixes,
+new summaries, coalescing, filtering or stream moves. OFF creates no dispatcher
+thread, queues, writer, log file or lock and performs no log-path I/O. Preserve
+the existing print paths, including command results, prompts and worker IPC.
+This supersedes the draft's minimal-safety-stream/dispatcher proposal; total
+silence is not the selected policy.
 
-## Configuration proposal
+## Configuration
 
 Omitting `logging` is equivalent to:
 
@@ -44,9 +43,8 @@ Omitting `logging` is equivalent to:
     "enabled": false,
     "level": "off",
     "file": null,
-    "max_file_bytes": 10485760,
-    "max_files": 5,
-    "journal_levels": true
+    "max_file_bytes": 67108864,
+    "max_files": 16
   }
 }
 ```
@@ -55,14 +53,13 @@ An illustrative enabled block uses `enabled: true`, `level: "info"` and
 `file: "/var/log/file-mover/service.log"`; the parent must already exist under
 the service user's private custody. This is not an installation instruction.
 
-| Setting | Proposed validation / meaning |
+| Setting | Validation / meaning |
 |---|---|
 | `enabled` | Boolean, default false. New configurable logging is active only when true **and** a path/name is supplied **and** level is not off. |
 | `level` | Exactly `off`, `error`, `warn`, `info`, `debug`; default off. Threshold includes this level and all more severe levels. No trace level. |
 | `file` | Optional while inactive; required when enabled at a non-off level. Canonical absolute UTF-8 path, at most 4095 bytes including filename. Basename 1–240 bytes, leaving room for derived names; every derived full path must also fit. Parent and filename safety below. |
-| `max_file_bytes` | Integer, default 10 MiB; 64 KiB–1 GiB. Checked multiplication with `max_files` must not exceed 1 GiB. Includes header/newlines; no record exceeds 1024 bytes. |
-| `max_files` | Integer 1–20, default 5; counts current file **plus** retained numbered archives. |
-| `journal_levels` | Boolean, default true; controls `<N>` severity prefixes on daemon stderr, not whether errors are emitted or whether the host stores them. False uses plain severity names. |
+| `max_file_bytes` | Integer, default 64 MiB; 64 KiB–1 GiB. Checked multiplication with `max_files` must not exceed 1 GiB. Includes header/newlines; no record exceeds 1024 bytes. |
+| `max_files` | Integer 1–20, default 16; counts current file **plus** retained numbered archives. |
 
 Unknown fields, wrong types and enabled-at-non-off-without-path are configuration
 errors before startup effects. Either `enabled: false` or `level: "off"` disables
@@ -71,11 +68,13 @@ changing level to off alone is sufficient on restart. Validate all supplied
 values, path syntax/overlap and rotation bounds even when inactive, but perform
 no configured log-path I/O in OFF mode. No log file, lock or directory is created.
 
-The required path follows the user's enable-plus-path condition literally;
-there is **no new journal-only enabled mode** in this proposal. If “optional
-file” is intended to permit enabled journal-only logging, that needs a clarified
-configuration gate; do not silently enable it on a missing path. A configured
-file sink can degrade to journal-only after an I/O failure as described below.
+**Decided 2026-11-25:** enabling requires a file path/name; there is no
+journal-only configuration mode. When enabled, admitted leveled events go to
+both stderr with `<N>` priority prefixes and the managed file. A failed file
+sink may leave best-effort stderr reporting; that is failure degradation, not
+a journal-only enablement option. Prefixing is part of enabled logging, not an
+independent setting; OFF never adds prefixes. The default file-family cap is
+64 MiB × 16 = **1 GiB**, including the active file; rotate out the oldest file.
 
 Settings are startup-only, excluded from live TLS reload. Reload admission must
 reject changed logging settings just like other non-TLS configuration. Failure
@@ -90,7 +89,7 @@ or rewrites the persistence-error rules.
 | warn | `<4>` | Recoverable refusal, retained uncertain work, capacity retry or reduced capability. |
 | info | `<6>` | Readiness, normal lifecycle/cancellation and bounded policy summaries. |
 | debug | `<7>` | Additional bounded phase/scheduling diagnostics; no per-byte/per-chunk events. |
-| off | none selected | No configurable event stream/file; only the assumed minimal safety stream remains. |
+| off | unchanged | Exact legacy stdout/stderr behavior; no dispatcher or file sink. |
 
 The [candidate unit](../scripts/bundle/file-mover.service.in) does not override
 standard-output/error routing or `SyslogLevelPrefix`. Upstream systemd v228
@@ -104,8 +103,8 @@ The implementation should make `StandardError=journal` and
 `SyslogLevelPrefix=yes` explicit in the candidate when separately authorized;
 this PR changes no unit. Verify actual PRIORITY fields under the target manager
 and test disabled prefix parsing as a negative. Writing stderr alone does not
-assign severity. Plain terminal redirection sees literal prefixes when enabled;
-`journal_levels: false` is the foreground readability option. The journal's
+assign severity. Enabled daemon output redirected to a terminal displays the
+literal prefixes. OFF output and foreground command behavior are unchanged. The journal’s
 storage, quotas and retention remain host policy, separate from managed-file
 rotation. Readiness stays informational, not manager-ready notification.
 
@@ -170,8 +169,10 @@ listed separately. References: [lib.rs](../rust/crates/file-mover/src/lib.rs),
 
 No existing site needs debug merely to fill that level. Future debug events
 may describe phase boundaries, not buffers, requests or credentials. The three
-readiness stdout sites become info-level stderr events, retained by the OFF
-assumption. Command stdout, password-library test output and worker streams are
+readiness lines stay on stdout. When enabled and the threshold admits info,
+also emit a bounded `service_ready` event to both logging sinks; this does not
+replace the legacy readiness line. A journal capturing stdout may therefore
+contain the legacy line as well as the leveled event. Command stdout, password-library test output and worker streams are
 not logging sinks. Existing foreground no-echo prompts must remain synchronous
 foreground I/O, not queued/dropped logs; no terminal is required for the daemon
 or explicit account `--stdin` mode.
@@ -184,22 +185,22 @@ receipt decoders emit the sanitized events above; preserve protocol bytes.
 
 ## Bounded producers and isolated writers
 
-Proposed fixed budgets, not new configuration knobs:
+These fixed budgets apply **only when logging is enabled**, not in OFF mode:
 
 - Threshold check first: a cheap immutable/atomic level check returns before
   formatting, allocation, clock sampling, locks or channel operations for
-  suppressed configurable messages. OFF still permits the rare safety events.
+  suppressed configurable messages. OFF uses the untouched legacy print path
+  rather than this event/dispatcher path.
 - Capture a bounded typed event: constant code, level, optional numeric job/file
   index, numeric errno and allowlisted counters/reason enums. At most 256 bytes;
   no generic `Debug`/`Display` input or stored config/request object.
 - Two independent bounded channels, capacity 1024 events each, with
-  `try_send`: one for stderr and, only when enabled, one for the file writer.
+  `try_send`: one for stderr and one for the file writer.
   No producer waits for capacity, acknowledges a write, flushes, stats a path,
-  rotates, or falls back to direct `eprintln!` in a service loop. This covers
+  rotates, or falls back to direct `eprintln!` in an enabled service loop. This covers
   main control, claim, delivery, retry, cleanup and store callback paths.
-- One stderr-dispatch thread and one optional dedicated file-writer thread;
-  the latter never writes stderr directly. OFF needs only the minimal diagnostic
-  dispatcher (its OFF-mode resource cost is included in the benchmark). Use a
+- One stderr-dispatch thread and one dedicated file-writer thread when enabled;
+  the latter never writes stderr directly. OFF starts neither thread. Use a
   CLOEXEC duplicate of stderr with raw writer-side I/O, without holding a global
   stdio lock or changing inherited file-description flags. File stalls cannot
   stop journal dispatch; a blocked stderr sink
@@ -218,14 +219,13 @@ Proposed fixed budgets, not new configuration knobs:
   Below-threshold messages are not queue drops. Counters distinguish each sink,
   write errors, queue loss and shutdown loss; logs are not audit receipts. Drop
   summaries are warn-level and obey the configured threshold; sink failure is
-  error-level. OFF safety diagnostics are the stated exception, not a hidden
-  debug stream.
+  error-level. None of these new summaries or messages appears in OFF mode.
 
 Rate-limit repeating `(code, job)` events with a bounded table (256 slots, fixed
 one-second windows, eviction counts); use atomics or try-lock-and-drop on
 contention, never wait on a limiter lock. No unbounded map keyed by filenames or
 requests. Count coalescing separately from sink drops. Filtering precedes rate-limit work. Journal/file thresholds share the
-configured level; OFF safety events have a separate explicit allowlist.
+configured level. OFF has no new filtering or rate-limit table.
 
 ## File custody, rotation and failure policy
 
@@ -290,20 +290,24 @@ is disabled, not truncated to fit. Rotation is diagnostic best effort: a crash
 may lose the newest lines or leave a partial rotation; it cannot trigger state
 restore, payload cleanup or log-based adoption. No durable-log guarantee.
 
-**Storage isolation limit for review:** outside the payload paths is not the
-same as outside their filesystem. Logs filling shared free space can cause
-SQLite/payload ENOSPC; separate threads cannot prevent that indirect failure.
-For the user's strict “logging disk never fails a transfer” goal, recommend
-requiring a separate log filesystem from state/source/destination devices,
-using already established device observations or refusing the file sink if
-independence cannot be established. Separate devices can still share physical
-storage/CPU and need deployment I/O isolation. Shared-filesystem operation would
-need explicit acceptance of the weaker guarantee, not an undocumented exception.
-Caps bound log bytes, not filesystem metadata/reservations or competing writers.
+**Decided 2026-11-25: a separate filesystem is not required.** The log file
+may share a disk/filesystem with state or payload, while its directory must
+remain outside those roots under the private-path rules above. The default
+1 GiB file-family cap and oldest-file rotation limit log growth. No device
+independence check or separate-filesystem refusal is added.
+
+Shared free space and physical I/O can still affect SQLite or payload operations;
+the cap is not a reservation against other writers or filesystem metadata use.
+This is the accepted shared-storage trade-off, not a promise of physical I/O
+isolation. A logging I/O error itself never becomes a transfer error; real
+payload/state failures still follow their existing safe error paths. Info-mode
+performance must meet the 2% limit below on the measured shared-disk setup.
 
 ## Startup, shutdown and blocked sinks
 
-Configuration validation does no logging-path I/O on service/copy paths. Start
+OFF leaves startup and shutdown unchanged and starts no logging resources.
+For enabled logging, configuration validation does no logging-path I/O on
+service/copy paths. Start
 sink threads with readiness/error channels; wait at most 500 ms for optional
 sink preparation, then continue with that sink unavailable if it is not ready.
 Thread-spawn failure similarly marks the sink unavailable and does not introduce
@@ -313,17 +317,19 @@ complete late, leaving an empty owned log file; never claim that timeout cancels
 filesystem effects. Unsafe configuration syntax/overlap is rejected before
 service admission; operational sink failures degrade diagnostics, not transfers.
 
-Start minimal stderr dispatch before daemon diagnostics; activate the optional
-file sink only after existing startup validation supplies the safe root/device
-observations. Pass public observations, never custody handles, to its validator.
+When enabled, start stderr dispatch before daemon diagnostics and prepare the
+file sink using safe path/custody observations. No independent log-device
+observation is required. Pass public observations, never custody handles, to
+its validator. OFF does none of this.
 
 Logger threads own only log/stderr resources and bounded counters: **no
 InstanceGuard, Store, worker, TLS generation or transfer references**. Keep their
 JoinHandles tracked; join on confirmed exit. A panic disables that sink without
 panicking a transfer or requesting lifecycle stop. No nested untracked threads.
 
-**Shutdown proposal needing review:** stop event producers, allow at most 250 ms
-of best-effort diagnostic drain, then abandon queued diagnostics. Never wait
+**Decided 2026-11-25:** stop event producers and allow at most **250 ms total**
+for best-effort drain/writer exit across both sinks, then abandon pending
+diagnostics and proceed to process exit even if a log writer is stuck. Never wait
 unboundedly on a logger join or reset the service's first stop deadline. A regular
 file or stderr write can remain blocked in the kernel; channel deadlines and
 O_NONBLOCK do not make regular-file I/O cancellable. All existing custody-owning
@@ -333,10 +339,11 @@ thread; do not report it joined or invent a child PID/worker adoption path.
 Rust documents that process termination at main-thread completion also ends
 remaining threads, potentially without their destructors.
 [Primary Rust documentation](https://doc.rust-lang.org/std/thread/index.html).
-If review requires every logger thread joined before return in all cases, a
-stalled-sink service exit cannot also be bounded with this std-thread design;
-that requires a separately reviewed isolation mechanism. This is an explicit
-trade-off, not permission to release payload custody early.
+This bounded-exit policy is approved: do not require a blocked logger to join
+before returning. The 250 ms is the total logging wait, not a per-thread allowance
+or a replacement for custody-owning worker shutdown. Existing ShutdownIncomplete
+and actual-worker lifetime rules still apply; logging cannot release payload
+custody early or reset the original service deadline.
 
 ## Secrets and diagnostic authority
 
@@ -367,7 +374,8 @@ SEC-008 and existing credential-redaction obligations remain unconditional.
 No measured results are claimed. “No blocking sink I/O in transfer loops” is a
 structural guarantee to test; literally zero performance cost on shared CPU or
 disk is not possible. Suppressed events should reduce to a cheap threshold
-branch. Review measurement tolerances before calling overhead insignificant.
+branch. **Decided 2026-11-25:** info logging may make transfers at most **2%
+slower than OFF**, measured using the sustained-load test and delivery benchmark.
 
 1. Unit tests: complete config truth table/ranges/checked budgets; level and
    prefix mapping; below-threshold formatting closure never evaluated; bounded
@@ -382,7 +390,11 @@ branch. Review measurement tolerances before calling overhead insignificant.
    refusals; overlap in both directions; foreign archives/lock, lock contention,
    substituted names and crash points in rotation; max_files=1; restart append,
    lower caps and the no-clobber/preserve-uncertain policy. Only owned fixtures.
-4. Service/IPC tests: OFF with no log files; readiness/error stderr assumption;
+4. Service/IPC tests: OFF has byte-identical legacy stdout/stderr, including
+   readiness on stdout, and no logger threads/queues/FDs or log-path I/O. Retain
+   existing stdout-readiness tests and add a dedicated OFF regression with
+   controlled identical stimuli; compare raw bytes without prefix/whitespace
+   normalization. Cover omitted logging and explicit disabled/off settings;
    CLI stdout byte-for-byte JSON and unchanged internal worker framing; logger
    FDs absent after exec; native/control/claim/delivery remain responsive under
    blocked sinks; all admitted jobs commit once with no logging-induced failure.
@@ -397,22 +409,35 @@ branch. Review measurement tolerances before calling overhead insignificant.
    late-claim time, CPU, RSS, I/O, queue/drop counts and logging enqueue cost.
    Include a threshold-only microbenchmark, cold/warm runs and multiple repeats
    with host/cache conditions recorded. Debug adds phase events, never chunk
-   events. Do not relax transfer assertions or infer speed from an unsaturated
-   test. Proposed tolerances and storage-isolation policy need review; noisy
-   results are inconclusive, not a performance pass.
+   events. For the info/OFF acceptance comparison, use the same audited binary,
+   host, config except logging, input sizes/job counts, shared-disk placement
+   and declared cache condition. Alternate paired OFF/info runs (at least five
+   pairs per scenario); report each run and the paired slowdown distribution.
+   In the sustained test compare the elapsed handoff time for the identical late
+   file set under six senders; retain the zero-sender baseline and report useful
+   completed work separately from request/back-pressure counts. The delivery
+   benchmark measures elapsed time to commit an identical fixed workload.
+   Define slowdown as `elapsed_info / elapsed_off - 1`; require at most 0.02
+   in both comparisons (equivalently throughput ratio at least `1 / 1.02` for
+   identical work). Report uncertainty; a confidence interval spanning the
+   limit or uncontrolled host/clock variation is inconclusive, not a pass.
+   Debug and saturated-sink runs remain diagnostic stress results, not substitutes
+   for info acceptance. Do not relax transfer assertions, select only favorable
+   pairs or infer speed from raw request rate/an unsaturated workload.
 6. Both full SLES production/qualification debug/release gates, actual target
    systemd PRIORITY observation and independent review follow implementation.
    Fixed-thread isolation is not an OS I/O quota, real-time guarantee, deployment
    approval, production NFS qualification or FR release closure.
 
-## Requirements, dependencies and review questions
+## Requirements, dependencies and settled answers
 
 CLI-006's no-managed-files clause is rejected. Proposed replacement obligation:
 “Provide startup-configured, default-OFF leveled daemon diagnostics to stderr and
 an explicitly enabled managed file with bounded rotation; logging sinks never
 block transfer loops or turn logging failures into transfer failures. Preserve
-non-terminal service/automation and stdout command results.” Exact wording and
-OFF fallback depend on this review. SEC-008 still forbids every shell launch;
+non-terminal service/automation and stdout command results. OFF preserves exact
+legacy stdout/stderr without logging resources.” The settled settings, shared-disk
+cap, 2% performance limit and 250 ms logging shutdown bound above apply. SEC-008 still forbids every shell launch;
 JOB-014's source-preservation/reporting rule remains accepted. SEC-001/002/003/006
 and SEC-012/013/014 security/host constraints are not weakened to permit logs;
 log-directory safety and writable-path hardening require additional evidence,
@@ -423,19 +448,15 @@ crate, native library, dependency feature, background service or external tool i
 proposed. If implementation cannot meet the reviewed design with that graph,
 return the exact dependency proposal for user approval before adding it.
 
-Questions for the user/reviewer before implementation:
+**User answers recorded 2026-11-25:** OFF is exact legacy behavior; enablement
+requires a file and sends leveled events to stderr/journal plus file; shared disk
+is allowed with the default approximately 1 GiB cap; info slowdown is at most
+2%; logging shutdown waits at most 250 ms. These replace the draft's questions,
+not additional conditions to ask again. JOB-014/SEC-008 restoration acceptance
+and CLI-006 logging approval are dated 2026-11-23, after the #108 revision.
 
-- Confirm minimal OFF-mode stderr safety lines, including the proposed stdout
-  to stderr readiness move, versus total silence and its diagnostic risk.
-- Confirm the enable-plus-path gate, or explicitly permit a journal-only enabled
-  mode despite the original path requirement.
-- Confirm separate-filesystem enforcement/required deployment isolation, or accept
-  the weaker shared-space guarantee. Agree benchmark acceptance tolerances.
-- Review bounded diagnostic drain/process-exit handling for a blocked sink versus
-  requiring an isolation redesign. No implicit logger-thread cancellation claim.
-
-This PR records the user decision and proposed design only. Formal L2 wording,
+This PR records the settled design only, not an implementation. Formal L2 wording,
 trace dispositions/checker bookkeeping and rollout instructions for the new
-feature must be reconciled together after design review; legacy Inspection of
+feature must be reconciled together during implementation after this PR merges; legacy Inspection of
 CLI-006 is evidence of the old stream behavior, **not** satisfaction of this
 approved logging backlog. No logging feature is shipped by recording it here.

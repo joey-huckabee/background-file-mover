@@ -460,13 +460,15 @@ Mixed entries follow their individual IDs, not a blanket scope waiver.
   statistics commands, or retain those commands as a separate deliverable.
   `--transfer-one` is not a nonblocking submission command. **Decided 2026-11-22: D07 (a); user accepted the recommendation.**
 - **L2-CLI-006:** the original D07 stream-policy answer is superseded for
-  logging. **Decided 2026-11-22: reject the no-managed-log-files clause;
-  configurable logging is approved backlog until shipped, with design review
-  required before implementation.** Default OFF; explicit configuration plus
+  logging. **Decided 2026-11-23: reject the no-managed-log-files clause;
+  configurable logging is approved backlog until shipped, following the #108
+  revision. Design answers were settled 2026-11-25; merge the design before implementation.** Default OFF; explicit configuration plus
   path/name enables it; levels off/error/warn/info/debug; journal stderr and
   managed file rotation; restart for changes. No blocking sink I/O in transfer
-  loops or logging-error-induced transfer failures. Minimal OFF-mode stderr
-  remains an assumption to confirm, not a newly settled silence policy.
+  loops or logging-error-induced transfer failures. OFF retains byte-identical
+  legacy output/readiness on stdout and has no
+  dispatcher; shared disk and the default ~1 GiB cap are accepted. Info slowdown
+  is limited to 2%; logging shutdown waits at most 250 ms (2026-11-25 answers).
   See [LOGGING-DESIGN.md](LOGGING-DESIGN.md).
 - **L2-CLI-010:** reconcile the logged-traceback obligation with approved
   increment133 readable errors; decide any additional panic/backtrace contract
@@ -576,25 +578,30 @@ wording changes are a follow-up; no requirement source text or runtime was
 changed. The two 2026-11-21 decisions remain settled. Production NFS remains
 disabled and no release gate is closed by these decisions.
 
-## Follow-up: user logging decision (2026-11-22)
+## Follow-up: user logging decision (2026-11-23)
 
-The user **accepted** the JOB-014 source-preservation/no-silent-continuation
+After the #108 revision, the user **accepted** the JOB-014
+source-preservation/no-silent-continuation
 restoration (D02), and **accepted** SEC-008's executable-wide no-shell restoration
 (D06). Those obligations remain unconditional.
 
 The user **rejected** CLI-006's application-managed-log prohibition, replacing
 that part of D07 with configurable logging. **CLI-006 is approved backlog until
-logging ships.** This is a later decision on the same date, not a reversal of
+logging ships.** This decision is dated 2026-11-23, not a reversal of
 other CLI output/secret-safety/non-terminal obligations or the other D07 answers.
-The design is [LOGGING-DESIGN.md](LOGGING-DESIGN.md), docs only and subject to
-review before any implementation. No new dependency or deployed logging is
-claimed. OFF-mode safety stderr (and the actual stdout-to-stderr readiness
-change), enable-plus-path versus journal-only semantics, shared-storage/performance
-limits and blocked-writer shutdown require explicit design review.
+The design is [LOGGING-DESIGN.md](LOGGING-DESIGN.md), reviewed and updated
+with the user’s 2026-11-25 answers; implementation waits for its merge. No new
+dependency or deployed logging is claimed. The settled 2026-11-25 answers require
+exact legacy OFF stdout/stderr and no
+logging threads/resources; a file is required to enable journal-plus-file logging.
+Shared disk is permitted, with a default approximately 1 GiB rotation cap. Info
+transfers may be at most 2% slower than OFF, measured in the sustained-load test
+and delivery benchmark. Wait at most 250 ms for stuck logging writers, then
+proceed to process exit without weakening existing payload custody rules.
 
 Earlier counts and original-cohort checkers describe the prior mapping. Inspection
 of legacy CLI-006 is not evidence for the new feature; formal L2 wording, trace
-status/checker bookkeeping and rollout updates must be reconciled together after
-design review. The approved logging backlog is in addition to the original 21
+status/checker bookkeeping and rollout updates must be reconciled together during
+implementation after the design PR merges. The approved logging backlog is in addition to the original 21
 D10–D12 backlog IDs. No runtime code, operational files or release gates change
 by recording the decision.
