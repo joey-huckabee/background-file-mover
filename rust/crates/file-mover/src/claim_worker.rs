@@ -210,7 +210,8 @@ fn decode_receipt_reported(
             "claim_worker_refused",
             None,
             None,
-            crate::logging::Detail::from_diagnostic(detail), eprintln!("Claim worker: {detail}")
+            crate::logging::Detail::from_diagnostic(detail),
+            eprintln!("Claim worker: {detail}")
         );
         *diagnostic = Some(detail.clone());
     }
@@ -263,7 +264,8 @@ pub(crate) fn claim(
                 "claim_problem_persist_failed",
                 Some(job_id),
                 None,
-                Some(crate::logging::Detail::error(&e)), eprintln!("Claim {job_id} problem record failed: {e}")
+                Some(crate::logging::Detail::error(&e)),
+                eprintln!("Claim {job_id} problem record failed: {e}")
             );
         }
     }
@@ -416,7 +418,8 @@ pub(crate) fn claim_stable(
                 "claim_problem_persist_failed",
                 Some(job_id),
                 None,
-                Some(crate::logging::Detail::error(&e)), eprintln!("Claim {job_id} problem record failed: {e}")
+                Some(crate::logging::Detail::error(&e)),
+                eprintln!("Claim {job_id} problem record failed: {e}")
             );
         }
     }
@@ -526,7 +529,8 @@ fn claim_file(
                                 "unrecorded_allocation_kept",
                                 Some(job_id),
                                 Some(index),
-                                Some(crate::logging::Detail::error(&e)), eprintln!(
+                                Some(crate::logging::Detail::error(&e)),
+                                eprintln!(
                                     "Claim {job_id} file {index}: unrecorded allocation kept ({})",
                                     super::diagnostic::describe(&e)
                                 )

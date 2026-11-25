@@ -153,9 +153,16 @@ impl Detail {
         let mut bytes = [0; 240];
         bytes[..text.len()].copy_from_slice(text.as_bytes());
         let errno = text.split_ascii_whitespace().find_map(|part| {
-            part.strip_prefix("errno=")?.trim_end_matches(';').parse::<i32>().ok()
+            part.strip_prefix("errno=")?
+                .trim_end_matches(';')
+                .parse::<i32>()
+                .ok()
         });
-        Some(Self { bytes, len: text.len() as u8, errno })
+        Some(Self {
+            bytes,
+            len: text.len() as u8,
+            errno,
+        })
     }
     pub(crate) fn error(error: &(dyn std::error::Error + 'static)) -> Self {
         // Store/OS errors may contain paths in their Display implementation.
@@ -167,20 +174,34 @@ impl Detail {
                 mover_store::StoreError::Protocol(_) => ("store_protocol", None),
                 mover_store::StoreError::UnsupportedSchema => ("store_unsupported_schema", None),
                 mover_store::StoreError::MigrationRequired => ("store_migration_required", None),
-                mover_store::StoreError::UnsupportedIdentity => ("store_unsupported_identity", None),
-                mover_store::StoreError::UnsupportedSqliteConfiguration => ("store_unsupported_sqlite_configuration", None),
+                mover_store::StoreError::UnsupportedIdentity => {
+                    ("store_unsupported_identity", None)
+                }
+                mover_store::StoreError::UnsupportedSqliteConfiguration => {
+                    ("store_unsupported_sqlite_configuration", None)
+                }
                 mover_store::StoreError::InvalidContext => ("store_invalid_context", None),
                 mover_store::StoreError::CorruptState => ("store_corrupt_state", None),
                 mover_store::StoreError::SourceReserved => ("store_source_reserved", None),
                 mover_store::StoreError::SourceRootChanged => ("store_source_root_changed", None),
-                mover_store::StoreError::SourceEnrollmentRequired => ("store_source_enrollment_required", None),
-                mover_store::StoreError::DestinationEnrollmentRequired => ("store_destination_enrollment_required", None),
-                mover_store::StoreError::DestinationBindingChanged => ("store_destination_binding_changed", None),
+                mover_store::StoreError::SourceEnrollmentRequired => {
+                    ("store_source_enrollment_required", None)
+                }
+                mover_store::StoreError::DestinationEnrollmentRequired => {
+                    ("store_destination_enrollment_required", None)
+                }
+                mover_store::StoreError::DestinationBindingChanged => {
+                    ("store_destination_binding_changed", None)
+                }
                 mover_store::StoreError::WorkerStopped => ("store_worker_stopped", None),
                 mover_store::StoreError::AdmissionFull => ("store_admission_full", None),
                 mover_store::StoreError::SourceSpaceLow => ("store_source_space_low", None),
-                mover_store::StoreError::SourceSpaceUnavailable => ("store_source_space_unavailable", None),
-                mover_store::StoreError::SourceCustodyRefused => ("store_source_custody_refused", None),
+                mover_store::StoreError::SourceSpaceUnavailable => {
+                    ("store_source_space_unavailable", None)
+                }
+                mover_store::StoreError::SourceCustodyRefused => {
+                    ("store_source_custody_refused", None)
+                }
                 mover_store::StoreError::NotFound => ("store_not_found", None),
                 mover_store::StoreError::ReviewConflict => ("store_review_conflict", None),
                 mover_store::StoreError::ActionConflict => ("store_action_conflict", None),
@@ -197,7 +218,8 @@ impl Detail {
             detail.errno = error.raw_os_error();
             return detail;
         }
-        Self::from_diagnostic(&crate::diagnostic::describe(error)).expect("bounded native diagnostic")
+        Self::from_diagnostic(&crate::diagnostic::describe(error))
+            .expect("bounded native diagnostic")
     }
     fn text(&self) -> &str {
         // Construction admits printable ASCII only.
@@ -236,7 +258,13 @@ impl Event {
         let time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default();
-        let detail = self.detail.map_or_else(String::new, |d| format!(" operation={:?} errno={}", d.text(), d.errno.map_or_else(|| "-".into(), |n| n.to_string())));
+        let detail = self.detail.map_or_else(String::new, |d| {
+            format!(
+                " operation={:?} errno={}",
+                d.text(),
+                d.errno.map_or_else(|| "-".into(), |n| n.to_string())
+            )
+        });
         format!(
             "{prefix}time={}.{:03} pid={} level={name} code={} count={} job={} file={}{detail}\n",
             time.as_secs(),
@@ -284,7 +312,14 @@ impl Dispatch {
     fn emit(&self, level: Level, code: &'static str, job: Option<i64>, file: Option<usize>) {
         self.emit_detailed(level, code, job, file, None);
     }
-    fn emit_detailed(&self, level: Level, code: &'static str, job: Option<i64>, file: Option<usize>, detail: Option<Detail>) {
+    fn emit_detailed(
+        &self,
+        level: Level,
+        code: &'static str,
+        job: Option<i64>,
+        file: Option<usize>,
+        detail: Option<Detail>,
+    ) {
         if level == Level::Off || level > self.level {
             return;
         }
@@ -297,7 +332,9 @@ impl Dispatch {
             return;
         }
         let Ok(mut limiter) = self.limiter.try_lock() else {
-            for sink in [&self.stderr, &self.file] { sink.counters.limiter.fetch_add(1, Ordering::Relaxed); }
+            for sink in [&self.stderr, &self.file] {
+                sink.counters.limiter.fetch_add(1, Ordering::Relaxed);
+            }
             return;
         };
         let now = Instant::now();
@@ -306,14 +343,18 @@ impl Dispatch {
             .find(|(key, id, _)| *key == code && *id == job)
         {
             if now.duration_since(*last) < Duration::from_secs(1) {
-                for sink in [&self.stderr, &self.file] { sink.counters.coalesced.fetch_add(1, Ordering::Relaxed); }
+                for sink in [&self.stderr, &self.file] {
+                    sink.counters.coalesced.fetch_add(1, Ordering::Relaxed);
+                }
                 return;
             }
             *last = now;
         } else {
             if limiter.len() == 256 {
                 limiter.remove(0);
-                for sink in [&self.stderr, &self.file] { sink.counters.evicted.fetch_add(1, Ordering::Relaxed); }
+                for sink in [&self.stderr, &self.file] {
+                    sink.counters.evicted.fetch_add(1, Ordering::Relaxed);
+                }
             }
             limiter.push((code, job, now));
         }
@@ -335,7 +376,9 @@ pub(crate) fn emit(level: Level, code: &'static str) {
     context(level, code, None, None);
 }
 pub(crate) fn enabled(level: Level) -> bool {
-    LOGGER.get().is_some_and(|l| l.active.load(Ordering::Relaxed) && level != Level::Off && level <= l.level)
+    LOGGER.get().is_some_and(|l| {
+        l.active.load(Ordering::Relaxed) && level != Level::Off && level <= l.level
+    })
 }
 pub(crate) fn context(level: Level, code: &'static str, job: Option<i64>, file: Option<usize>) {
     if let Some(l) = LOGGER.get().filter(|d| d.active.load(Ordering::Relaxed)) {
@@ -375,9 +418,13 @@ pub(crate) fn route(
     );
 }
 fn route_detailed_to(
-    dispatch: Option<&Dispatch>, level: Level, code: &'static str,
-    job: Option<i64>, file: Option<usize>,
-    detail: impl FnOnce() -> Option<Detail>, legacy: impl FnOnce(),
+    dispatch: Option<&Dispatch>,
+    level: Level,
+    code: &'static str,
+    job: Option<i64>,
+    file: Option<usize>,
+    detail: impl FnOnce() -> Option<Detail>,
+    legacy: impl FnOnce(),
 ) {
     if let Some(l) = dispatch.filter(|d| d.active.load(Ordering::Relaxed)) {
         if level != Level::Off && level <= l.level {
@@ -388,15 +435,33 @@ fn route_detailed_to(
     }
 }
 pub(crate) fn route_detailed(
-    level: Level, code: &'static str, job: Option<i64>, file: Option<usize>,
-    detail: impl FnOnce() -> Option<Detail>, legacy: impl FnOnce(),
+    level: Level,
+    code: &'static str,
+    job: Option<i64>,
+    file: Option<usize>,
+    detail: impl FnOnce() -> Option<Detail>,
+    legacy: impl FnOnce(),
 ) {
-    route_detailed_to(LOGGER.get().map(Arc::as_ref), level, code, job, file, detail, legacy);
+    route_detailed_to(
+        LOGGER.get().map(Arc::as_ref),
+        level,
+        code,
+        job,
+        file,
+        detail,
+        legacy,
+    );
 }
 macro_rules! diagnostic_line {
     ($level:ident, $code:literal, $job:expr, $file:expr, $detail:expr, $legacy:expr) => {{
-        $crate::logging::route_detailed($crate::logging::Level::$level, $code, $job, $file,
-            || $detail, || { $legacy });
+        $crate::logging::route_detailed(
+            $crate::logging::Level::$level,
+            $code,
+            $job,
+            $file,
+            || $detail,
+            || $legacy,
+        );
     }};
     ($level:ident, $code:literal, $job:expr, $file:expr, $legacy:expr) => {{
         $crate::logging::route($crate::logging::Level::$level, $code, $job, $file, || {
@@ -485,16 +550,30 @@ fn run_sink(
         }
     }
 }
-fn report_losses(counters: &Counters, reported: &mut [u64; 4], write: &mut impl FnMut(Event) -> Result<(), ()>) -> Result<(), ()> {
+fn report_losses(
+    counters: &Counters,
+    reported: &mut [u64; 4],
+    write: &mut impl FnMut(Event) -> Result<(), ()>,
+) -> Result<(), ()> {
     for ((code, counter), previous) in [
         ("logging_queue_dropped", &counters.dropped),
         ("logging_limiter_contended", &counters.limiter),
         ("logging_coalesced", &counters.coalesced),
         ("logging_limiter_evicted", &counters.evicted),
-    ].into_iter().zip(reported.iter_mut()) {
+    ]
+    .into_iter()
+    .zip(reported.iter_mut())
+    {
         let total = counter.load(Ordering::Relaxed);
         if total != *previous {
-            write(Event { level: Level::Warn, code, count: total.wrapping_sub(*previous), job: None, file: None, detail: None })?;
+            write(Event {
+                level: Level::Warn,
+                code,
+                count: total.wrapping_sub(*previous),
+                job: None,
+                file: None,
+                detail: None,
+            })?;
             *previous = total;
         }
     }
@@ -757,17 +836,37 @@ mod tests {
         let (d, journal, file) = local(Level::Info);
         // The validated payload worker diagnostic, as emitted by failure_diagnostic.
         let diagnostic = "payload_copy_write errno=28";
-        route_detailed_to(Some(&d), Level::Info, "payload_failure", Some(14), Some(2),
-            || Detail::from_diagnostic(diagnostic), || panic!("legacy output must not run"));
-        for line in [journal.try_recv().unwrap().line(true), file.try_recv().unwrap().line(false)] {
+        route_detailed_to(
+            Some(&d),
+            Level::Info,
+            "payload_failure",
+            Some(14),
+            Some(2),
+            || Detail::from_diagnostic(diagnostic),
+            || panic!("legacy output must not run"),
+        );
+        for line in [
+            journal.try_recv().unwrap().line(true),
+            file.try_recv().unwrap().line(false),
+        ] {
             assert!(line.contains("level=info"));
-            assert!(line.contains("operation=\"payload_copy_write errno=28\""), "{line}");
+            assert!(
+                line.contains("operation=\"payload_copy_write errno=28\""),
+                "{line}"
+            );
             assert!(line.contains("errno=28"));
             assert!(line.contains("job=14 file=2"));
             assert!(line.len() <= 1024);
         }
-        let escaped = Event { level: Level::Info, code: "bounded_operation", count: 1,
-            job: Some(14), file: Some(2), detail: Detail::from_diagnostic(&"\"".repeat(240)) }.line(false);
+        let escaped = Event {
+            level: Level::Info,
+            code: "bounded_operation",
+            count: 1,
+            job: Some(14),
+            file: Some(2),
+            detail: Detail::from_diagnostic(&"\"".repeat(240)),
+        }
+        .line(false);
         assert!(escaped.len() <= 1024);
         assert_eq!(escaped.matches('\n').count(), 1);
         let secret = "password=sentinel token cookie /private/key.pem";
@@ -780,17 +879,33 @@ mod tests {
         for invalid in ["injected\nline", "tab\t", "non-ascii é", &"x".repeat(241)] {
             assert!(Detail::from_diagnostic(invalid).is_none());
         }
-        route_detailed_to(Some(&d), Level::Debug, "filtered", None, None,
-            || panic!("suppressed detail evaluated"), || panic!("legacy evaluated"));
+        route_detailed_to(
+            Some(&d),
+            Level::Debug,
+            "filtered",
+            None,
+            None,
+            || panic!("suppressed detail evaluated"),
+            || panic!("legacy evaluated"),
+        );
         let mut original = false;
-        route_detailed_to(None, Level::Info, "off", None, None,
-            || panic!("OFF detail evaluated"), || original = true);
+        route_detailed_to(
+            None,
+            Level::Info,
+            "off",
+            None,
+            None,
+            || panic!("OFF detail evaluated"),
+            || original = true,
+        );
         assert!(original);
     }
     #[test]
     fn periodic_summaries_report_queue_limiter_coalescing_and_eviction_deltas() {
         let (d, _a, _b) = local(Level::Info);
-        for id in 0..300 { d.emit(Level::Info, "by_job", Some(id), None); }
+        for id in 0..300 {
+            d.emit(Level::Info, "by_job", Some(id), None);
+        }
         d.emit(Level::Info, "by_job", Some(299), None);
         {
             let _locked = d.limiter.lock().unwrap();
@@ -799,12 +914,22 @@ mod tests {
         d.stderr.counters.dropped.store(7, Ordering::Relaxed);
         let mut reported = [0; 4];
         let mut summary = Vec::new();
-        let mut write = |e: Event| { summary.push((e.code, e.count)); Ok(()) };
+        let mut write = |e: Event| {
+            summary.push((e.code, e.count));
+            Ok(())
+        };
         report_losses(&d.stderr.counters, &mut reported, &mut write).unwrap();
         // A second unchanged snapshot must not repeat any count.
         report_losses(&d.stderr.counters, &mut reported, &mut write).unwrap();
-        assert_eq!(summary, vec![("logging_queue_dropped", 7),
-            ("logging_limiter_contended", 1), ("logging_coalesced", 1), ("logging_limiter_evicted", 44)]);
+        assert_eq!(
+            summary,
+            vec![
+                ("logging_queue_dropped", 7),
+                ("logging_limiter_contended", 1),
+                ("logging_coalesced", 1),
+                ("logging_limiter_evicted", 44)
+            ]
+        );
     }
     #[test]
     fn off_executes_only_the_original_bytes() {

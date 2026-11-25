@@ -299,7 +299,8 @@ fn decode(request: &Request, bytes: &[u8]) -> Result<SpaceStatistics, Failure> {
             "source_space_worker_refused",
             None,
             None,
-            crate::logging::Detail::from_diagnostic(detail), eprintln!("Source-space worker: {detail}")
+            crate::logging::Detail::from_diagnostic(detail),
+            eprintln!("Source-space worker: {detail}")
         );
     }
     match (reply.statistics, reply.error) {
