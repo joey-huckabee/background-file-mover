@@ -1,6 +1,8 @@
 use serde_json::{Value, json};
 #[path = "support/account_cli.rs"]
 mod account_tests;
+#[path = "support/load_diagnostics.rs"]
+mod load_diagnostics;
 use std::{
     cell::RefCell,
     collections::BTreeMap,
@@ -2058,10 +2060,16 @@ struct Fixture {
     address: SocketAddr,
     child: Option<Child>,
     destinations: RefCell<BTreeMap<String, String>>,
+    diagnostics: Option<std::sync::Arc<load_diagnostics::Diagnostics>>,
 }
 impl Fixture {
-    fn new(window: u32) -> Self {
+    fn new(window: u32) -> Self { Self::new_inner(window, None) }
+    fn new_diagnosed(window: u32, maximum_job: u64) -> Self {
+        Self::new_inner(window, Some(maximum_job))
+    }
+    fn new_inner(window: u32, maximum_job: Option<u64>) -> Self {
         let mut f = Self::uninitialized(window);
+        f.diagnostics = maximum_job.map(|maximum| load_diagnostics::Diagnostics::new(f.address, maximum));
         let initialized = initialize_source(&f.root.join("config.json"));
         assert!(initialized.status.success(), "{initialized:?}");
         f.start();
@@ -2105,6 +2113,7 @@ impl Fixture {
             address,
             child: None,
             destinations: RefCell::new(BTreeMap::new()),
+            diagnostics: None,
         }
     }
     fn start(&mut self) {
@@ -2149,11 +2158,12 @@ impl Fixture {
     }
     fn start_command(&mut self, mut command: Command) {
         self.retire_test_epoch();
+        let stderr = self.diagnostics.as_ref().map_or_else(Stdio::piped, |d| d.stderr());
         self.child = Some(
             command
                 .arg(self.root.join("config.json"))
                 .stdout(Stdio::null())
-                .stderr(Stdio::piped())
+                .stderr(stderr)
                 .spawn()
                 .unwrap(),
         );
@@ -2176,15 +2186,15 @@ impl Fixture {
                 }
             }
             if let Some(status) = self.child.as_mut().unwrap().try_wait().unwrap() {
-                let mut stderr = String::new();
-                self.child
-                    .as_mut()
-                    .unwrap()
-                    .stderr
-                    .take()
-                    .unwrap()
-                    .read_to_string(&mut stderr)
-                    .unwrap();
+                let stderr = if let Some(diagnostics) = &self.diagnostics {
+                    diagnostics.finish();
+                    diagnostics.captured_text()
+                } else {
+                    let mut stderr = String::new();
+                    self.child.as_mut().unwrap().stderr.take().unwrap()
+                        .read_to_string(&mut stderr).unwrap();
+                    stderr
+                };
                 panic!("startup {status}: {stderr}");
             }
             assert!(Instant::now() < deadline, "startup timeout");
@@ -2220,6 +2230,7 @@ impl Fixture {
             }
             std::thread::sleep(Duration::from_millis(20));
         }
+        if let Some(diagnostics) = &self.diagnostics { diagnostics.finish(); }
     }
     fn input(&self, label: &str, files: Value) -> Value {
         // Labels are harness conveniences only; HTTP always carries the direct
@@ -2329,6 +2340,7 @@ impl Fixture {
         exchange(self.address, bytes)
     }
     fn post(&self, body: &Value) -> (u16, Value) {
+        if let Some(diagnostics) = &self.diagnostics { diagnostics.request(body); }
         let reply = self.raw(&post_bytes(body));
         if reply.0 == 202 {
             assert_accepted(&reply.1, body["recording_id"].as_str().unwrap());
@@ -2344,10 +2356,15 @@ impl Fixture {
 }
 impl Drop for Fixture {
     fn drop(&mut self) {
+        if std::thread::panicking()
+            && let Some(diagnostics) = &self.diagnostics {
+            diagnostics.report("test panic before fixture cleanup");
+        }
         if let Some(mut c) = self.child.take() {
             let _ = c.kill();
             let _ = c.wait();
         }
+        if let Some(diagnostics) = &self.diagnostics { diagnostics.finish(); }
         std::fs::remove_dir_all(&self.root).unwrap();
     }
 }
@@ -3010,7 +3027,10 @@ fn provision_destination(f: &Fixture) {
     provision_destination_marker(&f.root.join("destination"));
 }
 fn status(f: &Fixture, id: &str) -> (u16, Value) {
-    f.raw(format!("GET /api/v2/jobs/{id} HTTP/1.1\r\nHost: h\r\n\r\n").as_bytes())
+    let reply = f.raw(format!("GET /api/v2/jobs/{id} HTTP/1.1\r\nHost: h\r\n\r\n").as_bytes());
+    if reply.0 == 200
+        && let Some(diagnostics) = &f.diagnostics { diagnostics.remember(id, &reply.1); }
+    reply
 }
 fn retention(f: &Fixture, id: Option<&str>) -> (u16, Value) {
     let path = id.map_or_else(
@@ -6983,11 +7003,14 @@ mod sustained_sender_load {
         finish_by: Instant,
         abort: &'a AtomicBool,
         counts: Counts,
+        diagnostics: &'a Arc<load_diagnostics::Diagnostics>,
     }
     impl Sender<'_> {
         /// No pacing: normal back-pressure is retried and counted. Everything
         /// else (including a transport error, 500 or handoff_pending) fails.
         fn ready(&mut self, input: &Value) -> Option<Value> {
+            self.diagnostics.request(input);
+            let _on_panic = self.diagnostics.on_panic();
             let bytes = post_bytes(input);
             while !self.abort.load(Ordering::Relaxed) {
                 assert!(
@@ -7004,7 +7027,11 @@ mod sustained_sender_load {
                     }
                     (503, Some("service_busy")) => self.counts.busy += 1,
                     (429, Some("rate_limited")) => self.counts.limited += 1,
-                    _ => panic!("unexpected sustained-load reply: {code} {body}"),
+                    _ => {
+                        eprintln!("SUSTAINED_FAILURE unexpected reply recording_id={} reply_job_id={} http={code} body={body}", input["recording_id"], body["job_id"]);
+                        self.diagnostics.report("unexpected sustained-load reply");
+                        panic!("unexpected sustained-load reply: {code} {body}");
+                    }
                 }
             }
             None
@@ -7038,7 +7065,8 @@ mod sustained_sender_load {
             _ => panic!("FILE_MOVER_TEST_SUSTAINED_SENDERS must be 0 (baseline) or 6 (load)"),
         };
         let test_started = Instant::now();
-        let mut f = Fixture::new(300);
+        let mut f = Fixture::new_diagnosed(300, (LATE_JOBS + 1 + SENDERS * JOBS_PER_SENDER) as u64);
+        let diagnostics = f.diagnostics.as_ref().unwrap().clone();
         f.stop();
         provision_destination(&f);
         f.set_config("missing_file_settle_seconds", json!(1));
@@ -7050,7 +7078,6 @@ mod sustained_sender_load {
             json!(LATE_JOBS + 1 + SENDERS * JOBS_PER_SENDER),
         );
         f.start();
-        let mut service_stderr = f.child.as_mut().unwrap().stderr.take().unwrap();
         let seed_name = "load-committed-seed";
         f.write(seed_name, seed_name.as_bytes());
         let seed = f.input(seed_name, json!([seed_name]));
@@ -7103,12 +7130,15 @@ mod sustained_sender_load {
                         seed.clone(),
                         seed_id.clone(),
                     );
+                    let diagnostics = diagnostics.clone();
                     handles.push(scope.spawn(move || {
+                        let _on_panic = diagnostics.on_panic();
                         let mut sender = Sender {
                             address,
                             finish_by: load_until + Duration::from_secs(10),
                             abort: &abort,
                             counts: Counts::default(),
+                            diagnostics: &diagnostics,
                         };
                         let mut jobs = jobs.into_iter();
                         let mut new_jobs = Vec::new();
@@ -7162,6 +7192,7 @@ mod sustained_sender_load {
                     finish_by: load_until,
                     abort: &abort,
                     counts: Counts::default(),
+                    diagnostics: &diagnostics,
                 };
                 let mut written = None;
                 let mut observed = [false; LATE_JOBS];
@@ -7335,8 +7366,7 @@ mod sustained_sender_load {
         }
         let drain_seconds = drain_started.elapsed().as_secs_f64();
         f.stop();
-        let mut stderr = String::new();
-        service_stderr.read_to_string(&mut stderr).unwrap();
+        let stderr = diagnostics.audit_stderr().unwrap();
         assert!(
             !stderr.contains("panicked") && !stderr.contains("retry pass used"),
             "service stderr: {stderr}"
