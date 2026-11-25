@@ -667,6 +667,11 @@ pub enum Discarded {
 /// opened. The emptied private area directory is removed; anything unexpected
 /// left in it stays.
 pub fn discard_retained_source(intent: &ClaimIntent) -> Result<Discarded> {
+    Ok(discard_retained_source_report(intent)?.0)
+}
+/// As discard_retained_source, reporting a kept nonempty private directory.
+/// No entry enumeration or extra deletion; the flag is not a removal authority.
+pub fn discard_retained_source_report(intent: &ClaimIntent) -> Result<(Discarded, bool)> {
     let root = root(&intent.root_path)?;
     same_directory(&owned_directory(&root, false)?, &intent.root)?;
     let namespace = namespace(&root)?;
@@ -680,7 +685,7 @@ pub fn discard_retained_source(intent: &ClaimIntent) -> Result<Discarded> {
             // Make the area's absence durable before acknowledging it.
             fs::fsync(&namespace)
                 .map_err(|e| ClaimError::Operation("discard.sync_namespace", e))?;
-            return Ok(Discarded::AlreadyAbsent);
+            return Ok((Discarded::AlreadyAbsent, false));
         }
         other => other.map_err(|e| ClaimError::Operation("discard.open_area", e))?,
     };
@@ -689,8 +694,8 @@ pub fn discard_retained_source(intent: &ClaimIntent) -> Result<Discarded> {
         Err(Errno::NOENT) => {
             // The copy's absence must be durable even if the area stays.
             fs::fsync(&area).map_err(|e| ClaimError::Operation("discard.sync_area", e))?;
-            remove_empty_area(&namespace, intent)?;
-            return Ok(Discarded::AlreadyAbsent);
+            let kept = remove_empty_area(&namespace, intent)?;
+            return Ok((Discarded::AlreadyAbsent, kept));
         }
         other => other.map_err(|e| ClaimError::Operation("discard.open_copy", e))?,
     };
@@ -708,16 +713,18 @@ pub fn discard_retained_source(intent: &ClaimIntent) -> Result<Discarded> {
         ));
     }
     fs::fsync(&area).map_err(|e| ClaimError::Operation("discard.sync_area", e))?;
-    remove_empty_area(&namespace, intent)?;
-    Ok(Discarded::Removed)
+    let kept = remove_empty_area(&namespace, intent)?;
+    Ok((Discarded::Removed, kept))
 }
-fn remove_empty_area(namespace: &OwnedFd, intent: &ClaimIntent) -> Result<()> {
+fn remove_empty_area(namespace: &OwnedFd, intent: &ClaimIntent) -> Result<bool> {
     match fs::unlinkat(namespace, intent.private_name.as_str(), AtFlags::REMOVEDIR) {
         Ok(()) => {
-            fs::fsync(namespace).map_err(|e| ClaimError::Operation("discard.sync_namespace", e))
+            fs::fsync(namespace).map_err(|e| ClaimError::Operation("discard.sync_namespace", e))?;
+            Ok(false)
         }
         // Something unexpected is still inside: keep it.
-        Err(Errno::NOTEMPTY | Errno::EXIST | Errno::NOENT) => Ok(()),
+        Err(Errno::NOTEMPTY | Errno::EXIST) => Ok(true),
+        Err(Errno::NOENT) => Ok(false),
         Err(e) => Err(ClaimError::Operation("discard.remove_area", e)),
     }
 }

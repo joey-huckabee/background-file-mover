@@ -697,6 +697,25 @@ between copy and move ([design](MOVE-MODE-DESIGN.md)):
 - Enabling move mode on a production host deletes source data; it is a
   deliberate decision for that host and is off by default.
 
+## Unexpected private-folder leftovers
+
+After the mover removes its retained copy, an unexpected file beside it keeps
+that private folder from being removed. The job appears under **Needs attention**
+with “Unexpected files were left in the mover’s private folder for file N:
+<path>”. The job detail lists the per-job file index and folder path, without
+listing entry names. The retained copy was removed successfully; this warning
+does not count as a failed deletion or trigger another removal attempt.
+
+The warning is an observation at removal or recovery, not a fresh directory
+scan. It persists across restart until the job's history is explicitly cleared,
+even if the folder later changes. Clearing history forgets the warning and
+all other linkage; it leaves the folder and its unknown contents in place.
+Nothing is deleted automatically in response to this warning.
+
+The API exposes optional `details.private_leftovers` entries (`file_id` and
+`folder_path`) and a nonzero `private_leftovers_count` on job-list items. Older
+jobs and jobs without observations omit these fields.
+
 ## Delivery speed settings: parallel delivery and copy buffer
 
 Three optional settings in the service configuration file (the same JSON file

@@ -194,6 +194,9 @@ struct Request {
     #[serde(default)]
     source_authorization: Option<mover_fs::SourceAuthorization>,
 }
+fn no_leftovers(value: &bool) -> bool {
+    !*value
+}
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Reply {
@@ -205,6 +208,8 @@ struct Reply {
     error: Option<String>,
     diagnostic: Option<String>,
     failure: Option<FailureClass>,
+    #[serde(default, skip_serializing_if = "no_leftovers")]
+    private_leftovers: bool,
 }
 // This is a scheduling hint, never a receipt. Reject mixed or out-of-scope hints.
 fn capacity_hint(reply: &Reply, copying: bool) -> Result<bool> {
@@ -212,6 +217,7 @@ fn capacity_hint(reply: &Reply, copying: bool) -> Result<bool> {
         return Ok(false);
     }
     if !copying
+        || reply.private_leftovers
         || reply.error.as_deref() != Some("blocked_or_uncertain")
         || reply.transfer.is_some()
         || reply.manifest.is_some()
@@ -344,6 +350,7 @@ impl Session {
         if stop.load(Ordering::Relaxed) || self.sequence >= 2048 {
             return Err("delivery command budget stopped".into());
         }
+        let removing = matches!(&command, Operation::RemoveSource { .. });
         let copying = matches!(&command, Operation::Payload { assignment } if assignment.is_copy());
         self.sequence += 1;
         let bytes = serde_json::to_vec(&Request {
@@ -364,6 +371,17 @@ impl Session {
         let reply: Reply = serde_json::from_slice(&bytes)?;
         if reply.version != 2 || reply.sequence != self.sequence {
             return Err("delivery receipt sequence mismatch".into());
+        }
+        if reply.private_leftovers
+            && (!removing
+                || reply.error.is_some()
+                || reply.transfer.is_some()
+                || reply.manifest.is_some()
+                || reply.diagnostic.is_some()
+                || reply.failure.is_some()
+                || reply.destination_authorization.is_some())
+        {
+            return Err("invalid private-leftover receipt".into());
         }
         let capacity = capacity_hint(&reply, copying)?;
         if let Some(detail) = &reply.diagnostic {
@@ -473,14 +491,19 @@ pub(crate) fn clean_sources(
             // Durable, authorized intent before the removal is sent.
             store.authorize_source_cleanup(work.job_id, index, now)?;
             current = Some(index);
-            ok(session.call(
+            let receipt = session.call(
                 Operation::RemoveSource {
                     assignment: Box::new(wire(t)?),
                     files: work.published.len(),
                 },
                 stop,
-            )?)?;
-            outcomes.push((index, None));
+            )?;
+            let leftovers = receipt.private_leftovers;
+            ok(receipt)?;
+            outcomes.push((
+                index,
+                leftovers.then(|| mover_store::PRIVATE_LEFTOVERS.to_owned()),
+            ));
             current = None;
         }
         Ok(())
@@ -1188,6 +1211,7 @@ pub fn worker() -> Result<()> {
             error: None,
             diagnostic: None,
             failure: None,
+            private_leftovers: false,
         };
         let mut checking_destination = false;
         let mut copying_payload = false;
@@ -1390,7 +1414,8 @@ pub fn worker() -> Result<()> {
                             {
                                 return Err("delivered set not verified".into());
                             }
-                            mover_fs::discard_retained_source(&c)?;
+                            reply.private_leftovers =
+                                mover_fs::discard_retained_source_report(&c)?.1;
                             return after(&mut checking_destination);
                         }
                         command => command,
@@ -1543,6 +1568,7 @@ pub fn worker() -> Result<()> {
             Ok(())
         })();
         if let Err(e) = result {
+            reply.private_leftovers = false;
             if !checking_destination
                 && copying_payload
                 && mover_fs::is_payload_capacity_failure(e.as_ref())
@@ -1714,9 +1740,13 @@ mod tests {
             error: Some("blocked_or_uncertain".into()),
             diagnostic: Some("safe fixed detail".into()),
             failure: Some(FailureClass::DestinationCapacity),
+            private_leftovers: false,
         };
         assert!(capacity_hint(&reply, true).unwrap());
         assert!(capacity_hint(&reply, false).is_err());
+        reply.private_leftovers = true;
+        assert!(capacity_hint(&reply, true).is_err());
+        reply.private_leftovers = false;
         reply.error = None;
         assert!(capacity_hint(&reply, true).is_err());
         reply.error = Some("destination_binding_refused".into());

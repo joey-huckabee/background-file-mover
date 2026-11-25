@@ -7947,3 +7947,81 @@ fn replay_validation_tolerates_a_deletion_that_starts_mid_check() {
     assert_eq!(code, 202, "replay keeps its original meaning");
     f.stop();
 }
+
+#[test]
+fn retained_copy_deletion_reports_kept_private_folder_without_deleting_extra_file() {
+    use std::os::unix::fs::MetadataExt;
+    let mut f = Fixture::new(300);
+    f.stop();
+    provision_destination(&f);
+    f.start();
+    f.write("data", b"delivered payload");
+    let request = f.input("private-leftover-warning", json!(["data"]));
+    assert_eq!(f.post(&request).0, 202);
+    wait_manifest(&f, "1");
+    f.stop();
+    let area = f.root.join("source/.file-mover/1-0");
+    let extra = area.join("unmanaged-extra");
+    std::fs::write(&extra, b"must stay untouched").unwrap();
+    let before = std::fs::metadata(&extra).unwrap();
+    {
+        let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        let (_, digest) = s
+            .deletion_preview(1, mover_store::DeletionScope::Source)
+            .unwrap()
+            .unwrap();
+        assert!(matches!(
+            s.start_deletion(
+                1,
+                mover_store::DeletionScope::Source,
+                "dashboard-account",
+                &"a".repeat(64),
+                &digest,
+                100
+            )
+            .unwrap(),
+            mover_store::DeletionStart::Started(_)
+        ));
+    }
+    f.start();
+    assert_eq!(
+        wait_deletion(&f, "1"),
+        json!({"completion_pending":false,"deleted_count":1,"failed_count":0})
+    );
+    let expected = json!([{"file_id":"0","folder_path":area.to_str().unwrap()}]);
+    let (_, body) = status(&f, "1");
+    assert_eq!(body["details"]["private_leftovers"], expected);
+    assert!(!body.to_string().contains("unmanaged-extra"));
+    assert!(!area.join("data").exists());
+    assert!(area.is_dir());
+    assert_eq!(std::fs::read(&extra).unwrap(), b"must stay untouched");
+    let after = std::fs::metadata(&extra).unwrap();
+    assert_eq!(
+        (after.dev(), after.ino(), after.mode()),
+        (before.dev(), before.ino(), before.mode())
+    );
+    assert_eq!(
+        (after.mtime(), after.mtime_nsec()),
+        (before.mtime(), before.mtime_nsec())
+    );
+    assert_eq!(
+        std::fs::read(f.destination("1", "data")).unwrap(),
+        b"delivered payload"
+    );
+    // Durable across restart; replay remains the same accepted job.
+    f.stop();
+    f.start();
+    assert_eq!(status(&f, "1").1["details"]["private_leftovers"], expected);
+    assert_eq!(f.post(&request).0, 202);
+    f.stop();
+    {
+        let s = mover_store::Store::open(f.root.join("state/jobs.sqlite")).unwrap();
+        assert_eq!(
+            s.admin_clear(1, |_| false).unwrap(),
+            mover_store::ClearOutcome::Cleared
+        );
+    }
+    // Clearing history forgets the warning; it does not clean unknown files.
+    assert!(area.is_dir());
+    assert_eq!(std::fs::read(extra).unwrap(), b"must stay untouched");
+}

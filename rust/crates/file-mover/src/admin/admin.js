@@ -157,12 +157,16 @@
   };
   // Move mode: a delivered job still removing its held source copies; amber
   // once a removal attempt has failed (retried automatically).
+  function privateLeftoversText(entry) {
+    return "Unexpected files were left in the mover’s private folder for file " + entry.file_id + ": " + entry.folder_path;
+  }
   function attentionOf(item) {
+    if (Number(item.private_leftovers_count || 0) > 0) { return ["Unexpected files kept", "amber"]; }
     if (item.condition === "CleanupPending" && item.source_cleanup_failed) { return ["Source cleanup retrying", "amber"]; }
     return ATTENTION[item.condition];
   }
   function needsAttention(item) {
-    return item.condition === "ReviewRequired" || (item.condition === "CleanupPending" && !!item.source_cleanup_failed);
+    return Number(item.private_leftovers_count || 0) > 0 || item.condition === "ReviewRequired" || (item.condition === "CleanupPending" && !!item.source_cleanup_failed);
   }
   var ACTIVITY = {
     Committed: "Delivered", AwaitingClaims: "Waiting for the source files",
@@ -475,7 +479,7 @@
       else { delivering++; }
     });
     // Delivered move jobs whose source cleanup is failing need attention too.
-    var attention = review + allItems.filter(function (i) { return i.condition === "CleanupPending" && i.source_cleanup_failed; }).length;
+    var attention = allItems.filter(needsAttention).length;
     $("stat-active").textContent = String(active);
     $("stat-active-sub").textContent = delivering + " delivering · " + waiting + " waiting for files" +
       (review ? " · " + review + " need review" : "") + (cancelling ? " · " + cancelling + " cancelling" : "");
@@ -525,8 +529,8 @@
     });
   }
   function renderAttention() {
-    var list = allItems.filter(function (i) { return i.condition === "ReviewRequired"; });
-    $("attention-status").textContent = list.length ? list.length + " job" + (list.length === 1 ? "" : "s") + " waiting for a review."
+    var list = allItems.filter(needsAttention);
+    $("attention-status").textContent = list.length ? list.length + " job" + (list.length === 1 ? "" : "s") + " needing attention."
       : olderCursor !== null ? "Nothing needs your attention among the loaded jobs. Older jobs are not loaded."
         : "Nothing needs your attention.";
     var rows = $("attention-rows");
@@ -534,7 +538,11 @@
     list.forEach(function (item) {
       var tr = el("tr");
       tr.appendChild(jobCell(item));
-      var c = el("td"); c.appendChild(progress(item, item.transfer_mode)); tr.appendChild(c);
+      var c = el("td");
+      if (Number(item.private_leftovers_count || 0) > 0) {
+        c.appendChild(el("p", "Unexpected files were left in the mover’s private folder. Open the job for file indexes and folder paths.", "notice"));
+      }
+      c.appendChild(progress(item, item.transfer_mode)); tr.appendChild(c);
       tr.appendChild(el("td", item.files_delivered + " of " + item.files_total));
       tr.appendChild(folderCell(item.source_folder, "source"));
       tr.appendChild(folderCell(item.destination_folder, "destination"));
@@ -829,6 +837,10 @@
 
     var activity = section(grid, "Activity");
     var quietJob = true;
+    (d.private_leftovers || []).forEach(function (entry) {
+      quietJob = false;
+      activity.appendChild(el("p", privateLeftoversText(entry), "notice"));
+    });
     if (d.last_problem) {
       quietJob = false;
       activity.appendChild(problemPanel(job, d, row));

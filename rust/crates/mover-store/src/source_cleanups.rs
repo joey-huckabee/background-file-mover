@@ -240,7 +240,8 @@ impl Store {
     }
 
     /// Record one round's results in one transaction: `None` = removed (or
-    /// already absent after sync), `Some(diagnostic)` = failed. A failure
+    /// already absent after sync); `Some(PRIVATE_LEFTOVERS)` = removed with a
+    /// kept folder warning; any other `Some(diagnostic)` = failed. A failure
     /// keeps `authorized` as it was (0 if intent was never recorded).
     pub fn finish_source_cleanup(
         &self,
@@ -269,8 +270,8 @@ impl Store {
                         |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
                     )
                     .optional()?;
-                match failure {
-                    None => {
+                match failure.as_deref() {
+                    None | Some(PRIVATE_LEFTOVERS) => {
                         // Only an authorized removal can be recorded as done.
                         if row.as_ref().is_none_or(|(s, a, _)| s != "Intent" || *a != 1) {
                             return Err(StoreError::CorruptState);
@@ -280,9 +281,9 @@ impl Store {
                             .confirm_source_removed(*index, true)
                             .map_err(|_| StoreError::CorruptState)?;
                         tx.execute(
-                            "UPDATE source_cleanups SET state='Removed',next_attempt_at=NULL,diagnostic=NULL,\
+                            "UPDATE source_cleanups SET state='Removed',next_attempt_at=NULL,diagnostic=?4,\
                              updated_at=?3 WHERE job_id=?1 AND file_index=?2",
-                            params![job_id, *index as i64, now],
+                            params![job_id, *index as i64, now, failure.as_deref()],
                         )?;
                     }
                     Some(diagnostic) => {

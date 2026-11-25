@@ -19,10 +19,12 @@ use std::{
 mod admin_retry;
 mod cancellations;
 mod deletions;
+mod private_leftovers;
 mod source_cleanups;
 pub use deletions::{
     DeleteKind, DeleteTarget, DeletionScope, DeletionStart, DeletionView, DestinationWork,
 };
+pub use private_leftovers::{PRIVATE_LEFTOVERS, PrivateLeftover};
 pub use source_cleanups::{CleanupWork, SourceCleanupView, backoff_seconds};
 mod problems;
 pub use cancellations::{CancelOutcome, CancelState, Cancellation};
@@ -213,6 +215,7 @@ pub struct Accepted {
 
 /// One database-owner snapshot; no filesystem observations or state changes.
 pub struct JobStatus {
+    pub private_leftovers: Vec<PrivateLeftover>,
     pub job: Accepted,
     pub transfers: Vec<Option<Transfer>>,
     pub missing: Vec<(usize, i64, bool)>,
@@ -275,6 +278,7 @@ fn status_in(tx: &rusqlite::Transaction<'_>, job_id: i64) -> Result<Option<JobSt
     let cancellation = cancellations::get(tx, job_id)?;
     let deletion = deletions::view(tx, job_id)?;
     let source_cleanup = source_cleanups::view(tx, &job)?;
+    let private_leftovers = private_leftovers::view(tx, job_id)?;
     Ok(Some(JobStatus {
         job,
         transfers,
@@ -289,6 +293,7 @@ fn status_in(tx: &rusqlite::Transaction<'_>, job_id: i64) -> Result<Option<JobSt
         cancellation,
         deletion,
         source_cleanup,
+        private_leftovers,
     }))
 }
 

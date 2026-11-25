@@ -547,9 +547,13 @@ impl Worker {
                             let d: String = d.chars().filter(|c| c.is_ascii_graphic() || *c == ' ').take(240).collect();
                             if d.is_empty() { "blocked_or_uncertain".to_owned() } else { d }
                         });
-                        if let Some(d) = &diagnostic {
+                        if let Some(d) = &diagnostic
+                            && d != mover_store::PRIVATE_LEFTOVERS {
                             crate::logging::diagnostic_line!(Warn, "retained_deletion_failed", Some(job), Some(index), crate::logging::Detail::from_diagnostic(d), eprintln!("Deletion of job {job} file {index} failed: {d}"));
                         }
+                        let diagnostic = diagnostic.or_else(|| {
+                            matches!(&outcome, Ok(true)).then(|| mover_store::PRIVATE_LEFTOVERS.to_owned())
+                        });
                         if let Err(error) = delivery_store.finish_deletion_target(
                             job,
                             index,
@@ -723,7 +727,8 @@ impl Worker {
                             })
                             .collect();
                         for (i, d) in &outcomes {
-                            if let Some(d) = d {
+                            if let Some(d) = d
+                                && d != mover_store::PRIVATE_LEFTOVERS {
                                 crate::logging::diagnostic_line!(Warn, "source_cleanup_failed", Some(work.job_id), Some(*i), crate::logging::Detail::from_diagnostic(d), eprintln!("Source cleanup of job {} file {i} failed: {d}", work.job_id));
                             }
                         }
@@ -1309,6 +1314,20 @@ fn job_view(snapshot: &mover_store::JobStatus) -> JobView {
             .expect("status object")
             .insert("cancellation".into(), cancellation_view(Some(c)));
     }
+    if !snapshot.private_leftovers.is_empty() {
+        details.as_object_mut().expect("status object").insert(
+            "private_leftovers".into(),
+            serde_json::json!(
+                snapshot
+                    .private_leftovers
+                    .iter()
+                    .map(|w| serde_json::json!({
+                        "file_id": w.file_index.to_string(), "folder_path": w.folder_path,
+                    }))
+                    .collect::<Vec<_>>()
+            ),
+        );
+    }
     if let Some(problem) = &snapshot.problem {
         details
             .as_object_mut()
@@ -1485,6 +1504,9 @@ fn page_response(store: &Store, request: PageRequest) -> Response {
             item["files_total"] = files.len().into();
             item["files_delivered"] = delivered.into();
             // Move mode: a failing source cleanup needs attention.
+            if !status.private_leftovers.is_empty() {
+                item["private_leftovers_count"] = status.private_leftovers.len().into();
+            }
             item["source_cleanup_failed"] = status
                 .source_cleanup
                 .as_ref()
