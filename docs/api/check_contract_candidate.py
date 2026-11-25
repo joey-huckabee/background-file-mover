@@ -167,6 +167,17 @@ def main():
     require("rate_limited" in api["paths"]["/api/v2/admin/login"]["post"]["responses"]["429"]["x-error-codes"],
             "bounded login error registry missing")
     Draft202012Validator.check_schema(schema)
+    # Optional leftover observations preserve legacy responses and never expose
+    # directory entry names or create removal authority.
+    leftovers = Draft202012Validator({"$defs": schema["$defs"],
+                                      "$ref": "#/$defs/PrivateLeftover"})
+    valid_leftover = {"file_id": "255", "folder_path": "/source/.file-mover/42-255"}
+    require(leftovers.is_valid(valid_leftover), "valid private-leftover observation refused")
+    for invalid in [dict(valid_leftover, file_id="256"),
+                    dict(valid_leftover, file_id="01"),
+                    dict(valid_leftover, folder_path="relative"),
+                    dict(valid_leftover, entry_names=["must-not-be-reported"])]:
+        require(not leftovers.is_valid(invalid), "invalid private-leftover observation admitted")
     seen = set()
     for case in fixtures:
         require(case["id"] not in seen, "duplicate fixture ID: " + case["id"])

@@ -107,6 +107,9 @@ enum Failure {
     ExpectedSizeMismatch,
     Blocked,
 }
+fn no_leftovers(value: &bool) -> bool {
+    !*value
+}
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Receipt {
@@ -114,6 +117,8 @@ struct Receipt {
     claim: Option<ClaimWire>,
     error: Option<Failure>,
     diagnostic: Option<String>,
+    #[serde(default, skip_serializing_if = "no_leftovers")]
+    private_leftovers: bool,
 }
 fn request(
     assignment: &Assignment,
@@ -135,6 +140,15 @@ fn request_diagnosed(
     stop: &AtomicBool,
     diagnostic: &mut Option<String>,
 ) -> Result<ClaimIntent, ClaimError> {
+    request_reported(assignment, guard, stop, diagnostic, &mut false)
+}
+fn request_reported(
+    assignment: &Assignment,
+    guard: &LocalClaimLock,
+    stop: &AtomicBool,
+    diagnostic: &mut Option<String>,
+    leftovers: &mut bool,
+) -> Result<ClaimIntent, ClaimError> {
     let bytes = serde_json::to_vec(&Request {
         assignment: assignment.clone(),
         source_authorization: guard.source_authorization().cloned(),
@@ -153,18 +167,38 @@ fn request_diagnosed(
         LIMIT as u64,
     )
     .map_err(|_| ClaimError::OutcomeUncertain)?;
-    decode_receipt_diagnosed(&bytes, diagnostic)
+    decode_receipt_reported(
+        &bytes,
+        diagnostic,
+        matches!(assignment, Assignment::Discard { .. }),
+        leftovers,
+    )
 }
 #[cfg(test)]
 fn decode_receipt(bytes: &[u8]) -> Result<ClaimIntent, ClaimError> {
     decode_receipt_diagnosed(bytes, &mut None)
 }
+#[cfg(test)]
 fn decode_receipt_diagnosed(
     bytes: &[u8],
     diagnostic: &mut Option<String>,
 ) -> Result<ClaimIntent, ClaimError> {
+    decode_receipt_reported(bytes, diagnostic, false, &mut false)
+}
+fn decode_receipt_reported(
+    bytes: &[u8],
+    diagnostic: &mut Option<String>,
+    allow_leftovers: bool,
+    leftovers: &mut bool,
+) -> Result<ClaimIntent, ClaimError> {
     let reply: Receipt = serde_json::from_slice(bytes).map_err(|_| ClaimError::OutcomeUncertain)?;
-    if reply.version != 1 {
+    if reply.version != 1
+        || (reply.private_leftovers
+            && (!allow_leftovers
+                || reply.error.is_some()
+                || reply.claim.is_none()
+                || reply.diagnostic.is_some()))
+    {
         return Err(ClaimError::OutcomeUncertain);
     }
     if let Some(detail) = &reply.diagnostic {
@@ -174,6 +208,7 @@ fn decode_receipt_diagnosed(
         eprintln!("Claim worker: {detail}");
         *diagnostic = Some(detail.clone());
     }
+    *leftovers = reply.private_leftovers;
     match (reply.claim, reply.error) {
         (Some(c), None) => c.decode().map_err(|_| ClaimError::OutcomeUncertain),
         (None, Some(Failure::MissingSource)) => Err(ClaimError::MissingSource),
@@ -536,6 +571,7 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
         Assignment::Release { .. } => "release",
     };
     let mut boundary = "custody_before";
+    let mut private_leftovers = false;
     let result: Result<ClaimIntent, ClaimError> = (|| {
         mover_fs::validate_worker_source(&path, request.source_authorization.as_ref())?;
         mover_fs::validate_payload_locks(&path, &path)?;
@@ -571,7 +607,7 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
             }),
             // Removed now or already absent: either way no retained copy remains.
             Assignment::Discard { claim, .. } => claim.decode().and_then(|c| {
-                mover_fs::discard_retained_source(&c)?;
+                private_leftovers = mover_fs::discard_retained_source_report(&c)?.1;
                 Ok(c)
             }),
         };
@@ -583,12 +619,14 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
     })();
     let reply = match result {
         Ok(c) => Receipt {
+            private_leftovers,
             version: 1,
             claim: Some(ClaimWire::new(&c)),
             error: None,
             diagnostic: None,
         },
         Err(e) => Receipt {
+            private_leftovers: false,
             version: 1,
             claim: None,
             diagnostic: Some(
@@ -696,7 +734,7 @@ pub(crate) fn discard(
     stop: &AtomicBool,
     job_id: i64,
     index: usize,
-) -> Result<(), String> {
+) -> Result<bool, String> {
     let describe = |e: &ClaimError| super::diagnostic::describe(e);
     let (intent, done) = match store.claim_intent(job_id, index) {
         Ok(Some(c)) => c,
@@ -707,7 +745,8 @@ pub(crate) fn discard(
         return Err("blocked: retained copy not in this source scope".into());
     }
     let mut diagnostic = None;
-    match request_diagnosed(
+    let mut leftovers = false;
+    match request_reported(
         &Assignment::Discard {
             version: 1,
             claim: ClaimWire::new(&intent),
@@ -715,8 +754,9 @@ pub(crate) fn discard(
         guard,
         stop,
         &mut diagnostic,
+        &mut leftovers,
     ) {
-        Ok(reply) if reply == intent => Ok(()),
+        Ok(reply) if reply == intent => Ok(leftovers),
         Ok(_) => Err("blocked: claim receipt changed".into()),
         Err(e) => Err(diagnostic.unwrap_or_else(|| describe(&e))),
     }
@@ -767,6 +807,18 @@ mod tests {
         assert!(!f(&blocked, None));
     }
     use super::*;
+    #[test]
+    fn leftover_receipt_cannot_turn_a_failure_or_non_discard_into_success() {
+        let bytes = br#"{"version":1,"claim":null,"error":"blocked","diagnostic":null,"private_leftovers":true}"#;
+        for allowed in [false, true] {
+            let mut warning = false;
+            assert!(matches!(
+                decode_receipt_reported(bytes, &mut None, allowed, &mut warning),
+                Err(ClaimError::OutcomeUncertain)
+            ));
+            assert!(!warning);
+        }
+    }
     #[test]
     fn unusable_receipts_are_pending_but_explicit_unsafe_receipts_block() {
         for bytes in [

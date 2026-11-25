@@ -731,6 +731,16 @@
       ],
       "x-status": "CleanupPending implemented increment162: a committed move job (delete_source_after_commit recorded at acceptance) whose held source copies are not all removed yet; Committed once they are"
     },
+    "PrivateLeftover": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Observed nonempty private folder kept after removal/reconciliation of the retained copy. Informational until history clear, not deletion or retry authority; entry names are not reported.",
+      "properties": {
+        "file_id": {"type": "string", "pattern": "^(0|[1-9][0-9]?|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"},
+        "folder_path": {"type": "string", "minLength": 2, "maxLength": 8192, "pattern": "^/"}
+      },
+      "required": ["file_id", "folder_path"]
+    },
     "SourceCleanupStatus": {
       "type": "object",
       "additionalProperties": false,
@@ -1161,6 +1171,11 @@
         },
         "last_problem": {
           "$ref": "#/$defs/JobProblem"
+        },
+        "private_leftovers": {
+          "type": "array", "minItems": 1, "maxItems": 256,
+          "items": {"$ref": "#/$defs/PrivateLeftover"},
+          "description": "Optional owned-folder observations, omitted when empty. Does not change committed/cancelled state."
         }
       },
       "required": [
@@ -1356,6 +1371,10 @@
         "source_cleanup_failed": {
           "type": "boolean",
           "description": "Move mode: a held source copy removal has failed and is being retried (increment162)."
+        },
+        "private_leftovers_count": {
+          "type": "integer", "minimum": 1, "maximum": 256,
+          "description": "Optional count of observed private folders kept; omitted when zero. Independent Needs attention flag, including committed/cancelled jobs."
         }
       },
       "required": [
