@@ -192,7 +192,8 @@ These fixed budgets apply **only when logging is enabled**, not in OFF mode:
   suppressed configurable messages. OFF uses the untouched legacy print path
   rather than this event/dispatcher path.
 - Capture a bounded typed event: constant code, level, optional numeric job/file
-  index, numeric errno and allowlisted counters/reason enums. At most 256 bytes;
+  index, numeric errno, validated operation text (at most 240 printable ASCII
+  characters) and allowlisted counters/reason enums. At most 512 bytes;
   no generic `Debug`/`Display` input or stored config/request object.
 - Two independent bounded channels, capacity 1024 events each, with
   `try_send`: one for stderr and one for the file writer.
@@ -211,7 +212,7 @@ These fixed budgets apply **only when logging is enabled**, not in OFF mode:
 - Writer-side bounded formatting produces one escaped line, at most 1024 bytes,
   with epoch timestamp, level, PID and code plus permitted fields. No per-record
   fsync, SQLite write, transfer callback or payload-tree access. Queue payload
-  storage is at most 512 KiB combined, plus bounded formatting buffers and two
+  storage is at most 1 MiB combined, plus bounded formatting buffers and two
   explicitly sized 256 KiB thread stacks; this is not a whole-service RAM cap.
 - Successful sinks emit coalesced drop summaries at most once per second,
   reading counters directly rather than enqueueing their own reports. The file
@@ -419,12 +420,9 @@ slower than OFF**, measured using the sustained-load test and delivery benchmark
    completed work separately from request/back-pressure counts. The delivery
    benchmark measures elapsed time to commit an identical fixed workload.
    Define slowdown as `elapsed_info / elapsed_off - 1`; require at most 0.02
-   for the fixed-work delivery benchmark (equivalently throughput ratio at least
-   `1 / 1.02` for identical work). Following the coordinator's local comparison,
-   use that benchmark as the acceptance measure: the sustained late-claim timing
-   is too noisy to resolve a 2% bound and supplies regression evidence only.
-   Report uncertainty; a confidence interval spanning the limit or uncontrolled
-   host/clock variation is inconclusive, not a pass.
+   in both comparisons (equivalently throughput ratio at least `1 / 1.02` for
+   identical work). Report uncertainty; a confidence interval spanning the
+   limit or uncontrolled host/clock variation is inconclusive, not a pass.
    Debug and saturated-sink runs remain diagnostic stress results, not substitutes
    for info acceptance. Do not relax transfer assertions, select only favorable
    pairs or infer speed from raw request rate/an unsaturated workload.
@@ -439,16 +437,16 @@ WSL ext4, debug build, gate SQLite flags; full details and local test exceptions
 are in [increment 172](RUST-INCREMENT-172.md#coordinator-local-performance).
 Ten alternating fixed-work OFF/info pairs (eight jobs / eight MiB per run)
 totalled 138.26 s OFF and 136.08 s info. Paired slowdown median −2.0%, mean
-−1.5%, standard deviation 3.2 percentage points: the coordinator reports no
-measurable slowdown, within the 2% local acceptance limit.
+−1.5%, standard deviation 3.2 percentage points, upper 95% slowdown bound about +0.8%:
+this comparison passes the 2% local limit.
 
 Five sustained-load pairs had late-claim seconds OFF
 24.66/20.43/18.50/19.66/19.26 and info
 18.47/17.19/23.32/20.13/21.29; reported paired slowdown median +2.4%, mean −0.4%.
-This is too noisy for a 2% bound. Per the coordinator's instruction it is no
-observed regression, with the fixed-work delivery benchmark retained as the
-acceptance measure. Debug-level and saturated-sink performance runs were not
-done. These local results are not SLES/systemd qualification or release closure.
+This is too noisy for a 2% bound and is inconclusive. Overall performance
+acceptance remains pending: both comparisons must pass. The coordinator will
+rerun more sustained-load pairs after the operation/errno fix. Debug-level and
+saturated-sink performance runs were not done. These local results are not SLES/systemd qualification or release closure.
 
 ## Requirements, dependencies and settled answers
 

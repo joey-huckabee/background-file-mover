@@ -7,17 +7,18 @@ exact legacy stdout/stderr and no logger resources. Enablement requires a file;
 enabled events use journal severity prefixes and a private rotating file.
 
 No new dependencies or shell commands are used by runtime logging. Records are
-bounded and lossy, with fixed public event codes/numeric context; secrets and
+bounded and lossy, with fixed public event codes, numeric context and validated
+operation/errno diagnostics; secrets and
 arbitrary request/error/config values are never rendered into enabled logs.
 Full/slow sinks stay off claim/copy/delivery loops. This does not reserve free
 space or isolate physical storage: the user permits a shared disk.
 
 Coordinator local WSL test and OFF/info performance results are recorded in
-[increment 172](RUST-INCREMENT-172.md). The fixed-work delivery comparison met
-the 2% local acceptance limit; sustained late-claim timing was too noisy for that
-bound and showed no observed regression. The coordinator applied Rust fmt;
-Clippy rerun after the byte-string fix, both SLES modes and remaining validation
-are pending. Local results are not a claimed target pass. See also [current operator statuses](RUST-OPERATOR-GUIDE.md),
+[increment 172](RUST-INCREMENT-172.md). The fixed-work delivery comparison passed,
+but sustained late-claim timing is inconclusive; overall performance acceptance
+is pending until both meet the 2% bound. The coordinator reports fmt/Clippy clean
+before these review fixes. Fresh Rust checks, both SLES modes and remaining
+validation are pending. Local results are not a claimed target pass. See also [current operator statuses](RUST-OPERATOR-GUIDE.md),
 [lifecycle handling](RUST-RESTART-RUNBOOK.md) and [release closure](RUST-RELEASE-CLOSURE.md).
 All release gates remain open; production NFS and operational deployment remain
 disabled/unapproved. Logging never supplies transfer/deletion/recovery authority.
@@ -34,10 +35,10 @@ Run `logging_fixed_work_delivery_benchmark -- --ignored --nocapture` at the same
 three levels. It transfers the same eight 1 MiB jobs and reports fixed-work
 elapsed time/bytes per second. Alternate at least five OFF/info pairs under the
 same host/cache/storage conditions; compare late-file handoff elapsed time and
-fixed-work completion time. Info elapsed/OFF elapsed must be at most 1.02 in the
-delivery benchmark, with uncertainty reported. Sustained late-claim timing is a
-regression check, not a 2% acceptance measure; the local comparison could not
-resolve that bound. Preserve failures/inconclusive runs;
+fixed-work completion time. Info elapsed/OFF elapsed must be at most 1.02 in both
+comparisons, with uncertainty reported. The first sustained comparison was
+inconclusive; more pairs will follow the operation/errno fix. Preserve failed
+and inconclusive runs;
 do not infer transfer throughput from raw producer request rate. Debug and
 saturated-sink tests provide stress evidence, not replacements for info acceptance.
 No performance result has been measured in the cloud worker environment.

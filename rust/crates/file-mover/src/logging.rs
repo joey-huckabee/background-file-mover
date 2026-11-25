@@ -137,6 +137,73 @@ impl Logging {
         Ok(())
     }
 }
+/// Only construct from failure_diagnostic or an already validated worker
+/// diagnostic, never an arbitrary Display/error/request/config string.
+#[derive(Clone, Copy)]
+pub(crate) struct Detail {
+    bytes: [u8; 240],
+    len: u8,
+    errno: Option<i32>,
+}
+impl Detail {
+    pub(crate) fn from_diagnostic(text: &str) -> Option<Self> {
+        if text.is_empty() || !crate::diagnostic::valid(text) {
+            return None;
+        }
+        let mut bytes = [0; 240];
+        bytes[..text.len()].copy_from_slice(text.as_bytes());
+        let errno = text.split_ascii_whitespace().find_map(|part| {
+            part.strip_prefix("errno=")?.trim_end_matches(';').parse::<i32>().ok()
+        });
+        Some(Self { bytes, len: text.len() as u8, errno })
+    }
+    pub(crate) fn error(error: &(dyn std::error::Error + 'static)) -> Self {
+        // Store/OS errors may contain paths in their Display implementation.
+        // Preserve a fixed class and numeric OS error, never that raw text.
+        if let Some(error) = error.downcast_ref::<mover_store::StoreError>() {
+            let (tag, errno) = match error {
+                mover_store::StoreError::Io(e) => ("store_io_error", e.raw_os_error()),
+                mover_store::StoreError::Sqlite(_) => ("store_sqlite_error", None),
+                mover_store::StoreError::Protocol(_) => ("store_protocol", None),
+                mover_store::StoreError::UnsupportedSchema => ("store_unsupported_schema", None),
+                mover_store::StoreError::MigrationRequired => ("store_migration_required", None),
+                mover_store::StoreError::UnsupportedIdentity => ("store_unsupported_identity", None),
+                mover_store::StoreError::UnsupportedSqliteConfiguration => ("store_unsupported_sqlite_configuration", None),
+                mover_store::StoreError::InvalidContext => ("store_invalid_context", None),
+                mover_store::StoreError::CorruptState => ("store_corrupt_state", None),
+                mover_store::StoreError::SourceReserved => ("store_source_reserved", None),
+                mover_store::StoreError::SourceRootChanged => ("store_source_root_changed", None),
+                mover_store::StoreError::SourceEnrollmentRequired => ("store_source_enrollment_required", None),
+                mover_store::StoreError::DestinationEnrollmentRequired => ("store_destination_enrollment_required", None),
+                mover_store::StoreError::DestinationBindingChanged => ("store_destination_binding_changed", None),
+                mover_store::StoreError::WorkerStopped => ("store_worker_stopped", None),
+                mover_store::StoreError::AdmissionFull => ("store_admission_full", None),
+                mover_store::StoreError::SourceSpaceLow => ("store_source_space_low", None),
+                mover_store::StoreError::SourceSpaceUnavailable => ("store_source_space_unavailable", None),
+                mover_store::StoreError::SourceCustodyRefused => ("store_source_custody_refused", None),
+                mover_store::StoreError::NotFound => ("store_not_found", None),
+                mover_store::StoreError::ReviewConflict => ("store_review_conflict", None),
+                mover_store::StoreError::ActionConflict => ("store_action_conflict", None),
+                mover_store::StoreError::AuditFull => ("store_audit_full", None),
+                mover_store::StoreError::ReceiptCapacity => ("store_receipt_capacity", None),
+                mover_store::StoreError::Cancelled => ("store_cancelled", None),
+            };
+            let mut detail = Self::from_diagnostic(tag).expect("constant diagnostic");
+            detail.errno = errno;
+            return detail;
+        }
+        if let Some(error) = error.downcast_ref::<std::io::Error>() {
+            let mut detail = Self::from_diagnostic("io_error").expect("constant diagnostic");
+            detail.errno = error.raw_os_error();
+            return detail;
+        }
+        Self::from_diagnostic(&crate::diagnostic::describe(error)).expect("bounded native diagnostic")
+    }
+    fn text(&self) -> &str {
+        // Construction admits printable ASCII only.
+        std::str::from_utf8(&self.bytes[..usize::from(self.len)]).expect("ASCII diagnostic")
+    }
+}
 #[derive(Clone, Copy)]
 struct Event {
     level: Level,
@@ -144,6 +211,7 @@ struct Event {
     count: u64,
     job: Option<i64>,
     file: Option<usize>,
+    detail: Option<Detail>,
 }
 impl Event {
     fn line(self, journal: bool) -> String {
@@ -168,8 +236,9 @@ impl Event {
         let time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default();
+        let detail = self.detail.map_or_else(String::new, |d| format!(" operation={:?} errno={}", d.text(), d.errno.map_or_else(|| "-".into(), |n| n.to_string())));
         format!(
-            "{prefix}time={}.{:03} pid={} level={name} code={} count={} job={} file={}\n",
+            "{prefix}time={}.{:03} pid={} level={name} code={} count={} job={} file={}{detail}\n",
             time.as_secs(),
             time.subsec_millis(),
             std::process::id(),
@@ -186,6 +255,9 @@ struct Counters {
     errors: AtomicU64,
     pending: AtomicU64,
     abandoned: AtomicU64,
+    limiter: AtomicU64,
+    coalesced: AtomicU64,
+    evicted: AtomicU64,
 }
 #[derive(Clone)]
 struct Sink {
@@ -207,11 +279,12 @@ struct Dispatch {
     stderr: Sink,
     file: Sink,
     limiter: Mutex<Vec<(&'static str, Option<i64>, Instant)>>,
-    coalesced: AtomicU64,
-    evicted: AtomicU64,
 }
 impl Dispatch {
     fn emit(&self, level: Level, code: &'static str, job: Option<i64>, file: Option<usize>) {
+        self.emit_detailed(level, code, job, file, None);
+    }
+    fn emit_detailed(&self, level: Level, code: &'static str, job: Option<i64>, file: Option<usize>, detail: Option<Detail>) {
         if level == Level::Off || level > self.level {
             return;
         }
@@ -224,7 +297,7 @@ impl Dispatch {
             return;
         }
         let Ok(mut limiter) = self.limiter.try_lock() else {
-            self.coalesced.fetch_add(1, Ordering::Relaxed);
+            for sink in [&self.stderr, &self.file] { sink.counters.limiter.fetch_add(1, Ordering::Relaxed); }
             return;
         };
         let now = Instant::now();
@@ -233,14 +306,14 @@ impl Dispatch {
             .find(|(key, id, _)| *key == code && *id == job)
         {
             if now.duration_since(*last) < Duration::from_secs(1) {
-                self.coalesced.fetch_add(1, Ordering::Relaxed);
+                for sink in [&self.stderr, &self.file] { sink.counters.coalesced.fetch_add(1, Ordering::Relaxed); }
                 return;
             }
             *last = now;
         } else {
             if limiter.len() == 256 {
                 limiter.remove(0);
-                self.evicted.fetch_add(1, Ordering::Relaxed);
+                for sink in [&self.stderr, &self.file] { sink.counters.evicted.fetch_add(1, Ordering::Relaxed); }
             }
             limiter.push((code, job, now));
         }
@@ -251,6 +324,7 @@ impl Dispatch {
             count: 1,
             job,
             file,
+            detail,
         };
         self.stderr.send(event);
         self.file.send(event);
@@ -259,6 +333,9 @@ impl Dispatch {
 static LOGGER: OnceLock<Arc<Dispatch>> = OnceLock::new();
 pub(crate) fn emit(level: Level, code: &'static str) {
     context(level, code, None, None);
+}
+pub(crate) fn enabled(level: Level) -> bool {
+    LOGGER.get().is_some_and(|l| l.active.load(Ordering::Relaxed) && level != Level::Off && level <= l.level)
 }
 pub(crate) fn context(level: Level, code: &'static str, job: Option<i64>, file: Option<usize>) {
     if let Some(l) = LOGGER.get().filter(|d| d.active.load(Ordering::Relaxed)) {
@@ -297,7 +374,30 @@ pub(crate) fn route(
         legacy,
     );
 }
+fn route_detailed_to(
+    dispatch: Option<&Dispatch>, level: Level, code: &'static str,
+    job: Option<i64>, file: Option<usize>,
+    detail: impl FnOnce() -> Option<Detail>, legacy: impl FnOnce(),
+) {
+    if let Some(l) = dispatch.filter(|d| d.active.load(Ordering::Relaxed)) {
+        if level != Level::Off && level <= l.level {
+            l.emit_detailed(level, code, job, file, detail());
+        }
+    } else {
+        legacy();
+    }
+}
+pub(crate) fn route_detailed(
+    level: Level, code: &'static str, job: Option<i64>, file: Option<usize>,
+    detail: impl FnOnce() -> Option<Detail>, legacy: impl FnOnce(),
+) {
+    route_detailed_to(LOGGER.get().map(Arc::as_ref), level, code, job, file, detail, legacy);
+}
 macro_rules! diagnostic_line {
+    ($level:ident, $code:literal, $job:expr, $file:expr, $detail:expr, $legacy:expr) => {{
+        $crate::logging::route_detailed($crate::logging::Level::$level, $code, $job, $file,
+            || $detail, || { $legacy });
+    }};
     ($level:ident, $code:literal, $job:expr, $file:expr, $legacy:expr) => {{
         $crate::logging::route($crate::logging::Level::$level, $code, $job, $file, || {
             $legacy
@@ -355,7 +455,7 @@ fn run_sink(
     mut write: impl FnMut(Event) -> Result<(), ()>,
 ) {
     let mut last = Instant::now();
-    let mut reported = 0;
+    let mut reported = [0; 4];
     loop {
         let event = if quit.load(Ordering::Acquire) {
             rx.try_recv().ok()
@@ -376,24 +476,29 @@ fn run_sink(
         } else if quit.load(Ordering::Acquire) {
             break;
         }
-        let drops = counters.dropped.load(Ordering::Relaxed);
-        if level >= Level::Warn && drops != reported && last.elapsed() >= Duration::from_secs(1) {
-            if write(Event {
-                level: Level::Warn,
-                code: "logging_queue_dropped",
-                count: drops - reported,
-                job: None,
-                file: None,
-            })
-            .is_err()
-            {
+        if level >= Level::Warn && last.elapsed() >= Duration::from_secs(1) {
+            if report_losses(&counters, &mut reported, &mut write).is_err() {
                 counters.errors.fetch_add(1, Ordering::Relaxed);
                 break;
             }
-            reported = drops;
             last = Instant::now();
         }
     }
+}
+fn report_losses(counters: &Counters, reported: &mut [u64; 4], write: &mut impl FnMut(Event) -> Result<(), ()>) -> Result<(), ()> {
+    for ((code, counter), previous) in [
+        ("logging_queue_dropped", &counters.dropped),
+        ("logging_limiter_contended", &counters.limiter),
+        ("logging_coalesced", &counters.coalesced),
+        ("logging_limiter_evicted", &counters.evicted),
+    ].into_iter().zip(reported.iter_mut()) {
+        let total = counter.load(Ordering::Relaxed);
+        if total != *previous {
+            write(Event { level: Level::Warn, code, count: total.wrapping_sub(*previous), job: None, file: None, detail: None })?;
+            *previous = total;
+        }
+    }
+    Ok(())
 }
 fn guarded(counters: &Counters, operation: impl FnOnce()) {
     if std::panic::catch_unwind(std::panic::AssertUnwindSafe(operation)).is_err() {
@@ -412,8 +517,6 @@ pub(crate) fn start(config: &Logging) -> Option<Guard> {
         stderr,
         file,
         limiter: Mutex::new(Vec::with_capacity(256)),
-        coalesced: AtomicU64::new(0),
-        evicted: AtomicU64::new(0),
     });
     if LOGGER.set(dispatch.clone()).is_err() {
         return None;
@@ -501,6 +604,7 @@ pub(crate) fn start(config: &Logging) -> Option<Guard> {
                     count: 1,
                     job: None,
                     file: None,
+                    detail: None,
                 });
             }
         })
@@ -528,6 +632,7 @@ pub(crate) fn start(config: &Logging) -> Option<Guard> {
                 count: 1,
                 job: None,
                 file: None,
+                detail: None,
             });
         }
     }
@@ -551,8 +656,6 @@ mod tests {
                 stderr,
                 file,
                 limiter: Mutex::new(Vec::with_capacity(256)),
-                coalesced: AtomicU64::new(0),
-                evicted: AtomicU64::new(0),
             },
             a,
             b,
@@ -640,13 +743,68 @@ mod tests {
                     code: "event",
                     count: 1,
                     job: None,
-                    file: None
+                    file: None,
+                    detail: None,
                 }
                 .line(true)
                 .starts_with(prefix)
             );
         }
-        assert!(std::mem::size_of::<Event>() <= 256);
+        assert!(std::mem::size_of::<Event>() <= 512);
+    }
+    #[test]
+    fn enabled_info_payload_failure_keeps_operation_and_errno_without_secret_text() {
+        let (d, journal, file) = local(Level::Info);
+        // The validated payload worker diagnostic, as emitted by failure_diagnostic.
+        let diagnostic = "payload_copy_write errno=28";
+        route_detailed_to(Some(&d), Level::Info, "payload_failure", Some(14), Some(2),
+            || Detail::from_diagnostic(diagnostic), || panic!("legacy output must not run"));
+        for line in [journal.try_recv().unwrap().line(true), file.try_recv().unwrap().line(false)] {
+            assert!(line.contains("level=info"));
+            assert!(line.contains("operation=\"payload_copy_write errno=28\""), "{line}");
+            assert!(line.contains("errno=28"));
+            assert!(line.contains("job=14 file=2"));
+            assert!(line.len() <= 1024);
+        }
+        let escaped = Event { level: Level::Info, code: "bounded_operation", count: 1,
+            job: Some(14), file: Some(2), detail: Detail::from_diagnostic(&"\"".repeat(240)) }.line(false);
+        assert!(escaped.len() <= 1024);
+        assert_eq!(escaped.matches('\n').count(), 1);
+        let secret = "password=sentinel token cookie /private/key.pem";
+        let error = std::io::Error::other(secret);
+        let safe = Detail::error(&error);
+        assert_eq!(safe.text(), "io_error");
+        assert!(!safe.text().contains(secret));
+        let boxed: Box<dyn std::error::Error> = secret.into();
+        assert_eq!(Detail::error(boxed.as_ref()).text(), "blocked_or_uncertain");
+        for invalid in ["injected\nline", "tab\t", "non-ascii é", &"x".repeat(241)] {
+            assert!(Detail::from_diagnostic(invalid).is_none());
+        }
+        route_detailed_to(Some(&d), Level::Debug, "filtered", None, None,
+            || panic!("suppressed detail evaluated"), || panic!("legacy evaluated"));
+        let mut original = false;
+        route_detailed_to(None, Level::Info, "off", None, None,
+            || panic!("OFF detail evaluated"), || original = true);
+        assert!(original);
+    }
+    #[test]
+    fn periodic_summaries_report_queue_limiter_coalescing_and_eviction_deltas() {
+        let (d, _a, _b) = local(Level::Info);
+        for id in 0..300 { d.emit(Level::Info, "by_job", Some(id), None); }
+        d.emit(Level::Info, "by_job", Some(299), None);
+        {
+            let _locked = d.limiter.lock().unwrap();
+            d.emit(Level::Info, "contended", None, None);
+        }
+        d.stderr.counters.dropped.store(7, Ordering::Relaxed);
+        let mut reported = [0; 4];
+        let mut summary = Vec::new();
+        let mut write = |e: Event| { summary.push((e.code, e.count)); Ok(()) };
+        report_losses(&d.stderr.counters, &mut reported, &mut write).unwrap();
+        // A second unchanged snapshot must not repeat any count.
+        report_losses(&d.stderr.counters, &mut reported, &mut write).unwrap();
+        assert_eq!(summary, vec![("logging_queue_dropped", 7),
+            ("logging_limiter_contended", 1), ("logging_coalesced", 1), ("logging_limiter_evicted", 44)]);
     }
     #[test]
     fn off_executes_only_the_original_bytes() {
@@ -670,6 +828,7 @@ mod tests {
             count: 1,
             job: None,
             file: None,
+            detail: None,
         };
         for _ in 0..CAPACITY {
             sink.send(event);
@@ -695,7 +854,7 @@ mod tests {
         }
         assert_eq!(d.limiter.lock().unwrap().len(), 256);
         d.emit(Level::Info, "by_job", Some(299), None);
-        assert_eq!(d.coalesced.load(Ordering::Relaxed), 1);
+        assert_eq!(d.stderr.counters.coalesced.load(Ordering::Relaxed), 1);
     }
     #[test]
     fn stuck_writer_has_one_total_shutdown_budget_and_does_not_fail_producers() {
@@ -720,6 +879,7 @@ mod tests {
             count: 1,
             job: None,
             file: None,
+            detail: None,
         });
         waiting.recv_timeout(Duration::from_secs(1)).unwrap();
         let mut handles = vec![handle];
@@ -749,6 +909,7 @@ mod tests {
             count: 1,
             job: None,
             file: None,
+            detail: None,
         });
         run_sink(rx, counters.clone(), quit, Level::Error, |_| Err(()));
         assert_eq!(counters.errors.load(Ordering::Relaxed), 1);
@@ -758,6 +919,7 @@ mod tests {
             count: 1,
             job: None,
             file: None,
+            detail: None,
         });
         assert_eq!(counters.dropped.load(Ordering::Relaxed), 1);
     }

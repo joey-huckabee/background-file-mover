@@ -379,7 +379,7 @@ impl Session {
                 "delivery_worker_refused",
                 Some(self.job),
                 None,
-                eprintln!("Delivery worker sequence {}: {detail}", self.sequence)
+                crate::logging::Detail::from_diagnostic(detail), eprintln!("Delivery worker sequence {}: {detail}", self.sequence)
             );
             self.diagnostic = Some(detail.clone());
         }

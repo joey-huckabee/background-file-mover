@@ -1467,8 +1467,13 @@ Restart applies changes. Levels are off/error/warn/info/debug. Enabling needs a
 file; no journal-only mode exists. Enabled events go to stderr with systemd
 `<N>` priority prefixes and to the file. Readiness also retains its original
 stdout line. Foreground commands/JSON and worker IPC are unchanged. Runtime
-logging uses fixed event codes and numeric job/file context, never arbitrary
-error/config/credential text. A `delivery_requires_reconciliation` code is a
+logging uses fixed event codes, numeric job/file context and the available
+validated operation diagnostic (at most 240 printable ASCII characters), with
+an optional numeric errno, for example `operation="payload_copy_write errno=28"`
+and `errno=28`. Journal and file carry the same detail. Persistence errors use
+safe typed categories; arbitrary error/config/credential text is excluded.
+At warn/info/debug levels, periodic summaries report queue drops, limiter
+contention, coalescing and limiter evictions independently for each sink. A `delivery_requires_reconciliation` code is a
 diagnostic, not proof that a retry or deletion is safe; use job status.
 
 File and lock modes are 0600. `max_files` includes the active file plus numbered
