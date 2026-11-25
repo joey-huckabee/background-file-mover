@@ -2063,13 +2063,16 @@ struct Fixture {
     diagnostics: Option<std::sync::Arc<load_diagnostics::Diagnostics>>,
 }
 impl Fixture {
-    fn new(window: u32) -> Self { Self::new_inner(window, None) }
+    fn new(window: u32) -> Self {
+        Self::new_inner(window, None)
+    }
     fn new_diagnosed(window: u32, maximum_job: u64) -> Self {
         Self::new_inner(window, Some(maximum_job))
     }
     fn new_inner(window: u32, maximum_job: Option<u64>) -> Self {
         let mut f = Self::uninitialized(window);
-        f.diagnostics = maximum_job.map(|maximum| load_diagnostics::Diagnostics::new(f.address, maximum));
+        f.diagnostics =
+            maximum_job.map(|maximum| load_diagnostics::Diagnostics::new(f.address, maximum));
         let initialized = initialize_source(&f.root.join("config.json"));
         assert!(initialized.status.success(), "{initialized:?}");
         f.start();
@@ -2158,7 +2161,10 @@ impl Fixture {
     }
     fn start_command(&mut self, mut command: Command) {
         self.retire_test_epoch();
-        let stderr = self.diagnostics.as_ref().map_or_else(Stdio::piped, |d| d.stderr());
+        let stderr = self
+            .diagnostics
+            .as_ref()
+            .map_or_else(Stdio::piped, |d| d.stderr());
         self.child = Some(
             command
                 .arg(self.root.join("config.json"))
@@ -2191,8 +2197,14 @@ impl Fixture {
                     diagnostics.captured_text()
                 } else {
                     let mut stderr = String::new();
-                    self.child.as_mut().unwrap().stderr.take().unwrap()
-                        .read_to_string(&mut stderr).unwrap();
+                    self.child
+                        .as_mut()
+                        .unwrap()
+                        .stderr
+                        .take()
+                        .unwrap()
+                        .read_to_string(&mut stderr)
+                        .unwrap();
                     stderr
                 };
                 panic!("startup {status}: {stderr}");
@@ -2230,7 +2242,9 @@ impl Fixture {
             }
             std::thread::sleep(Duration::from_millis(20));
         }
-        if let Some(diagnostics) = &self.diagnostics { diagnostics.finish(); }
+        if let Some(diagnostics) = &self.diagnostics {
+            diagnostics.finish();
+        }
     }
     fn input(&self, label: &str, files: Value) -> Value {
         // Labels are harness conveniences only; HTTP always carries the direct
@@ -2340,7 +2354,9 @@ impl Fixture {
         exchange(self.address, bytes)
     }
     fn post(&self, body: &Value) -> (u16, Value) {
-        if let Some(diagnostics) = &self.diagnostics { diagnostics.request(body); }
+        if let Some(diagnostics) = &self.diagnostics {
+            diagnostics.request(body);
+        }
         let reply = self.raw(&post_bytes(body));
         if reply.0 == 202 {
             assert_accepted(&reply.1, body["recording_id"].as_str().unwrap());
@@ -2357,14 +2373,17 @@ impl Fixture {
 impl Drop for Fixture {
     fn drop(&mut self) {
         if std::thread::panicking()
-            && let Some(diagnostics) = &self.diagnostics {
+            && let Some(diagnostics) = &self.diagnostics
+        {
             diagnostics.report("test panic before fixture cleanup");
         }
         if let Some(mut c) = self.child.take() {
             let _ = c.kill();
             let _ = c.wait();
         }
-        if let Some(diagnostics) = &self.diagnostics { diagnostics.finish(); }
+        if let Some(diagnostics) = &self.diagnostics {
+            diagnostics.finish();
+        }
         std::fs::remove_dir_all(&self.root).unwrap();
     }
 }
@@ -3029,7 +3048,10 @@ fn provision_destination(f: &Fixture) {
 fn status(f: &Fixture, id: &str) -> (u16, Value) {
     let reply = f.raw(format!("GET /api/v2/jobs/{id} HTTP/1.1\r\nHost: h\r\n\r\n").as_bytes());
     if reply.0 == 200
-        && let Some(diagnostics) = &f.diagnostics { diagnostics.remember(id, &reply.1); }
+        && let Some(diagnostics) = &f.diagnostics
+    {
+        diagnostics.remember(id, &reply.1);
+    }
     reply
 }
 fn retention(f: &Fixture, id: Option<&str>) -> (u16, Value) {
@@ -7028,7 +7050,10 @@ mod sustained_sender_load {
                     (503, Some("service_busy")) => self.counts.busy += 1,
                     (429, Some("rate_limited")) => self.counts.limited += 1,
                     _ => {
-                        eprintln!("SUSTAINED_FAILURE unexpected reply recording_id={} reply_job_id={} http={code} body={body}", input["recording_id"], body["job_id"]);
+                        eprintln!(
+                            "SUSTAINED_FAILURE unexpected reply recording_id={} reply_job_id={} http={code} body={body}",
+                            input["recording_id"], body["job_id"]
+                        );
                         self.diagnostics.report("unexpected sustained-load reply");
                         panic!("unexpected sustained-load reply: {code} {body}");
                     }
