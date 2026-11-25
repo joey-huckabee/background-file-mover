@@ -119,10 +119,7 @@ impl Diagnostics {
                                 io::ErrorKind::WouldBlock
                                     | io::ErrorKind::TimedOut
                                     | io::ErrorKind::Interrupted
-                            ) =>
-                        {
-                            ()
-                        }
+                            ) => {}
                         Err(e) => {
                             tail.lock().unwrap().error = Some(e.to_string());
                             break;
