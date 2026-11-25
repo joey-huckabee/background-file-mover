@@ -371,7 +371,8 @@ SEC-008 and existing credential-redaction obligations remain unconditional.
 
 ## Performance and verification plan
 
-No measured results are claimed. “No blocking sink I/O in transfer loops” is a
+Coordinator local results are recorded below and in [increment 172](RUST-INCREMENT-172.md).
+“No blocking sink I/O in transfer loops” is a
 structural guarantee to test; literally zero performance cost on shared CPU or
 disk is not possible. Suppressed events should reduce to a cheap threshold
 branch. **Decided 2026-11-25:** info logging may make transfers at most **2%
@@ -418,9 +419,12 @@ slower than OFF**, measured using the sustained-load test and delivery benchmark
    completed work separately from request/back-pressure counts. The delivery
    benchmark measures elapsed time to commit an identical fixed workload.
    Define slowdown as `elapsed_info / elapsed_off - 1`; require at most 0.02
-   in both comparisons (equivalently throughput ratio at least `1 / 1.02` for
-   identical work). Report uncertainty; a confidence interval spanning the
-   limit or uncontrolled host/clock variation is inconclusive, not a pass.
+   for the fixed-work delivery benchmark (equivalently throughput ratio at least
+   `1 / 1.02` for identical work). Following the coordinator's local comparison,
+   use that benchmark as the acceptance measure: the sustained late-claim timing
+   is too noisy to resolve a 2% bound and supplies regression evidence only.
+   Report uncertainty; a confidence interval spanning the limit or uncontrolled
+   host/clock variation is inconclusive, not a pass.
    Debug and saturated-sink runs remain diagnostic stress results, not substitutes
    for info acceptance. Do not relax transfer assertions, select only favorable
    pairs or infer speed from raw request rate/an unsaturated workload.
@@ -428,6 +432,23 @@ slower than OFF**, measured using the sustained-load test and delivery benchmark
    systemd PRIORITY observation and independent review follow implementation.
    Fixed-thread isolation is not an OS I/O quota, real-time guarantee, deployment
    approval, production NFS qualification or FR release closure.
+
+### Coordinator local verification results (2026-11-25)
+
+WSL ext4, debug build, gate SQLite flags; full details and local test exceptions
+are in [increment 172](RUST-INCREMENT-172.md#coordinator-local-performance).
+Ten alternating fixed-work OFF/info pairs (eight jobs / eight MiB per run)
+totalled 138.26 s OFF and 136.08 s info. Paired slowdown median −2.0%, mean
+−1.5%, standard deviation 3.2 percentage points: the coordinator reports no
+measurable slowdown, within the 2% local acceptance limit.
+
+Five sustained-load pairs had late-claim seconds OFF
+24.66/20.43/18.50/19.66/19.26 and info
+18.47/17.19/23.32/20.13/21.29; reported paired slowdown median +2.4%, mean −0.4%.
+This is too noisy for a 2% bound. Per the coordinator's instruction it is no
+observed regression, with the fixed-work delivery benchmark retained as the
+acceptance measure. Debug-level and saturated-sink performance runs were not
+done. These local results are not SLES/systemd qualification or release closure.
 
 ## Requirements, dependencies and settled answers
 

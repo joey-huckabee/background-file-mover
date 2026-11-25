@@ -259,7 +259,7 @@ impl LogFile {
             self.file
                 .read_exact(&mut last)
                 .map_err(|_| ClaimError::Blocked("diagnostic read failed"))?;
-            if last != [b'\n'] {
+            if last != *b"\n" {
                 if length + line.len() as u64 + 1 > self.limit {
                     self.rotate()?;
                 } else {

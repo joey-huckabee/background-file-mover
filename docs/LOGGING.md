@@ -12,9 +12,12 @@ arbitrary request/error/config values are never rendered into enabled logs.
 Full/slow sinks stay off claim/copy/delivery loops. This does not reserve free
 space or isolate physical storage: the user permits a shared disk.
 
-Validation is pending coordinator Rust fmt/Clippy, actual service tests, both
-SLES modes and the paired info/OFF performance acceptance runs. Added tests are
-not a claimed target pass. See also [current operator statuses](RUST-OPERATOR-GUIDE.md),
+Coordinator local WSL test and OFF/info performance results are recorded in
+[increment 172](RUST-INCREMENT-172.md). The fixed-work delivery comparison met
+the 2% local acceptance limit; sustained late-claim timing was too noisy for that
+bound and showed no observed regression. The coordinator applied Rust fmt;
+Clippy rerun after the byte-string fix, both SLES modes and remaining validation
+are pending. Local results are not a claimed target pass. See also [current operator statuses](RUST-OPERATOR-GUIDE.md),
 [lifecycle handling](RUST-RESTART-RUNBOOK.md) and [release closure](RUST-RELEASE-CLOSURE.md).
 All release gates remain open; production NFS and operational deployment remain
 disabled/unapproved. Logging never supplies transfer/deletion/recovery authority.
@@ -31,8 +34,10 @@ Run `logging_fixed_work_delivery_benchmark -- --ignored --nocapture` at the same
 three levels. It transfers the same eight 1 MiB jobs and reports fixed-work
 elapsed time/bytes per second. Alternate at least five OFF/info pairs under the
 same host/cache/storage conditions; compare late-file handoff elapsed time and
-fixed-work completion time. Info elapsed/OFF elapsed must be at most 1.02 in both
-comparisons, with uncertainty reported. Preserve failures/inconclusive runs;
+fixed-work completion time. Info elapsed/OFF elapsed must be at most 1.02 in the
+delivery benchmark, with uncertainty reported. Sustained late-claim timing is a
+regression check, not a 2% acceptance measure; the local comparison could not
+resolve that bound. Preserve failures/inconclusive runs;
 do not infer transfer throughput from raw producer request rate. Debug and
 saturated-sink tests provide stress evidence, not replacements for info acceptance.
 No performance result has been measured in the cloud worker environment.
