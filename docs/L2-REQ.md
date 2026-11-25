@@ -278,23 +278,30 @@ The CLI shall write machine output to stdout with no interleaved logging.
 
 #### L2-CLI-006
 
-Send local command results to stdout and prompts/diagnostics to stderr; service readiness uses stdout and operational messages stderr without a severity dispatcher. The software shall manage no log files: it shall never open, name, rotate or delete a log file, and shall not require a terminal.
+The software shall preserve exact legacy stdout/stderr behavior with logging
+OFF, without logging threads or filesystem effects. Command results and readiness
+remain on stdout; foreground diagnostics/prompts remain on stderr and explicit
+automation shall not require a terminal.
 
-**Reworded 2026-11-22** (D07; previous wording in git history).
+When explicitly enabled in configuration with a file path and non-off level,
+the daemon shall send bounded, secret-safe leveled events to stderr/journal and
+a private application-managed rotating file. Levels shall be error, warn, info
+and debug; restart applies changes. Default file-family capacity shall be
+approximately 1 GiB with oldest managed files rotated out. Logging shall neither
+block transfer loops on sink I/O nor turn logging failures into transfer failures.
+Info-mode transfer slowdown shall be at most 2% versus OFF under the reviewed
+measurement method. Logging shutdown shall wait at most 250 ms total.
+
+**Reworded 2026-11-23** (superseding D07 no-log-files clause after #108 revision;
+settings settled 2026-11-25; previous wording in git history).
 
 **Parent**: L1-SYS-008
 
 **Verification Method**: Test (T)
 
-Command stdout is the command result; diagnostics and prompts go to stderr.
-The service has no command result: readiness goes to stdout and operational
-messages go to stderr. D07 accepts this stream policy without a severity
-dispatcher; no journald priority split follows from these stream choices alone.
-The environment may capture and route either stream; the mover manages no log
-files. Interactive account input may use a terminal, but explicit `--stdin`
-provides the non-terminal automation path. External test/gate capture files are
-not application-managed logs. See `docs/LOGGING.md` for operator context; older
-severity-split descriptions do not override this approved requirement.
+See [LOGGING-DESIGN.md](LOGGING-DESIGN.md) for custody, lossy queues, rotation,
+shared-storage limits and performance acceptance. The original 2026-11-22 D07
+ballot is historical; the no-managed-log-files clause was explicitly rejected.
 
 #### L2-CLI-007
 

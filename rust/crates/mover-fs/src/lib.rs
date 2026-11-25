@@ -105,6 +105,7 @@ pub const fn nfs_qualification_enabled() -> bool {
 }
 
 pub mod account_file;
+pub mod log_file;
 mod binding;
 pub mod credentials;
 pub mod ingress;

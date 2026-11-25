@@ -14,6 +14,7 @@ pub mod enrollment;
 mod http;
 pub mod ingress;
 mod missing_retry;
+pub mod logging;
 pub mod native;
 pub mod password;
 pub mod payload;
@@ -49,6 +50,8 @@ use tokio::{
 #[serde(deny_unknown_fields)]
 pub struct Config {
     pub bind: SocketAddr,
+    #[serde(default)]
+    pub logging: logging::Logging,
     #[serde(default)]
     pub protected_ingress: Option<ingress::ProtectedIngress>,
     #[serde(default)]
@@ -130,6 +133,7 @@ fn absolute(path: &str) -> bool {
 impl Config {
     pub fn validate(&self) -> Result<(), &'static str> {
         self.source_space_admission.validate()?;
+        self.logging.validate_config(self)?;
         if !(1..=3600).contains(&self.shutdown_wait_seconds) {
             return Err("shutdown_wait_seconds must be an integer from 1 through 3600");
         }
@@ -338,6 +342,7 @@ struct Worker {
     _source_space: source_space::Monitor,
     _instance: Arc<mover_fs::InstanceGuard>,
     control: control::Server,
+    _logging: Option<logging::Guard>,
 }
 impl Worker {
     fn start(
@@ -360,6 +365,7 @@ impl Worker {
         enrollment::authorize(c, &store, &mut guard, false, &stop)?;
         let guard = Arc::new(guard);
         store.require_destination_bindings()?;
+        let logging = logging::start(&c.logging);
         store.configure_limits(c.max_retained_jobs, c.max_retained_bytes)?;
         let source_space = source_space::Monitor::start(
             c.source_space_admission.clone(),
@@ -505,7 +511,7 @@ impl Worker {
                         move |job| busy.contains(job),
                     )
                     {
-                        eprintln!("Cancellation settlement failed: {error}");
+                        crate::logging::diagnostic_line!(Error, "cancellation_settlement_failed", None, None, eprintln!("Cancellation settlement failed: {error}"));
                         delivery_stop.store(true, Ordering::Relaxed);
                         break;
                     }
@@ -518,7 +524,7 @@ impl Worker {
                             Ok(Some((job, index, _))) => (job, index),
                             Ok(None) => break,
                             Err(error) => {
-                                eprintln!("Deletion discovery failed: {error}");
+                                crate::logging::diagnostic_line!(Error, "retained_deletion_discovery_failed", None, None, eprintln!("Deletion discovery failed: {error}"));
                                 delivery_stop.store(true, Ordering::Relaxed);
                                 break;
                             }
@@ -542,7 +548,7 @@ impl Worker {
                             if d.is_empty() { "blocked_or_uncertain".to_owned() } else { d }
                         });
                         if let Some(d) = &diagnostic {
-                            eprintln!("Deletion of job {job} file {index} failed: {d}");
+                            crate::logging::diagnostic_line!(Warn, "retained_deletion_failed", Some(job), Some(index), eprintln!("Deletion of job {job} file {index} failed: {d}"));
                         }
                         if let Err(error) = delivery_store.finish_deletion_target(
                             job,
@@ -551,7 +557,7 @@ impl Worker {
                             diagnostic.as_deref(),
                             now(),
                         ) {
-                            eprintln!("Deletion result persistence failed: {error}");
+                            crate::logging::diagnostic_line!(Error, "retained_deletion_persist_failed", None, None, eprintln!("Deletion result persistence failed: {error}"));
                             delivery_stop.store(true, Ordering::Relaxed);
                             break;
                         }
@@ -574,7 +580,7 @@ impl Worker {
                             Ok(Some(found)) => found,
                             Ok(None) => break,
                             Err(error) => {
-                                eprintln!("Deletion discovery failed: {error}");
+                                crate::logging::diagnostic_line!(Error, "destination_cleanup_discovery_failed", None, None, eprintln!("Deletion discovery failed: {error}"));
                                 delivery_stop.store(true, Ordering::Relaxed);
                                 break;
                             }
@@ -591,7 +597,7 @@ impl Worker {
                                 Ok(true) => (),
                                 Ok(false) => continue,
                                 Err(error) => {
-                                    eprintln!("Deletion discovery failed: {error}");
+                                    crate::logging::diagnostic_line!(Error, "destination_cleanup_eligibility_failed", None, None, eprintln!("Deletion discovery failed: {error}"));
                                     delivery_stop.store(true, Ordering::Relaxed);
                                     break;
                                 }
@@ -625,12 +631,12 @@ impl Worker {
                             if d.is_empty() { "blocked_or_uncertain".to_owned() } else { d }
                         });
                         if let Some(d) = &diagnostic {
-                            eprintln!(
+                            crate::logging::diagnostic_line!(Warn, "destination_cleanup_failed", Some(work.job_id), None, eprintln!(
                                 "{} of job {} {} failed: {d}",
                                 if automatic { "Cleanup" } else { "Deletion" },
                                 work.job_id,
                                 work.kind.code()
-                            );
+                            ));
                         }
                         let recorded = if automatic {
                             delivery_store.finish_automatic_cleanup(
@@ -647,7 +653,7 @@ impl Worker {
                             )
                         };
                         if let Err(error) = recorded {
-                            eprintln!("Deletion result persistence failed: {error}");
+                            crate::logging::diagnostic_line!(Error, "destination_cleanup_persist_failed", None, None, eprintln!("Deletion result persistence failed: {error}"));
                             delivery_stop.store(true, Ordering::Relaxed);
                             break;
                         }
@@ -663,7 +669,7 @@ impl Worker {
                             Ok(Some(work)) => work,
                             Ok(None) => break,
                             Err(error) => {
-                                eprintln!("Source cleanup discovery failed: {error}");
+                                crate::logging::diagnostic_line!(Error, "source_cleanup_discovery_failed", None, None, eprintln!("Source cleanup discovery failed: {error}"));
                                 delivery_stop.store(true, Ordering::Relaxed);
                                 break;
                             }
@@ -679,7 +685,7 @@ impl Worker {
                             Ok(true) => (),
                             Ok(false) => continue,
                             Err(error) => {
-                                eprintln!("Source cleanup discovery failed: {error}");
+                                crate::logging::diagnostic_line!(Error, "source_cleanup_eligibility_failed", None, None, eprintln!("Source cleanup discovery failed: {error}"));
                                 delivery_stop.store(true, Ordering::Relaxed);
                                 break;
                             }
@@ -718,7 +724,7 @@ impl Worker {
                             .collect();
                         for (i, d) in &outcomes {
                             if let Some(d) = d {
-                                eprintln!("Source cleanup of job {} file {i} failed: {d}", work.job_id);
+                                crate::logging::diagnostic_line!(Warn, "source_cleanup_failed", Some(work.job_id), Some(*i), eprintln!("Source cleanup of job {} file {i} failed: {d}", work.job_id));
                             }
                         }
                         // Still holding the busy marker and the lane.
@@ -726,7 +732,7 @@ impl Worker {
                             delivery_store.finish_source_cleanup(work.job_id, &outcomes, now());
                         drop(lane);
                         if let Err(error) = recorded {
-                            eprintln!("Source cleanup result persistence failed: {error}");
+                            crate::logging::diagnostic_line!(Error, "source_cleanup_persist_failed", None, None, eprintln!("Source cleanup result persistence failed: {error}"));
                             delivery_stop.store(true, Ordering::Relaxed);
                             break;
                         }
@@ -753,7 +759,7 @@ impl Worker {
                                     }
                                     Ok(false) => continue,
                                     Err(error) => {
-                                        eprintln!("Delivery discovery failed: {error}");
+                                        crate::logging::diagnostic_line!(Error, "delivery_discovery_failed", None, None, eprintln!("Delivery discovery failed: {error}"));
                                         delivery_stop.store(true, Ordering::Relaxed);
                                         break;
                                     }
@@ -778,6 +784,7 @@ impl Worker {
                                     Lane::Wait => continue, // Next tick.
                                 };
                                 let mut problem = None;
+                                logging::context(logging::Level::Debug, "delivery_started", Some(id), None);
                                 let result = delivery_worker::deliver(
                                     &delivery_store,
                                     id,
@@ -805,23 +812,23 @@ impl Worker {
                                         now(),
                                     )
                                 {
-                                    eprintln!("Delivery {id} problem record failed: {error}");
+                                    crate::logging::diagnostic_line!(Error, "delivery_problem_persist_failed", Some(id), None, eprintln!("Delivery {id} problem record failed: {error}"));
                                 }
                                 if matches!(&result, Err(error) if error.is::<delivery_worker::DeliveryCancelled>()) {
-                                    eprintln!("Delivery {id} stopped: job cancelled");
+                                    crate::logging::diagnostic_line!(Info, "delivery_cancelled", Some(id), None, eprintln!("Delivery {id} stopped: job cancelled"));
                                     continue;
                                 }
                                 if matches!(&result, Err(error) if error.is::<delivery_worker::DestinationBindingRefused>()) {
                                     if let Err(error)=delivery_store.destination_binding_refused(id,now()) {
-                                        eprintln!("Destination refusal persistence failed: {error}");
+                                        crate::logging::diagnostic_line!(Error, "destination_refusal_persist_failed", Some(id), None, eprintln!("Destination refusal persistence failed: {error}"));
                                         delivery_stop.store(true,Ordering::Relaxed);
                                     }
                                     continue;
                                 }
                                 if matches!(&result, Err(error) if error.is::<delivery_worker::DestinationCapacity>()) {
-                                    eprintln!("Delivery {id} destination capacity backoff scheduled");
+                                    crate::logging::diagnostic_line!(Warn, "delivery_capacity_backoff", Some(id), None, eprintln!("Delivery {id} destination capacity backoff scheduled"));
                                     if let Err(error) = delivery_store.delivery_failed_with_kind(id, now(), mover_core::DeliveryFailureKind::DestinationCapacity) {
-                                        eprintln!("Delivery capacity retry persistence failed: {error}");
+                                        crate::logging::diagnostic_line!(Error, "delivery_capacity_persist_failed", Some(id), None, eprintln!("Delivery capacity retry persistence failed: {error}"));
                                         delivery_stop.store(true, Ordering::Relaxed);
                                     }
                                     continue;
@@ -829,22 +836,24 @@ impl Worker {
                                 if matches!(result, Ok(false)) {
                                     if let Err(error) = delivery_store.delivery_deferred(id, now())
                                     {
-                                        eprintln!("Delivery deferral persistence failed: {error}");
+                                        crate::logging::diagnostic_line!(Error, "delivery_deferral_persist_failed", Some(id), None, eprintln!("Delivery deferral persistence failed: {error}"));
                                         delivery_stop.store(true, Ordering::Relaxed);
                                     }
                                     continue;
                                 }
                                 if let Err(error) = result {
-                                    eprintln!("Delivery {id} requires reconciliation: {error}");
+                                    crate::logging::diagnostic_line!(Warn, "delivery_requires_reconciliation", Some(id), None, eprintln!("Delivery {id} requires reconciliation: {error}"));
                                     if let Err(error) = delivery_store.delivery_failed(id, now()) {
-                                        eprintln!("Delivery retry persistence failed: {error}");
+                                        crate::logging::diagnostic_line!(Error, "delivery_retry_persist_failed", Some(id), None, eprintln!("Delivery retry persistence failed: {error}"));
                                         delivery_stop.store(true, Ordering::Relaxed);
                                     }
+                                } else {
+                                    logging::context(logging::Level::Info, "delivery_completed", Some(id), None);
                                 }
                             }
                         }
                         Err(error) => {
-                            eprintln!("Delivery discovery failed: {error}");
+                            crate::logging::diagnostic_line!(Error, "delivery_discovery_failed", None, None, eprintln!("Delivery discovery failed: {error}"));
                             delivery_stop.store(true, Ordering::Relaxed);
                         }
                     }
@@ -916,6 +925,7 @@ impl Worker {
             _source_space: source_space,
             _instance: instance,
             control,
+            _logging: logging,
         })
     }
 }
@@ -1662,9 +1672,9 @@ impl SharedCustody {
                     return Lane::Shared(lock);
                 }
                 Err(error) => {
-                    eprintln!(
+                    crate::logging::diagnostic_line!(Warn, "destination_serialized_fallback", Some(id), None, eprintln!(
                         "Shared destination custody for delivery {id} unavailable ({error}); using the serialized lane"
-                    );
+                    ));
                     return Lane::Serialized(serial);
                 }
             }
@@ -2196,6 +2206,9 @@ pub fn check_state_compatibility(
             }
             Ok(())
         })?;
+        for root in snapshot.payload_roots()? {
+            c.logging.exclude(&root)?;
+        }
         if let Some(ingress) = &c.protected_ingress {
             for root in snapshot.payload_roots()? {
                 ingress.validate_payload_root(&root)?;
@@ -2513,6 +2526,7 @@ async fn serve_inner(
     } else {
         println!("Ready on protected local producer and operator sockets");
     }
+    logging::emit(logging::Level::Info, "service_ready");
     let c = Arc::new(c);
     let mut tasks = JoinSet::new();
     while !stop.load(Ordering::Relaxed) {

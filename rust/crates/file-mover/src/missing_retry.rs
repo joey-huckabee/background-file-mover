@@ -148,7 +148,7 @@ impl Retry {
             && let Some(jump) = clock_jump(prev_wall, prev_mono, wall, mono)
         {
             CLOCK_JUMPS.fetch_add(1, Ordering::Relaxed);
-            eprintln!("Wall clock jumped {jump:+} s; missing-file deadlines use wall time");
+            crate::logging::diagnostic_line!(Warn, "wall_clock_jump", None, None, eprintln!("Wall clock jumped {jump:+} s; missing-file deadlines use wall time"));
             let expected = prev_wall + mono.saturating_duration_since(prev_mono).as_secs() as i64;
             let affected = if jump > 0 {
                 store.missing_deadlines_between(expected, wall)
@@ -156,16 +156,16 @@ impl Retry {
                 store.missing_recorded_after(wall)
             };
             match affected {
-                Ok(ids) if !ids.is_empty() => eprintln!(
+                Ok(ids) if !ids.is_empty() => crate::logging::diagnostic_line!(Warn, "clock_affected_windows", None, None, eprintln!(
                     "Missing-file windows affected by the clock jump: jobs {ids:?} ({})",
                     if jump > 0 {
                         "deadline passed early"
                     } else {
                         "recorded after the new clock time; expiry is delayed"
                     }
-                ),
+                )),
                 Ok(_) => (),
-                Err(e) => eprintln!("Clock-jump lookup failed: {e}"),
+                Err(e) => crate::logging::diagnostic_line!(Error, "clock_lookup_failed", None, None, eprintln!("Clock-jump lookup failed: {e}")),
             }
         }
         self.clock = Some((wall, mono));
@@ -186,7 +186,7 @@ impl Retry {
         let found = match store.missing_retry_jobs() {
             Ok(found) => found,
             Err(e) => {
-                eprintln!("Missing-file retry discovery failed: {e}");
+                crate::logging::diagnostic_line!(Error, "missing_retry_discovery_failed", None, None, eprintln!("Missing-file retry discovery failed: {e}"));
                 return;
             }
         };
@@ -273,7 +273,7 @@ fn visit(
 ) {
     let now = Instant::now();
     let log = |what: &str, e: &dyn std::fmt::Display| {
-        eprintln!("Missing-file retry of job {id}: {what}: {e}")
+        crate::logging::diagnostic_line!(Warn, "missing_retry_failed", Some(id), None, eprintln!("Missing-file retry of job {id}: {what}: {e}"))
     };
     let back_off = |state: &mut JobState| {
         state.backoff = (state.backoff * 2).min(MAX);

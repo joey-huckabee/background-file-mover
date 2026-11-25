@@ -5,6 +5,8 @@ Description=Background File Mover (Rust prototype)
 
 [Service]
 Type=simple
+StandardError=journal
+SyslogLevelPrefix=yes
 User=@SERVICE_USER@
 Group=@SERVICE_GROUP@
 ExecStart=@INSTALL_ROOT@/bin/file-mover @CONFIG_PATH@

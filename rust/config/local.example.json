@@ -25,5 +25,12 @@
   "missing_file_retry_window_seconds": 300,
   "max_retained_jobs": 64,
   "max_retained_bytes": 1099511627776,
-  "check_expected_sizes": false
+  "check_expected_sizes": false,
+  "logging": {
+    "enabled": false,
+    "level": "off",
+    "file": null,
+    "max_file_bytes": 67108864,
+    "max_files": 16
+  }
 }

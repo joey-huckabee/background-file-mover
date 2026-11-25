@@ -7,6 +7,7 @@ import re
 ROOT = Path(__file__).resolve().parent.parent
 APPROVAL = {"Deviation (needs approval)", "Not applicable (needs approval)"}
 ID = r"L2-[A-Z]+-\d{3}"
+SUPERSEDED = {"L2-CLI-006": "**Superseding requirement (2026-11-23; settings 2026-11-25):**"}
 
 
 def check(trace: str, sheet: str) -> list[str]:
@@ -19,6 +20,7 @@ def check(trace: str, sheet: str) -> list[str]:
     expected = {i for i, (disposition, notes) in rows.items()
                 if disposition in APPROVAL
                 or "**Approved rewording (" in notes
+                or (i in SUPERSEDED and SUPERSEDED[i] in notes)
                 or disposition == "Out of scope (approved)"}
     errors, assignments, decisions = [], [], []
     choices = {}
@@ -79,7 +81,7 @@ def check(trace: str, sheet: str) -> list[str]:
         if choices[decision] == "a":
             if disposition not in {"Tested", "Partly tested", "Inspection"}:
                 errors.append(f"{ident}: accepted rewording needs evidence disposition")
-            if f"**Approved rewording ({decision}, 2026-11-22):**" not in notes:
+            if SUPERSEDED.get(ident, f"**Approved rewording ({decision}, 2026-11-22):**") not in notes:
                 errors.append(f"{ident}: missing approved requirement statement")
         elif choices[decision] == "c":
             if disposition != "Out of scope (approved)" or "first release; later inclusion needs separate approval" not in notes:
