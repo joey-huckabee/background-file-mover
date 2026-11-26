@@ -115,6 +115,14 @@ Process the following order; no partial success or batch-wide rollback is implie
 7. Claim/measure stable source objects using existing supervised custody rules.
    Confirmed absence is 409 source_file_missing within the persisted missing
    window; a live worker/unknown RPC outcome is 503 handoff_pending, not absence.
+   Approved 2026-11-25: a safely observed payload that changes before private-area
+   allocation also returns 503 handoff_pending with retryable=true and
+   source_paths_released=false; never claim that changed observation. The producer
+   retries the identical UUID/body once stable. This pre-effect refusal creates
+   no claim/missing/block/problem row; initial expected-size validation is unchanged.
+   Unrelated directory contents do not invalidate directory identity: allocation
+   compares device/inode/owner/mode for root, parent and private namespace, while
+   retaining exact file checks and refusing replaced/symlinked directories.
    No new timeout or automatic reset is added. Return 202 only after durable
    custody for the whole submitted set; earlier claims remain protected on error.
 

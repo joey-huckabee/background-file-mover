@@ -22,6 +22,8 @@ pub enum ClaimError {
     MissingSource,
     ExpectedSizeMismatch,
     OutcomeUncertain,
+    /// A safe pre-allocation observation became stale; no claim effect occurred.
+    ObservationChanged,
 }
 /// A native ENOSPC from payload copy-write only; not an effect receipt.
 /// Caller must also validate its failed copy assignment and retained Intent phase.
@@ -43,6 +45,7 @@ pub fn failure_diagnostic(error: &(dyn std::error::Error + 'static)) -> String {
             ClaimError::Refused(_) => "blocked: path refused".into(),
             ClaimError::MissingSource => "missing_source".into(),
             ClaimError::ExpectedSizeMismatch => "expected_size_mismatch".into(),
+            ClaimError::ObservationChanged => "claim_observation_changed".into(),
             ClaimError::OutcomeUncertain => "worker_outcome_uncertain".into(),
             ClaimError::Store(_) => "store_error".into(),
         }
@@ -71,6 +74,9 @@ impl std::fmt::Display for ClaimError {
             Self::MissingSource => f.write_str("a source file is missing"),
             Self::ExpectedSizeMismatch => {
                 f.write_str("a source file's size differs from the expected size")
+            }
+            Self::ObservationChanged => {
+                f.write_str("source observation changed before allocation; retry once stable")
             }
             Self::OutcomeUncertain => {
                 f.write_str("worker outcome uncertain; inspect state before retrying")
@@ -193,13 +199,16 @@ fn observation(s: &Stat) -> ObjectIdentity {
     }
 }
 fn owned_directory(fd: &OwnedFd, private: bool) -> Result<ObjectIdentity> {
+    Ok(owned_directory_mode(fd, private)?.0)
+}
+fn owned_directory_mode(fd: &OwnedFd, private: bool) -> Result<(ObjectIdentity, u32)> {
     let s = fs::fstat(fd)?;
     if s.st_uid != rustix::process::geteuid().as_raw()
         || s.st_mode & if private { 0o077 } else { 0o022 } != 0
     {
         return Err(ClaimError::Blocked("directory custody/permissions"));
     }
-    Ok(observation(&s))
+    Ok((observation(&s), s.st_mode & 0o7777))
 }
 fn root(path: &str) -> Result<OwnedFd> {
     if !path.starts_with('/') || path == "/" {
@@ -457,9 +466,16 @@ fn prepare_checked(store: Option<&Store>, job: &Accepted, index: usize) -> Resul
         file.expected_size(),
     )?;
     if let Some(store) = store {
-        store.claim_capacity(observation.source.size)?;
+        store.claim_capacity(observation.intent.source.size)?;
     }
     allocate_claim(&observation)
+}
+/// Ephemeral pre-effect observations; modes are not added to persisted identity
+/// encodings or ClaimIntent. No serialized legacy custody changes.
+#[derive(Clone, Debug)]
+pub struct ClaimObservation {
+    pub intent: ClaimIntent,
+    pub directory_modes: [u32; 3],
 }
 /// Observation only: area describes the namespace until allocation.
 pub fn observe_claim(
@@ -468,7 +484,7 @@ pub fn observe_claim(
     root_path: &str,
     source_name: &str,
     expected_size: Option<u64>,
-) -> Result<ClaimIntent> {
+) -> Result<ClaimObservation> {
     if job_id <= 0 || index >= 256 {
         return Err(ClaimError::Blocked("invalid claim assignment"));
     }
@@ -492,32 +508,68 @@ pub fn observe_claim(
     if expected_size.is_some_and(|n| n != source.size) {
         return Err(ClaimError::ExpectedSizeMismatch);
     }
-    Ok(ClaimIntent {
-        job_id,
-        file_index: index,
-        root_path: root_path.into(),
-        source_name: source_name.into(),
-        private_name: format!("{job_id}-{index}"),
-        root: owned_directory(&root, false)?,
-        parent: owned_directory(&parent, false)?,
-        area: owned_directory(&namespace, true)?,
-        source,
+    let (root_identity, root_mode) = owned_directory_mode(&root, false)?;
+    let (parent_identity, parent_mode) = owned_directory_mode(&parent, false)?;
+    let (namespace_identity, namespace_mode) = owned_directory_mode(&namespace, true)?;
+    Ok(ClaimObservation {
+        directory_modes: [root_mode, parent_mode, namespace_mode],
+        intent: ClaimIntent {
+            job_id,
+            file_index: index,
+            root_path: root_path.into(),
+            source_name: source_name.into(),
+            private_name: format!("{job_id}-{index}"),
+            root: root_identity,
+            parent: parent_identity,
+            area: namespace_identity,
+            source,
+        },
     })
 }
-pub fn allocate_claim(observed: &ClaimIntent) -> Result<ClaimIntent> {
-    // Qualification fault point: a deadline can pass while Allocate runs.
+fn same_allocation_directory(
+    actual: &ObjectIdentity,
+    expected: &ObjectIdentity,
+    actual_mode: u32,
+    expected_mode: u32,
+) -> Result<()> {
+    same_directory(actual, expected)?;
+    if actual_mode != expected_mode {
+        return Err(ClaimError::Blocked(
+            "claim directory mode changed before allocation",
+        ));
+    }
+    Ok(())
+}
+pub fn allocate_claim(observation: &ClaimObservation) -> Result<ClaimIntent> {
     qualification_pause("claim_allocate")?;
+    let observed = &observation.intent;
     let fresh = observe_claim(
         observed.job_id,
         observed.file_index,
         &observed.root_path,
         &observed.source_name,
-        Some(observed.source.size),
+        None,
     )?;
-    if fresh != *observed {
-        return Err(ClaimError::Blocked(
-            "claim observation changed before allocation",
-        ));
+    if fresh.intent.private_name != observed.private_name {
+        return Err(ClaimError::Blocked("invalid allocation observation"));
+    }
+    for ((actual, expected), (actual_mode, expected_mode)) in
+        [&fresh.intent.root, &fresh.intent.parent, &fresh.intent.area]
+            .into_iter()
+            .zip([&observed.root, &observed.parent, &observed.area])
+            .zip(
+                fresh
+                    .directory_modes
+                    .into_iter()
+                    .zip(observation.directory_modes),
+            )
+    {
+        same_allocation_directory(actual, expected, actual_mode, expected_mode)?;
+    }
+    // Exact file identity/size/mtime/link checks remain mandatory. A safely
+    // observed changed file is retryable, but is never allocated or claimed.
+    if fresh.intent.source != observed.source {
+        return Err(ClaimError::ObservationChanged);
     }
     let root = root(&observed.root_path)?;
     let namespace = namespace(&root)?;
@@ -751,5 +803,37 @@ mod display_tests {
             let text = e.to_string();
             assert!(!text.contains('(') && !text.contains('"'), "{text}");
         }
+    }
+}
+
+#[cfg(test)]
+mod allocation_identity_tests {
+    use super::*;
+    #[test]
+    fn allocation_directory_identity_ignores_contents_but_requires_owner_mode_and_inode() {
+        let expected = ObjectIdentity {
+            device: 1,
+            inode: 2,
+            uid: 1000,
+            size: 4096,
+            modified_seconds: 1,
+            modified_nanos: 2,
+            links: 3,
+        };
+        let mut changed = expected.clone();
+        changed.size += 1;
+        changed.modified_seconds += 1;
+        changed.modified_nanos += 1;
+        changed.links += 1;
+        assert!(same_allocation_directory(&changed, &expected, 0o700, 0o700).is_ok());
+        assert!(same_allocation_directory(&changed, &expected, 0o750, 0o700).is_err());
+        changed.device += 1;
+        assert!(same_allocation_directory(&changed, &expected, 0o700, 0o700).is_err());
+        changed.device = expected.device;
+        changed.inode += 1;
+        assert!(same_allocation_directory(&changed, &expected, 0o700, 0o700).is_err());
+        changed.inode = expected.inode;
+        changed.uid += 1;
+        assert!(same_allocation_directory(&changed, &expected, 0o700, 0o700).is_err());
     }
 }
