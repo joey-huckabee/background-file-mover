@@ -1,6 +1,28 @@
 # Sustained-load failure analysis
 
-Analysis only; no product change, new test or relaxation of existing assertions.
+## Current status: approved fix submitted, qualification pending
+
+User approval 2026-11-25 authorizes the directory-identity fix. The implementation
+uses device/inode/owner/mode for directory comparison, ignoring mutable directory
+content metadata. Mode snapshots are ephemeral Observe→Allocate IPC metadata;
+ObjectIdentity encodings, ClaimIntent records and schema 18 are unchanged.
+Exact payload observation equality remains mandatory. A safely observed changed
+payload is refused before allocation as retryable 503 handoff_pending, without
+new claim/missing/block/problem rows. Genuine directory replacement, symlink or
+mode changes remain refusals.
+
+Added deterministic mover-fs regressions cover directory identity/content/mode
+comparison, namespace/sibling churn and changed payload refusal. Qualification-only
+API regressions pause at claim_allocate and exercise sibling creation, payload
+replacement, same-inode payload under a replaced parent, and a symlinked parent;
+changed-payload recovery resends the same UUID after a clean restart. These new
+Rust regressions await coordinator fmt/Clippy and execution, both SLES modes and
+review. The unresolved 503 latency investigation is not closed by this fix.
+
+## Historical investigation (before the approved fix)
+
+The original investigation below was analysis only; its historical defect and
+experiment descriptions refer to the pre-fix source, not the submitted fix.
 Source baseline: main `eb3ef9e`; logging comparison: #115 `6fda86f`;
 diagnostics reference: #117 `d27d158`. No Rust execution or local reproduction
 was performed by the cloud worker. The run counts below are coordinator-reported;

@@ -167,6 +167,17 @@ def main():
     require("rate_limited" in api["paths"]["/api/v2/admin/login"]["post"]["responses"]["429"]["x-error-codes"],
             "bounded login error registry missing")
     Draft202012Validator.check_schema(schema)
+    # The approved pre-allocation observation-change outcome reuses the existing
+    # retryable producer error; it is never a custody acknowledgement.
+    pending = {"recording_id": "b614c088-a45c-f3cc-9eb2-012a800fe730",
+               "error": "handoff_pending", "retryable": True,
+               "retry_after_seconds": None, "source_paths_released": False}
+    pending_validator = Draft202012Validator({"$defs": schema["$defs"],
+                                             "$ref": "#/$defs/ProducerError"})
+    require(pending_validator.is_valid(pending), "retryable pre-allocation error refused")
+    for key, wrong in [("retryable", False), ("source_paths_released", True)]:
+        require(not pending_validator.is_valid(dict(pending, **{key: wrong})),
+                "pre-allocation handoff_pending must be retryable and not release custody")
     # Optional leftover observations preserve legacy responses and never expose
     # directory entry names or create removal authority.
     leftovers = Draft202012Validator({"$defs": schema["$defs"],

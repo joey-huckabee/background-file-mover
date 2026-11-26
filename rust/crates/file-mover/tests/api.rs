@@ -1764,7 +1764,7 @@ fn claim_children_preserve_intent_receipt_order_and_reconcile_lost_reply() {
         &guard,
         &guard,
         "--internal-claim-worker",
-        &json!({"operation":"allocate","version":1,"claim":observed["claim"]}),
+        &json!({"operation":"allocate","version":1,"claim":observed["claim"],"directory_modes":observed["directory_modes"]}),
     );
     let intent = claim_from_wire(&allocated["claim"]);
     assert!(store.claim_intent(1, 0).unwrap().is_none());
@@ -1811,9 +1811,9 @@ fn claim_child_reports_missing_and_refuses_changed_observation_before_allocation
         &guard,
         &guard,
         "--internal-claim-worker",
-        &json!({"operation":"allocate","version":1,"claim":observed["claim"]}),
+        &json!({"operation":"allocate","version":1,"claim":observed["claim"],"directory_modes":observed["directory_modes"]}),
     );
-    assert_eq!(refused["error"], "expected_size_mismatch");
+    assert_eq!(refused["error"], "observation_changed");
     assert!(!f.root.join("source/.file-mover/1-0").exists());
     assert_eq!(
         std::fs::read(f.root.join("source/current/data")).unwrap(),
@@ -7821,4 +7821,125 @@ fn retained_copy_deletion_reports_kept_private_folder_without_deleting_extra_fil
     // Clearing history forgets the warning; it does not clean unknown files.
     assert!(area.is_dir());
     assert_eq!(std::fs::read(extra).unwrap(), b"must stay untouched");
+}
+
+#[derive(Clone, Copy)]
+enum AllocationChange { Sibling, Payload, Parent, ParentSymlink }
+fn allocation_pause_change(change: AllocationChange) {
+    if !cfg!(feature = "nfs-qualification") {
+        eprintln!("SKIP: allocation race requires nfs-qualification pause support");
+        return;
+    }
+    use std::os::unix::fs::{MetadataExt, symlink};
+    struct ReleasePause(PathBuf);
+    impl Drop for ReleasePause {
+        fn drop(&mut self) { let _ = std::fs::write(&self.0, b""); }
+    }
+    let mut f = Fixture::new(300);
+    f.stop();
+    provision_destination(&f);
+    f.write("data", b"original");
+    let input = f.input("allocation-parent-metadata", json!(["data"]));
+    let before = std::fs::metadata(f.root.join("source/current/data")).unwrap();
+    let rendezvous = f.root.join("allocation-pause");
+    std::fs::create_dir(&rendezvous).unwrap();
+    std::fs::set_permissions(&rendezvous, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let mut command = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap());
+    command.env("FILE_MOVER_QUALIFICATION_PAUSE", "claim_allocate")
+        .env("FILE_MOVER_QUALIFICATION_RENDEZVOUS", &rendezvous);
+    f.start_command(command);
+    let address = f.address;
+    let bytes = post_bytes(&input);
+    let reply = std::thread::scope(|scope| {
+        let posted = scope.spawn(move || exchange(address, &bytes));
+        // Drop runs before scope joins on every panic path; never strand a child.
+        let _release = ReleasePause(rendezvous.join("go"));
+        let until = Instant::now() + Duration::from_secs(5);
+        while !rendezvous.join("ready").exists() {
+            assert!(Instant::now() < until, "claim did not reach Allocate");
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        match change {
+            AllocationChange::Sibling => f.write("unrelated", b"leave this file alone"),
+            AllocationChange::Payload => {
+                std::fs::rename(f.root.join("source/current/data"), f.root.join("original-payload")).unwrap();
+                f.write("data", b"replacement");
+            }
+            AllocationChange::Parent | AllocationChange::ParentSymlink => {
+                std::fs::rename(f.root.join("source/current"), f.root.join("moved-current")).unwrap();
+                if matches!(change, AllocationChange::ParentSymlink) {
+                    symlink(f.root.join("moved-current"), f.root.join("source/current")).unwrap();
+                } else {
+                    std::fs::create_dir(f.root.join("source/current")).unwrap();
+                    std::fs::set_permissions(f.root.join("source/current"), std::fs::Permissions::from_mode(0o700)).unwrap();
+                    // Same source inode/bytes, genuinely different parent inode.
+                    std::fs::rename(f.root.join("moved-current/data"), f.root.join("source/current/data")).unwrap();
+                }
+            }
+        }
+        if !matches!(change, AllocationChange::Payload) {
+            let after = std::fs::metadata(f.root.join("source/current/data")).unwrap();
+            assert_eq!((before.dev(), before.ino(), before.uid(), before.mode(), before.len(), before.mtime(), before.mtime_nsec(), before.nlink()),
+                (after.dev(), after.ino(), after.uid(), after.mode(), after.len(), after.mtime(), after.mtime_nsec(), after.nlink()));
+        }
+        std::fs::write(rendezvous.join("go"), b"").unwrap();
+        posted.join().unwrap()
+    });
+    if matches!(change, AllocationChange::Sibling) {
+        assert_eq!(reply.0, 202, "{}", reply.1);
+        assert_accepted(&reply.1, input["recording_id"].as_str().unwrap());
+        wait_status(&f, "1", 15, |b| b["state"] == "Committed");
+        assert_eq!(std::fs::read(f.destination("1", "data")).unwrap(), b"original");
+        assert_eq!(std::fs::read(f.root.join("source/current/unrelated")).unwrap(), b"leave this file alone");
+        f.stop();
+        return;
+    }
+    let changed_payload = matches!(change, AllocationChange::Payload);
+    assert_eq!(reply.0, if changed_payload { 503 } else { 409 }, "{}", reply.1);
+    assert_eq!(reply.1["error"], if changed_payload { "handoff_pending" } else { "recording_blocked" });
+    assert_eq!(reply.1["retryable"], changed_payload);
+    assert_eq!(reply.1["source_paths_released"], false);
+    assert!(!f.root.join("source/.file-mover/1-0").exists());
+    assert!(f.root.join("source/current/data").exists());
+    f.stop();
+    {
+        let store = mover_store::Store::open_read_only(f.root.join("state/jobs.sqlite")).unwrap();
+        assert!(store.claim_intent(1, 0).unwrap().is_none());
+        let snapshot = store.status(1).unwrap().unwrap();
+        assert!(snapshot.missing.is_empty());
+        if !matches!(change, AllocationChange::ParentSymlink) {
+            assert!(snapshot.problem.is_none());
+        }
+        assert!(snapshot.transfers.iter().all(Option::is_none));
+        assert!(snapshot.manifest_phase.is_none());
+    }
+    if changed_payload {
+        assert_eq!(std::fs::read(f.root.join("original-payload")).unwrap(), b"original");
+        assert_eq!(std::fs::read(f.root.join("source/current/data")).unwrap(), b"replacement");
+        // A new stable observation on the identical request needs no reset/resume.
+        f.start();
+        assert_eq!(f.post(&input).0, 202);
+        wait_status(&f, "1", 15, |b| b["state"] == "Committed");
+        assert_eq!(std::fs::read(f.destination("1", "data")).unwrap(), b"replacement");
+        assert_eq!(std::fs::read(f.root.join("original-payload")).unwrap(), b"original");
+        f.stop();
+    } else {
+        assert_eq!(std::fs::read(f.root.join("source/current/data")).unwrap(), b"original");
+    }
+}
+#[test]
+fn claim_allocation_accepts_unrelated_parent_entries_during_the_pause() {
+    allocation_pause_change(AllocationChange::Sibling);
+}
+#[test]
+fn claim_allocation_retries_a_changed_payload_without_claiming_it() {
+    allocation_pause_change(AllocationChange::Payload);
+}
+#[test]
+fn claim_allocation_refuses_a_replaced_parent_with_the_same_source_inode() {
+    allocation_pause_change(AllocationChange::Parent);
+}
+#[test]
+fn claim_allocation_refuses_a_symlinked_parent() {
+    allocation_pause_change(AllocationChange::ParentSymlink);
 }

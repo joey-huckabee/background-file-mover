@@ -944,7 +944,7 @@ impl Drop for Worker {
 }
 fn claim_error(failure: mover_fs::ClaimError, id: i64) -> Response {
     match failure {
-        mover_fs::ClaimError::OutcomeUncertain => error(503, "handoff_pending", true, Some(id)),
+        mover_fs::ClaimError::OutcomeUncertain | mover_fs::ClaimError::ObservationChanged => error(503, "handoff_pending", true, Some(id)),
         mover_fs::ClaimError::ExpectedSizeMismatch => {
             error(409, "source_size_mismatch", false, Some(id))
         }

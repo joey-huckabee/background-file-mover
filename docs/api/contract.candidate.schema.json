@@ -247,6 +247,10 @@
       ],
       "allOf": [
         {
+          "if": {"properties": {"error": {"const": "handoff_pending"}}},
+          "then": {"properties": {"retryable": {"const": true}}}
+        },
+        {
           "if": {
             "properties": {
               "retryable": {
