@@ -7054,9 +7054,9 @@ mod sustained_sender_load {
                         self.counts.accepted += 1;
                         return Some(body);
                     }
-                    (503, Some("service_busy")) => { assert_eq!(body["retryable"], true); self.counts.busy += 1; },
-                    (503, Some("handoff_pending")) => { assert_eq!(body["retryable"], true); self.counts.pending += 1; },
-                    (429, Some("rate_limited")) => self.counts.limited += 1,
+                    (503, Some("service_busy")) => { assert_producer_error(&body); assert_eq!(body["retryable"], true); self.counts.busy += 1; },
+                    (503, Some("handoff_pending")) => { assert_producer_error(&body); assert_eq!(body["retryable"], true); self.counts.pending += 1; },
+                    (429, Some("rate_limited")) => { assert_producer_error(&body); assert_eq!(body["retryable"], true); self.counts.limited += 1; },
                     _ => {
                         eprintln!(
                             "SUSTAINED_FAILURE unexpected reply recording_id={} reply_job_id={} http={code} body={body}",
