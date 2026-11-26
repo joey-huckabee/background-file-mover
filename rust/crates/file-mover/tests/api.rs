@@ -7042,7 +7042,10 @@ mod sustained_sender_load {
             self.last_attempted = false;
             while !self.abort.load(Ordering::Relaxed) {
                 if Instant::now() >= self.finish_by
-                    || self.finish_load.is_some_and(|done| done.load(Ordering::Acquire)) {
+                    || self
+                        .finish_load
+                        .is_some_and(|done| done.load(Ordering::Acquire))
+                {
                     return None;
                 }
                 self.last_attempted = true;
@@ -7054,9 +7057,21 @@ mod sustained_sender_load {
                         self.counts.accepted += 1;
                         return Some(body);
                     }
-                    (503, Some("service_busy")) => { assert_producer_error(&body); assert_eq!(body["retryable"], true); self.counts.busy += 1; },
-                    (503, Some("handoff_pending")) => { assert_producer_error(&body); assert_eq!(body["retryable"], true); self.counts.pending += 1; },
-                    (429, Some("rate_limited")) => { assert_producer_error(&body); assert_eq!(body["retryable"], true); self.counts.limited += 1; },
+                    (503, Some("service_busy")) => {
+                        assert_producer_error(&body);
+                        assert_eq!(body["retryable"], true);
+                        self.counts.busy += 1;
+                    }
+                    (503, Some("handoff_pending")) => {
+                        assert_producer_error(&body);
+                        assert_eq!(body["retryable"], true);
+                        self.counts.pending += 1;
+                    }
+                    (429, Some("rate_limited")) => {
+                        assert_producer_error(&body);
+                        assert_eq!(body["retryable"], true);
+                        self.counts.limited += 1;
+                    }
                     _ => {
                         eprintln!(
                             "SUSTAINED_FAILURE unexpected reply recording_id={} reply_job_id={} http={code} body={body}",
@@ -7068,10 +7083,18 @@ mod sustained_sender_load {
                 }
                 // Keep the exact request/UUID. Jitter avoids synchronized
                 // retries while a full claim lane owns the admission slot.
-                self.jitter = self.jitter.wrapping_mul(6364136223846793005).wrapping_add(1);
-                let pause = if code == 429 { Duration::from_secs(1) }
-                    else { Duration::from_millis(20 + self.jitter % 81) };
-                std::thread::sleep(pause.min(self.finish_by.saturating_duration_since(Instant::now())));
+                self.jitter = self
+                    .jitter
+                    .wrapping_mul(6364136223846793005)
+                    .wrapping_add(1);
+                let pause = if code == 429 {
+                    Duration::from_secs(1)
+                } else {
+                    Duration::from_millis(20 + self.jitter % 81)
+                };
+                std::thread::sleep(
+                    pause.min(self.finish_by.saturating_duration_since(Instant::now())),
+                );
             }
             None
         }
@@ -7195,19 +7218,29 @@ mod sustained_sender_load {
                             std::thread::yield_now();
                         }
                         while Instant::now() < confirmation_until
-                            && !finish_load.load(Ordering::Acquire) && !abort.load(Ordering::Relaxed) {
+                            && !finish_load.load(Ordering::Acquire)
+                            && !abort.load(Ordering::Relaxed)
+                        {
                             if let Some(input) = jobs.next() {
                                 // Record even an attempted request without a 202:
                                 // handoff_pending may have admitted/claimed it.
                                 new_jobs.push((None, input));
                                 let (id, input) = new_jobs.last_mut().unwrap();
                                 let Some(reply) = sender.ready(input) else {
-                                    if !sender.last_attempted { new_jobs.pop(); }
+                                    if !sender.last_attempted {
+                                        new_jobs.pop();
+                                    }
                                     break;
                                 };
                                 *id = Some(reply["job_id"].as_str().unwrap().to_owned());
-                                let Some(replay) = sender.ready(input) else { break; };
-                                assert_eq!(replay["job_id"].as_str(), id.as_deref(), "new job replay changed identity");
+                                let Some(replay) = sender.ready(input) else {
+                                    break;
+                                };
+                                assert_eq!(
+                                    replay["job_id"].as_str(),
+                                    id.as_deref(),
+                                    "new job replay changed identity"
+                                );
                             }
                             let Some(replay) = sender.ready(&seed) else {
                                 break;
@@ -7220,7 +7253,9 @@ mod sustained_sender_load {
                             // cap without building an unbounded delivery backlog.
                             if !new_jobs.is_empty() {
                                 let (id, input) = &new_jobs[replay_index];
-                                let id = id.as_ref().expect("active sender completed its initial handoff");
+                                let id = id
+                                    .as_ref()
+                                    .expect("active sender completed its initial handoff");
                                 let Some(replay) = sender.ready(input) else {
                                     break;
                                 };
@@ -7384,8 +7419,16 @@ mod sustained_sender_load {
         // replay identity and waiting for all deliveries to commit.
         let drain_by = drain_started + Duration::from_secs(30);
         let completion_abort = AtomicBool::new(false);
-        let mut completion = Sender { address, finish_by: drain_by, abort: &completion_abort,
-            finish_load: None, jitter: 97, last_attempted: false, counts: Counts::default(), diagnostics: &diagnostics };
+        let mut completion = Sender {
+            address,
+            finish_by: drain_by,
+            abort: &completion_abort,
+            finish_load: None,
+            jitter: 97,
+            last_attempted: false,
+            counts: Counts::default(),
+            diagnostics: &diagnostics,
+        };
         for (sender_counts, jobs) in reports {
             initial_202 += jobs.iter().filter(|(id, _)| id.is_some()).count();
             counts.accepted += sender_counts.accepted;
@@ -7393,17 +7436,25 @@ mod sustained_sender_load {
             counts.pending += sender_counts.pending;
             counts.limited += sender_counts.limited;
             for (known_id, input) in jobs {
-                let reply = completion.ready(&input).expect("attempted job did not complete after load stopped");
+                let reply = completion
+                    .ready(&input)
+                    .expect("attempted job did not complete after load stopped");
                 let id = reply["job_id"].as_str().unwrap().to_owned();
-                if let Some(known_id) = known_id { assert_eq!(id, known_id, "post-load job identity changed"); }
-                let replay = completion.ready(&input).expect("post-load replay did not finish");
+                if let Some(known_id) = known_id {
+                    assert_eq!(id, known_id, "post-load job identity changed");
+                }
+                let replay = completion
+                    .ready(&input)
+                    .expect("post-load replay did not finish");
                 assert_eq!(replay["job_id"], id, "post-load replay changed identity");
                 expected.push((id, input));
             }
         }
         // A final real replay also detects claim-thread panics. There is no
         // per-sender fairness promise while the six producers compete.
-        let final_replay = completion.ready(&seed).expect("seed replay did not finish after load");
+        let final_replay = completion
+            .ready(&seed)
+            .expect("seed replay did not finish after load");
         assert_eq!(final_replay["job_id"], seed_id);
         expected.push((seed_id, (*seed).clone()));
         let mut pending: Vec<_> = expected.iter().map(|(id, _)| id.as_str()).collect();
@@ -7483,8 +7534,13 @@ mod sustained_sender_load {
             }
         }
         let total = counts.accepted + counts.busy + counts.pending + counts.limited;
-        eprintln!("SUSTAINED_MISSING_RETRY_DRAIN accepted={} service_busy={} handoff_pending={} rate_limited={}",
-            completion.counts.accepted, completion.counts.busy, completion.counts.pending, completion.counts.limited);
+        eprintln!(
+            "SUSTAINED_MISSING_RETRY_DRAIN accepted={} service_busy={} handoff_pending={} rate_limited={}",
+            completion.counts.accepted,
+            completion.counts.busy,
+            completion.counts.pending,
+            completion.counts.limited
+        );
         eprintln!(
             "SUSTAINED_MISSING_RETRY senders={senders} load_seconds={load_seconds:.3} requests={total} requests_per_second={:.3} initial_202={initial_202} replay_202={} service_busy={} handoff_pending={} rate_limited={} late_files={} late_claim_seconds={:.3} late_age_at_write_seconds={:.3} drain_seconds={drain_seconds:.3} health_checks={health_count} health_max_seconds={:.3} retained_jobs={}",
             total as f64 / load_seconds,
