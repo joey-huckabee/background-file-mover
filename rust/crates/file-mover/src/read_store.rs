@@ -115,7 +115,7 @@ impl Handle {
         }
         self.0
             .used
-            .fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| {
+            .try_update(Ordering::AcqRel, Ordering::Acquire, |n| {
                 (n < self.0.maximum).then_some(n + 1)
             })
             .map_err(|_| Error::Busy)?;
