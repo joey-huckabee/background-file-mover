@@ -30,12 +30,14 @@ Debug build, WSL ext4; OFF/info runs alternate within each comparison. Negative
 slowdown means info was faster. Aggregates below are coordinator-reported;
 individual delivery-pair timings and raw packs were not supplied here.
 
-**Fixed-work delivery comparison (passes):** `logging_fixed_work_delivery_benchmark`,
+**Fixed-work delivery comparison (accepted performance proof):** `logging_fixed_work_delivery_benchmark`,
 eight jobs / eight MiB per run, ten alternating OFF/info pairs. Total elapsed
 OFF **138.26 s**, info **136.08 s**. Paired slowdown median **−2.0%**, mean
 **−1.5%**, standard deviation **3.2 percentage points**; upper 95% slowdown bound
-about **+0.8%**. This comparison passes the approved 2% limit. It does not alone
-establish overall performance acceptance, or qualify other hosts or SLES modes.
+about **+0.8%**. **User decision, 2026-11-25:** accept this delivery benchmark as
+#115's performance proof. It meets the approved 2% limit. This supersedes the
+previous requirement to establish the 2% bound in both comparisons; it does not
+qualify other hosts or SLES modes or close the independent claim-defect work.
 
 **Sustained-load regression comparison:** five OFF/info pairs of the existing
 sender-load test, comparing `late_claim_seconds`:
@@ -48,11 +50,14 @@ sender-load test, comparing `late_claim_seconds`:
 | 4 | 19.66 | 20.13 |
 | 5 | 19.26 | 21.29 |
 
-Reported paired slowdown median **+2.4%**, mean **−0.4%**. This timing is too
-noisy to establish a 2% bound and is **inconclusive**. **Overall performance
-acceptance is pending:** the approved design requires both comparisons to meet
-the 2% bound. The coordinator will rerun more sustained-load pairs after the
-operation/errno fix. Transfer correctness assertions were not relaxed.
+The first set's paired slowdown median was **+2.4%**, mean **−0.4%**.
+The second set's mean was **+2.6%**; standard deviations across the two sets
+were about **9–16 percentage points**. Per the **user's 2026-11-25 decision**,
+record this as **“no slowdown observed; too noisy to bound at 2%”**. The delivery
+benchmark supplies accepted performance proof; sustained timing is supporting
+regression evidence, not a separate 2% acceptance gate. Individual timings for
+the second set were not supplied here. Transfer correctness assertions were
+not relaxed, and rare claim failures require their separate approved fix.
 
 ## Remaining validation and limits
 

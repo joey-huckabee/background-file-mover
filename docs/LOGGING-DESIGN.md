@@ -377,7 +377,11 @@ Coordinator local results are recorded below and in [increment 172](RUST-INCREME
 structural guarantee to test; literally zero performance cost on shared CPU or
 disk is not possible. Suppressed events should reduce to a cheap threshold
 branch. **Decided 2026-11-25:** info logging may make transfers at most **2%
-slower than OFF**, measured using the sustained-load test and delivery benchmark.
+slower than OFF**. **User acceptance decision, 2026-11-25:** the fixed-work
+delivery benchmark supplies #115's performance proof. Record the sustained-load
+comparison as “no slowdown observed; too noisy to bound at 2%”. This supersedes
+the earlier requirement to establish the 2% bound in both comparisons; transfer
+correctness assertions and other qualification requirements stay in place.
 
 1. Unit tests: complete config truth table/ranges/checked budgets; level and
    prefix mapping; below-threshold formatting closure never evaluated; bounded
@@ -420,9 +424,11 @@ slower than OFF**, measured using the sustained-load test and delivery benchmark
    completed work separately from request/back-pressure counts. The delivery
    benchmark measures elapsed time to commit an identical fixed workload.
    Define slowdown as `elapsed_info / elapsed_off - 1`; require at most 0.02
-   in both comparisons (equivalently throughput ratio at least `1 / 1.02` for
-   identical work). Report uncertainty; a confidence interval spanning the
-   limit or uncontrolled host/clock variation is inconclusive, not a pass.
+   in the fixed-work delivery comparison (equivalently throughput ratio at least
+   `1 / 1.02` for identical work). Report uncertainty; a confidence interval
+   spanning the limit or uncontrolled variation is inconclusive, not a pass.
+   Per the user's 2026-11-25 decision, noisy sustained late-claim timing supplies
+   regression evidence and is not a separate quantitative 2% acceptance gate.
    Debug and saturated-sink runs remain diagnostic stress results, not substitutes
    for info acceptance. Do not relax transfer assertions, select only favorable
    pairs or infer speed from raw request rate/an unsaturated workload.
@@ -443,10 +449,13 @@ this comparison passes the 2% local limit.
 Five sustained-load pairs had late-claim seconds OFF
 24.66/20.43/18.50/19.66/19.26 and info
 18.47/17.19/23.32/20.13/21.29; reported paired slowdown median +2.4%, mean −0.4%.
-This is too noisy for a 2% bound and is inconclusive. Overall performance
-acceptance remains pending: both comparisons must pass. The coordinator will
-rerun more sustained-load pairs after the operation/errno fix. Debug-level and
-saturated-sink performance runs were not done. These local results are not SLES/systemd qualification or release closure.
+A second set had mean slowdown +2.6%; standard deviations across the two sets
+were about 9–16 percentage points. **User decision, 2026-11-25:** accept the
+delivery benchmark (ten pairs, upper 95% bound about +0.8%) as #115's performance
+proof, and record sustained load as **“no slowdown observed; too noisy to bound
+at 2%”**. Performance proof is accepted. Debug-level and saturated-sink runs
+were not done; these results do not close the separate claim defect, replace
+SLES/systemd qualification or establish release closure.
 
 ## Requirements, dependencies and settled answers
 

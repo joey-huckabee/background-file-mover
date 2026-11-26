@@ -14,9 +14,9 @@ Full/slow sinks stay off claim/copy/delivery loops. This does not reserve free
 space or isolate physical storage: the user permits a shared disk.
 
 Coordinator local WSL test and OFF/info performance results are recorded in
-[increment 172](RUST-INCREMENT-172.md). The fixed-work delivery comparison passed,
-but sustained late-claim timing is inconclusive; overall performance acceptance
-is pending until both meet the 2% bound. The coordinator reports fmt/Clippy clean
+[increment 172](RUST-INCREMENT-172.md). The user accepted the delivery benchmark
+as #115's performance proof on 2026-11-25. Sustained load is recorded as “no
+slowdown observed; too noisy to bound at 2%”, not a separate quantitative gate. The coordinator reports fmt/Clippy clean
 before these review fixes. Fresh Rust checks, both SLES modes and remaining
 validation are pending. Local results are not a claimed target pass. See also [current operator statuses](RUST-OPERATOR-GUIDE.md),
 [lifecycle handling](RUST-RESTART-RUNBOOK.md) and [release closure](RUST-RELEASE-CLOSURE.md).
@@ -35,10 +35,10 @@ Run `logging_fixed_work_delivery_benchmark -- --ignored --nocapture` at the same
 three levels. It transfers the same eight 1 MiB jobs and reports fixed-work
 elapsed time/bytes per second. Alternate at least five OFF/info pairs under the
 same host/cache/storage conditions; compare late-file handoff elapsed time and
-fixed-work completion time. Info elapsed/OFF elapsed must be at most 1.02 in both
-comparisons, with uncertainty reported. The first sustained comparison was
-inconclusive; more pairs will follow the operation/errno fix. Preserve failed
-and inconclusive runs;
+fixed-work completion time. Info elapsed/OFF elapsed must be at most 1.02 in the
+delivery benchmark, with uncertainty reported. The user's 2026-11-25 acceptance
+uses that benchmark; sustained timing remains supporting regression evidence.
+Preserve failed and inconclusive runs;
 do not infer transfer throughput from raw producer request rate. Debug and
 saturated-sink tests provide stress evidence, not replacements for info acceptance.
 No performance result has been measured in the cloud worker environment.
