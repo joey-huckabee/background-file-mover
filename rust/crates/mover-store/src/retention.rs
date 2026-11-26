@@ -14,6 +14,14 @@ pub struct RetentionSnapshot {
     pub configured_limits: Option<(u64, u64)>,
 }
 pub(crate) fn reserved_bytes(c: &Connection, destination: bool, id: Option<i64>) -> Result<u128> {
+    reserved_bytes_checked(c, destination, id, &|| Ok(()))
+}
+fn reserved_bytes_checked(
+    c: &Connection,
+    destination: bool,
+    id: Option<i64>,
+    check: &impl Fn() -> Result<()>,
+) -> Result<u128> {
     let sql = if destination {
         // Deliberately deleted destination attempts no longer occupy space.
         "SELECT c.source_identity FROM transfers t JOIN claims c ON c.job_id=t.job_id AND c.file_index=t.file_index WHERE (?1 IS NULL OR t.job_id=?1) AND NOT EXISTS(\
@@ -30,6 +38,7 @@ pub(crate) fn reserved_bytes(c: &Connection, destination: bool, id: Option<i64>)
     let mut s = c.prepare(sql)?;
     let mut total = 0_u128;
     for row in s.query_map([id], |r| r.get::<_, String>(0))? {
+        check()?;
         let size = ObjectIdentity::decode(&row?)
             .ok_or(StoreError::CorruptState)?
             .size;
@@ -42,31 +51,44 @@ pub(crate) fn reserved_bytes(c: &Connection, destination: bool, id: Option<i64>)
 impl Store {
     /// Stream a constant-sized report from one read transaction. No FS effects.
     pub fn retention(&self, id: Option<i64>) -> Result<Option<RetentionSnapshot>> {
-        self.call(move|db| {
-            let tx=db.connection.transaction()?;
-            let count=|sql:&str|->Result<u64> {
-                let n:i64=tx.query_row(sql,[id],|r|r.get(0))?;
-                u64::try_from(n).map_err(|_|StoreError::CorruptState)
-            };
-            let jobs=count("SELECT count(*) FROM jobs WHERE (?1 IS NULL OR job_id=?1)")?;
-            if id.is_some() && jobs==0 {return Ok(None);}
-            let committed_jobs=count("SELECT count(*) FROM manifests WHERE phase=4 AND (?1 IS NULL OR job_id=?1)")?;
-            let source_claims=count("SELECT count(*) FROM claims WHERE (?1 IS NULL OR job_id=?1)")?;
-            let confirmed_claims=count("SELECT count(*) FROM claims WHERE done=1 AND (?1 IS NULL OR job_id=?1)")?;
-            let unmeasured_files=count("SELECT count(*) FROM files f LEFT JOIN claims c ON c.job_id=f.job_id AND c.file_index=f.file_index WHERE c.job_id IS NULL AND (?1 IS NULL OR f.job_id=?1)")?;
-            let source_reserved_bytes=reserved_bytes(&tx,false,id)?;
-            let destination_reserved_bytes=reserved_bytes(&tx,true,id)?;
-            let mut destination_attempts_by_phase=[0;5];
-            {
-                let mut s=tx.prepare("SELECT phase,count(*) FROM transfers t WHERE (?1 IS NULL OR job_id=?1) AND NOT EXISTS(SELECT 1 FROM destination_deletion_targets d WHERE d.job_id=t.job_id AND d.file_index=t.file_index AND d.attempt=t.attempt AND d.kind IN ('UnfinishedDestinationStaging','UnfinishedDestinationPayload') AND d.state='Deleted') GROUP BY phase")?;
-                for row in s.query_map([id],|r|Ok((r.get::<_,i64>(0)?,r.get::<_,i64>(1)?)))? {
-                    let (phase,n)=row?;
-                    let slot=usize::try_from(phase).ok().and_then(|i|destination_attempts_by_phase.get_mut(i)).ok_or(StoreError::CorruptState)?;
-                    *slot=u64::try_from(n).map_err(|_|StoreError::CorruptState)?;
-                }
-            }
-            tx.commit()?;
-            Ok(Some(RetentionSnapshot{job_id:id,jobs,committed_jobs,source_claims,confirmed_claims,unmeasured_files,source_reserved_bytes,destination_reserved_bytes,destination_attempts_by_phase,configured_limits:db.limits}))
-        })
+self.call(move|db| {
+    let tx=db.connection.transaction()?;
+    let result = snapshot_in(&tx, db.limits, id, &|| Ok(()))?;
+    tx.commit()?;
+    Ok(result)
+})
     }
+}
+
+/// Shared SQL only; command callers retain their own transaction/authorization.
+pub(super) fn snapshot_in(
+    tx: &Connection,
+    limits: Option<(u64, u64)>,
+    id: Option<i64>,
+    check: &impl Fn() -> Result<()>,
+) -> Result<Option<RetentionSnapshot>> {
+    let count=|sql:&str|->Result<u64> {
+        check()?;
+        let n:i64=tx.query_row(sql,[id],|r|r.get(0))?;
+        u64::try_from(n).map_err(|_|StoreError::CorruptState)
+    };
+    let jobs=count("SELECT count(*) FROM jobs WHERE (?1 IS NULL OR job_id=?1)")?;
+    if id.is_some() && jobs==0 {return Ok(None);}
+    let committed_jobs=count("SELECT count(*) FROM manifests WHERE phase=4 AND (?1 IS NULL OR job_id=?1)")?;
+    let source_claims=count("SELECT count(*) FROM claims WHERE (?1 IS NULL OR job_id=?1)")?;
+    let confirmed_claims=count("SELECT count(*) FROM claims WHERE done=1 AND (?1 IS NULL OR job_id=?1)")?;
+    let unmeasured_files=count("SELECT count(*) FROM files f LEFT JOIN claims c ON c.job_id=f.job_id AND c.file_index=f.file_index WHERE c.job_id IS NULL AND (?1 IS NULL OR f.job_id=?1)")?;
+    let source_reserved_bytes=reserved_bytes_checked(tx,false,id,check)?;
+    let destination_reserved_bytes=reserved_bytes_checked(tx,true,id,check)?;
+    let mut destination_attempts_by_phase=[0;5];
+    {
+        let mut s=tx.prepare("SELECT phase,count(*) FROM transfers t WHERE (?1 IS NULL OR job_id=?1) AND NOT EXISTS(SELECT 1 FROM destination_deletion_targets d WHERE d.job_id=t.job_id AND d.file_index=t.file_index AND d.attempt=t.attempt AND d.kind IN ('UnfinishedDestinationStaging','UnfinishedDestinationPayload') AND d.state='Deleted') GROUP BY phase")?;
+        for row in s.query_map([id],|r|Ok((r.get::<_,i64>(0)?,r.get::<_,i64>(1)?)))? {
+            check()?;
+            let (phase,n)=row?;
+            let slot=usize::try_from(phase).ok().and_then(|i|destination_attempts_by_phase.get_mut(i)).ok_or(StoreError::CorruptState)?;
+            *slot=u64::try_from(n).map_err(|_|StoreError::CorruptState)?;
+        }
+    }
+    Ok(Some(RetentionSnapshot{job_id:id,jobs,committed_jobs,source_claims,confirmed_claims,unmeasured_files,source_reserved_bytes,destination_reserved_bytes,destination_attempts_by_phase,configured_limits:limits}))
 }

@@ -63,12 +63,26 @@ fn scan(
     max_rows: usize,
     max_bytes: usize,
 ) -> Result<FileSearchChunk> {
+    scan_checked(tx, needle, before, until, max_rows, max_bytes, &|| Ok(()))
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn scan_checked(
+    tx: &Connection,
+    needle: &str,
+    before: i64,
+    until: i64,
+    max_rows: usize,
+    max_bytes: usize,
+    check: &impl Fn() -> Result<()>,
+) -> Result<FileSearchChunk> {
     let mut statement = tx.prepare(SEARCH_SQL)?;
     let mut rows = statement.query(params![before, until])?;
     let (mut matches, mut scanned_jobs) = (Vec::new(), 0u32);
     let (mut read_rows, mut read_bytes) = (0usize, 0usize);
     let mut current: Option<(i64, bool)> = None;
     while let Some(row) = rows.next()? {
+        check()?;
         let job: i64 = row.get(0)?;
         if current.is_none_or(|(id, _)| id != job) {
             if let Some((previous, _)) = current {

@@ -5003,3 +5003,72 @@ fn source_cleanup_leftover_warning_survives_restart_without_failure_or_retry() {
         assert_eq!(count, 0);
     }
 }
+
+/// Stated read-pool qualification bound: database rows only, no payload files.
+#[test]
+#[ignore = "retention-scale qualification: 10,000 jobs / 2,560,000 files; run explicitly with --ignored"]
+fn read_startup_at_ten_thousand_jobs_does_not_repeat_content_validation() {
+    use crate::read::{Budget, Query, Reader, Snapshot};
+    use std::time::Instant;
+    let f = Fixture::new();
+    {
+        let mut db = Database::open(&f.db(), false).unwrap();
+        let request = |id: i64| ProducerRequest::new("g".into(),
+            RecordingId::from_bytes((id as u128).to_be_bytes()),
+            if id == 1 { "/mnt/recordings/current".into() } else { format!("/mnt/recordings/job-{id}") },
+            (0..256).map(|i| format!("file-{i:03}")).collect(), None).unwrap();
+        let submission = Submission::from_producer(request(1));
+        let job = db.accept(&submission, &context()).unwrap();
+        for index in 0..256 {
+            let intent = intent_for(&job, index, 7);
+            db.begin_claim(&intent).unwrap();
+            db.finish_claim(&intent).unwrap();
+        }
+        // Fully claimed history avoids a quadratic scan of millions of live
+        // reservation rows by the existing writer startup validation. Identities
+        // are synthetic data only, as in intent_for; no custody is exercised.
+        let columns: Vec<String> = db.connection.prepare("PRAGMA table_info(jobs)").unwrap()
+            .query_map([], |r| r.get(1)).unwrap().collect::<std::result::Result<_, _>>().unwrap();
+        let select: Vec<String> = columns.iter().map(|column| match column.as_str() {
+            "job_id" => "?1".into(),
+            "recording_uuid" => "?2".into(),
+            "request_identity_sha256" => "?3".into(),
+            "source_directory" => "printf('/mnt/recordings/job-%d',?1)".into(),
+            "source_relative_directory" => "printf('job-%d',?1)".into(),
+            _ => format!("\"{column}\""),
+        }).collect();
+        let sql = format!("INSERT INTO jobs ({}) SELECT {} FROM jobs WHERE job_id=1", columns.join(","), select.join(","));
+        let tx = db.connection.transaction().unwrap();
+        for id in 2..=10_000 {
+            let request = request(id);
+            tx.execute(&sql, params![id, request.recording_id().as_bytes().as_slice(), request_digest(&request)]).unwrap();
+            tx.execute("INSERT INTO files SELECT ?1,file_index,relative_path,expected_size FROM files WHERE job_id=1", [id]).unwrap();
+            tx.execute("INSERT INTO claims SELECT ?1,c.file_index,c.root_path,printf('job-%d/',?1)||f.relative_path,printf('%d-%d',?1,c.file_index),c.root_identity,c.parent_identity,c.area_identity,c.source_identity,c.done FROM claims c JOIN files f ON f.job_id=c.job_id AND f.file_index=c.file_index WHERE c.job_id=1", [id]).unwrap();
+        }
+        tx.commit().unwrap();
+    }
+    let started = Instant::now();
+    let writer = Store::open(f.db()).unwrap();
+    let validation = started.elapsed();
+    writer.configure_limits(10_000, u64::MAX).unwrap();
+    let context = writer.read_context().unwrap();
+    assert_eq!(writer.job_count().unwrap(), 10_000);
+    assert_eq!(writer.call(|_| Ok(CONTENT_VALIDATIONS.with(std::cell::Cell::get))).unwrap(), 1);
+    let before = CONTENT_VALIDATIONS.with(std::cell::Cell::get);
+    for count in [1, 2, 8] {
+        let started = Instant::now();
+        let mut readers: Vec<_> = (0..count).map(|_| Reader::open(&context).unwrap()).collect();
+        for reader in &mut readers {
+            assert!(matches!(reader.query(Query::Status(10_000), &Budget::new(Instant::now() + Duration::from_secs(1))).unwrap(), Snapshot::Status(Some(_))));
+        }
+        eprintln!("READ_STARTUP jobs=10000 files=2560000 readers={count} writer_validation={validation:?} reader_open_and_smoke={:?}", started.elapsed());
+    }
+    assert_eq!(CONTENT_VALIDATIONS.with(std::cell::Cell::get), before);
+    assert_eq!(writer.call(|_| Ok(CONTENT_VALIDATIONS.with(std::cell::Cell::get))).unwrap(), 1);
+    drop(writer);
+    {
+        let connection = Connection::open(f.db()).unwrap();
+        connection.execute("UPDATE jobs SET file_count=255 WHERE job_id=10000", []).unwrap();
+    }
+    assert!(Store::open(f.db()).is_err(), "last retained job must still receive full writer validation");
+}

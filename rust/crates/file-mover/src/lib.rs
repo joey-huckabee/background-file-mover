@@ -19,6 +19,7 @@ pub mod native;
 pub mod password;
 pub mod payload;
 mod progress;
+pub mod read_store;
 mod reload;
 mod retry_context;
 pub mod session;
@@ -50,6 +51,8 @@ use tokio::{
 #[serde(deny_unknown_fields)]
 pub struct Config {
     pub bind: SocketAddr,
+    #[serde(default = "database_readers_default")]
+    pub database_readers: u8,
     #[serde(default)]
     pub logging: logging::Logging,
     #[serde(default)]
@@ -130,8 +133,12 @@ fn absolute(path: &str) -> bool {
                 && !p.contains('\\')
         })
 }
+fn database_readers_default() -> u8 { 2 }
 impl Config {
     pub fn validate(&self) -> Result<(), &'static str> {
+        if !(1..=8).contains(&self.database_readers) {
+            return Err("database_readers must be an integer from 1 through 8");
+        }
         self.source_space_admission.validate()?;
         self.logging.validate_config(self)?;
         if !(1..=3600).contains(&self.shutdown_wait_seconds) {
@@ -343,6 +350,7 @@ struct Worker {
     _instance: Arc<mover_fs::InstanceGuard>,
     control: control::Server,
     _logging: Option<logging::Guard>,
+    readers: Option<read_store::ReadStore>,
 }
 impl Worker {
     fn start(
@@ -367,6 +375,7 @@ impl Worker {
         store.require_destination_bindings()?;
         let logging = logging::start(&c.logging);
         store.configure_limits(c.max_retained_jobs, c.max_retained_bytes)?;
+        let readers = read_store::ReadStore::start(c, store.clone(), instance.clone(), control.lifecycle.clone())?;
         let source_space = source_space::Monitor::start(
             c.source_space_admission.clone(),
             guard.clone(),
@@ -932,6 +941,7 @@ impl Worker {
             _instance: instance,
             control,
             _logging: logging,
+            readers: Some(readers),
         })
     }
 }
@@ -941,6 +951,7 @@ impl Drop for Worker {
         self.control.lifecycle.phase("Draining");
         let _ = mover_fs::qualification_pause("shutdown_drain");
         self.stop.store(true, Ordering::Relaxed);
+        self.readers.take(); // Join/close readers while writer and instance remain owned.
         self.sender.take();
         self.observer.take();
         if let Some(t) = self.observation.take() {

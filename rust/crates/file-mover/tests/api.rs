@@ -2743,6 +2743,7 @@ fn logging_off_preserves_exact_readiness_and_stderr_without_logger_resources() {
 #[test]
 fn unsafe_startup_configuration_is_rejected() {
     let c = file_mover::Config {
+        database_readers: 2,
         logging: Default::default(),
         protected_ingress: None,
         native_ingress: None,
