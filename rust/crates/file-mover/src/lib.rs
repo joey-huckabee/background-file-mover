@@ -133,7 +133,9 @@ fn absolute(path: &str) -> bool {
                 && !p.contains('\\')
         })
 }
-fn database_readers_default() -> u8 { 2 }
+fn database_readers_default() -> u8 {
+    2
+}
 impl Config {
     pub fn validate(&self) -> Result<(), &'static str> {
         if !(1..=8).contains(&self.database_readers) {
@@ -375,7 +377,12 @@ impl Worker {
         store.require_destination_bindings()?;
         let logging = logging::start(&c.logging);
         store.configure_limits(c.max_retained_jobs, c.max_retained_bytes)?;
-        let readers = read_store::ReadStore::start(c, store.clone(), instance.clone(), control.lifecycle.clone())?;
+        let readers = read_store::ReadStore::start(
+            c,
+            store.clone(),
+            instance.clone(),
+            control.lifecycle.clone(),
+        )?;
         let source_space = source_space::Monitor::start(
             c.source_space_admission.clone(),
             guard.clone(),

@@ -819,10 +819,14 @@ mod tests {
                     "hardlink" => std::fs::hard_link(&target, &sidecar).unwrap(),
                     _ => {
                         std::fs::write(&sidecar, b"unsafe sidecar").unwrap();
-                        std::fs::set_permissions(&sidecar, std::fs::Permissions::from_mode(0o622)).unwrap();
+                        std::fs::set_permissions(&sidecar, std::fs::Permissions::from_mode(0o622))
+                            .unwrap();
                     }
                 }
-                assert!(guard.validate_reader_database(&db).is_err(), "{suffix} {case}");
+                assert!(
+                    guard.validate_reader_database(&db).is_err(),
+                    "{suffix} {case}"
+                );
                 assert_eq!(std::fs::read(&target).unwrap(), b"preserved bytes");
                 assert!(std::fs::symlink_metadata(&sidecar).is_ok());
             }
