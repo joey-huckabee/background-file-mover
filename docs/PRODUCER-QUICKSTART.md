@@ -128,7 +128,7 @@ leave the files in place.
 | Status | Code | Meaning | Do |
 |---|---|---|---|
 | 409 | `source_file_missing` | A listed file is not there yet. The job is recorded and waits for it during the server's missing-file window (`missing_file_retry_window_seconds`, default 300 s). | Write the missing file completely. The mover claims it on its own once it is stable, so a resend is not required. A resend claims files immediately (no stability wait), so send it only after the file is complete; it returns 202 once all files are in custody. After the window it becomes `recording_blocked`. |
-| 503 | `handoff_pending` | A claim is in progress or its outcome is not yet known. | Retry. |
+| 503 | `handoff_pending` | A claim is in progress, its outcome is unknown, or the payload changed before allocation and was not claimed from that observation. | Let writes finish, then retry the identical UUID/body. This is not 202 and does not release any still-unclaimed source path. |
 | 503 | `service_busy` | The mover is briefly full. | Retry. |
 | 503 | `service_stopping` | The service is shutting down. | Retry; it continues after restart. |
 | 503 | `storage_unavailable` | The mover's state store is temporarily unavailable. | Retry; alert if it persists. |
