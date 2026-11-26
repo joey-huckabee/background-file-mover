@@ -1,8 +1,23 @@
 # Database read pool design
 
-Requested 2026-11-26. **Proposed; review and user approval are required before
-implementation.** Source inspected: main `d59a4541`. This document changes no
-runtime, contract, requirement disposition or qualification result.
+Requested 2026-11-26. User answers recorded below; the revised design still
+requires review before implementation. Source inspected: main `d59a4541`.
+This document changes no runtime, contract, requirement disposition or
+qualification result.
+
+## User decisions — 2026-11-26
+
+1. `database_readers` defaults to 2, accepts 1–8, and is always on; no enable
+   switch.
+2. Any reader-open failure fails startup with a clear, nonsecret error; no
+   fallback to the writer. Readers rely on the writer's full startup validation
+   under the same guard, then perform only the fast checks specified below.
+   There is no fixed per-reader full-scan deadline.
+3. On the coordinator's WSL host, the ordinary loaded status-poll acceptance run
+   must have zero `storage_unavailable`. Count `service_busy`; it is allowed
+   only in the deliberately saturated test, not the ordinary loaded run.
+4. Keep the public two-second request deadline and the one-second active
+   read-transaction budget.
 
 ## Purpose and boundary
 
@@ -74,27 +89,37 @@ framework is proposed. The pinned rusqlite dependency remains unchanged.
 Choose **fail startup**, with no fallback to the writer. A silent fallback would
 reintroduce the failure being addressed and make qualification ambiguous.
 
-1. Acquire the existing instance/lifetime guard, validate local state paths and
-   sidecars, perform normal compatibility/state checks and open the writer as
-   today. Finish enrollment/destination authorization and configured limits.
+1. Acquire the existing instance/lifetime guard and validate local state paths
+   and sidecars. The writer's normal startup validation is authoritative:
+   compatibility, schema structure, application ID, identities, job sequence,
+   contents and SQLite options. Complete it once for the pool under this same
+   continuously held guard. Do not repeat full validation per reader. Finish
+   enrollment/destination authorization and configured limits.
 2. Before claim/delivery threads or listeners can accept work, open all readers
-   against that same state database. Startup writes must have finished; no
-   reader validates a database concurrently changing during bootstrap.
-3. Reuse/factor the existing `Store::open_read_only` → `Database::open(path,true)`
-   validation into a connection-owning read-only type. It must use
-   READ_ONLY, FULL_MUTEX and NOFOLLOW, and retain application ID, current schema,
-   SQLite build-option, WAL, identity, job-sequence and content validation.
-   Reuse `validate_schema` explicitly where needed; a successful SQLite open
-   alone is insufficient. Keep `trusted_schema=OFF`, foreign keys ON and the
-   existing 250 ms busy timeout; add connection-local `query_only=ON` as defense
-   in depth. Never create, migrate or change journal mode from a reader.
-4. Match every reader's validated state instance ID and database identity with
-   the startup writer/guard. Revalidate database/sidecars around opens while
-   startup is quiescent. Fail on unsafe or substituted names. Complete a real
-   read transaction on each reader before declaring it ready.
-5. Only after all N readiness acknowledgements and monitor readiness may normal
-   service work start. Use a ten-second aggregate reader-startup deadline;
-   expiration requests lifecycle stop and cleanup, not partial readiness.
+   against that same database. Startup writes must have finished, and no writer
+   transaction may run while the readers check startup identity.
+3. Factor a fast, validated reader-open path alongside the existing
+   `Store::open_read_only` → `Database::open(path,true)` path. Do **not** call the
+   existing full-scan read-only open once per reader or weaken it for offline
+   callers. The fast path requires the successful writer-validation context
+   tied to this guard and database. Use READ_ONLY, FULL_MUTEX and NOFOLLOW;
+   check application ID, current schema version, the same instance ID, database
+   device/inode, SQLite build options and journal mode WAL. These checks must
+   not scan jobs/files or invoke `validate_identities`, `validate_job_sequence`,
+   `validate_contents`, foreign-key scans or full schema validation again.
+4. Keep `trusted_schema=OFF`, foreign keys ON and the existing 250 ms busy
+   timeout; inherit the existing read-only path's `synchronous=FULL` and verify
+   it. Add connection-local `query_only=ON` as defense in depth. Never create,
+   migrate or change journal mode from a reader. Recheck safe database/sidecar
+   names and the captured database device/inode around opens while startup is
+   quiescent, without unsafe raw-descriptor probes. Fail on unsafe/substituted
+   names. Each reader completes one real, small read transaction (reading its
+   instance metadata) before declaring ready; this is not a retained-job scan.
+5. Normal service work starts only after all N readiness acknowledgements and
+   monitor readiness. **Remove the proposed ten-second aggregate reader-startup
+   deadline.** There is no new fixed startup/full-scan deadline: large healthy
+   history may take time for the writer to validate. Stop/cancellation remains
+   available during startup, and cannot publish partial or late readiness.
 
 `mover-fs` already depends on `mover-store`; adding the reverse dependency would
 be a cycle. Put SQLite-only read operations/connection ownership in mover-store,
@@ -109,7 +134,9 @@ transaction; command code keeps using its writer transaction helpers.
 A spawn/open/readiness failure requests stop through the existing Lifecycle,
 closes all queues, cancels started work and joins every started thread before
 releasing its guard. A late open cannot publish readiness after cancellation.
-The startup deadline does not permit detaching a thread stuck in kernel I/O.
+Cancellation does not permit detaching a thread stuck in kernel I/O. Report
+which reader could not open using its numeric index and safe failure category;
+never include SQL rows, credential values or arbitrary path/error payloads.
 
 ## Filesystem and WAL sidecars
 
@@ -191,7 +218,12 @@ and response shapes. Separation removes write-queue residence instead of masking
 it with a larger timeout. A healthy, non-overloaded pool is expected to answer
 within that bound; no scheduler or local disk provides an unconditional guarantee.
 
-On dequeue, discard cancelled/expired work before opening a transaction. Each
+On dequeue, discard cancelled/expired work before opening a transaction. Then
+run the same `InstanceGuard::validate()` check that the observer performs today,
+**for every pool request before its transaction**. On failure return the current
+409 `recording_blocked` guard refusal and execute no query; do not substitute a
+cached startup check or a full database/sidecar scan. Guard-check time counts
+against the request deadline, which is rechecked before BEGIN. Each
 query uses one deferred read transaction with an active budget of **one second**,
 or the remaining request budget minus 100 ms for reply handling, whichever is
 smaller. If no time remains, fail without starting. Start the active timer before
@@ -314,16 +346,47 @@ These are acceptance work for implementation, **not results**:
 | Area | Required evidence |
 |---|---|
 | Configuration | Default 2; accepted 1/8; invalid 0/9/negative/fraction/string; validation before effects; restart-only and TLS-reload refusal. |
-| Guarded opens | Every worker opens the same current validated state read-only; reject wrong schema/application/identity/sequence, corrupt contents, unsafe parent/sidecar, symlink, hardlink, mounted leaf and NFS. Do not mutate rejected files or silently create a database. |
+| Guarded opens | Writer validation rejects wrong schema structure, damaged sequence/identities or corrupt contents once; reader fast checks reject application/schema-version/instance/device/inode/build-option/journal mismatches. Every worker is read-only with query_only, trusted_schema off and inherited synchronous=FULL. Reject unsafe parent/sidecar, symlink, hardlink, mounted leaf and NFS through the guarded path. Preserve rejected files; never create a database. |
+| Retention-scale startup | At the stated 10,000-job / 2,560,000-file qualification bound below, test N=1/2/8: full validation once, fast checks and one small real transaction per reader, successful startup without a new fixed deadline. Corrupt the final job and prove writer validation still fails startup. |
+| Per-request guard | Invalidate the named guard after pool startup, then submit each query family. Assert 409 recording_blocked and no transaction begun, including a request queued before invalidation. |
 | Sidecars | Actual pinned SQLite fresh/existing WAL, missing shm and restart tests under permissive process umask; no newly over-permissive files. Check identity/owner/modes before and after, preserving unsafe originals on refusal. |
-| Startup failure | Fail one of N opens/spawns and expire readiness; no Ready or detached thread, no guard release before all started threads exit. |
+| Startup failure | Fail one of N opens/spawns and cancel while waiting for readiness; report a clear safe error, with no fallback, Ready or detached thread. No guard release before all started threads exit. |
 | Pool exhaustion | Barrier-hold all running and queued requests; next request promptly gives service_busy (target under 100 ms on the controlled local fixture). Cancelled queued jobs never begin SQL. Bound accepted work at 2N. |
 | Snapshot | Pause after first read, commit related changes on writer, finish multi-query status/page/retention on old internally consistent snapshot; next request sees the committed change. Cursor binding shares the same transaction. |
 | Active bound | Expensive SQL and Rust decoding exceed the one-second budget, return storage_unavailable within the two-second request budget on the controlled host, roll back and release the snapshot. Race cancellation at statement boundaries and next-job start: do not interrupt the next job. |
-| Independent writes | Barrier-hold a writer operation while status/history/retention/search still complete from reader snapshots. Conversely, a bounded reader snapshot permits command commits; checkpoint catches up after release. |
+| Independent writes | Barrier-hold a writer operation while status/history/retention/search still complete from reader snapshots. Conversely, a bounded reader snapshot permits command commits. |
+| WAL checkpoint starvation | Dedicated two-reader continuous-poller test described below; observe partial checkpoint progress/WAL growth under deliberately overlapping snapshots and recovery after pollers stop. Do not infer recovery just from file size. |
 | No action moved | Query enum has only Status/Page/Retention/Search, no arbitrary SQL/closure or Store command capability. Writer/effect helpers cannot take ReadStore/DTOs as authorization. Keep action/replay tests and add a stale-display/fresh-command-state test proving the existing writer revalidation wins. |
 | Routing and sessions | Private operator and admin reads bypass mover-status; query floods do not acquire command slots. Producer routes remain forbidden; session/CSRF/boundary and sign-out rules remain intact. Settings, SSE memory snapshots and health perform no SQL. |
 | Shutdown | Paused active/queued readers, client disconnect, panic and partial startup; actual exits and connection closure precede guard release. Offline clear refuses until readers exit; online clear leaves no stale cross-request transaction or cache. Test reader hold beyond first deadline reports incomplete shutdown safely. |
+
+`max_retained_jobs` has no supported finite upper bound today, so do not claim
+a test covers a nonexistent maximum. State a **qualification bound of 10,000
+retained jobs with 256 files each (2,560,000 file rows)**, plus a smaller
+1,000-job comparison. This is a disposable synthetic database, not payload
+files or a new product limit. Retain valid UUIDs, file membership, reservation
+and identity relationships. Use test-only instrumentation to count the writer's
+full-validation pass and each reader's fast checks; do not use an arbitrary
+startup duration to infer the scan count. Measure writer validation and reader
+opening separately for N=1/2/8 and report source, dataset size and timings.
+Larger retained states remain allowed; this test adds no startup time ceiling.
+
+For checkpoint starvation, use a disposable WAL database and N=2. Two continuous
+pollers use test barriers to overlap bounded snapshots: at least one old snapshot
+remains active while the writer commits a finite stream of updates. Each request
+still obeys the one-second active budget; barriers are test-only and released on
+failure. Observe checkpoint frame counts through the existing writer connection
+using nonblocking PASSIVE checkpoints, and WAL high-water bytes. Establish the
+old reader's snapshot before the writes so that partial progress is meaningful;
+continuous polling alone is not proof of a held old snapshot. Then stop both
+pollers, drain/close all read transactions and run the writer's checkpoint again.
+Require checkpoint completion (all relevant frames checkpointed, no busy reader)
+and a fresh reader seeing the latest commit, within a generous controlled-host
+recovery wait. WAL file size need not shrink after PASSIVE; never delete/truncate
+it to make the test pass. Keep writes succeeding while snapshots overlap, and
+verify interruption/rollback frees the snapshot when its active budget expires.
+This isolates checkpoint starvation from ordinary status-poll acceptance and
+changes no production checkpoint policy.
 
 Extend the existing sustained sender-load test with a bounded independent status
 poller. Record separate status successes, service_busy, storage_unavailable,
@@ -336,8 +399,9 @@ retention and search in a separate finite mixed-query test as well.
 
 On the coordinator's controlled WSL/gate-SQLite host, require **zero
 storage_unavailable** in the ordinary loaded query run and every successful query
-inside the existing two-second deadline. Under deliberate pool saturation,
-service_busy is expected and counted. Neither requirement is a claim that
+inside the existing two-second deadline. Count service_busy in both runs;
+it fails the ordinary loaded status-poll acceptance run. It is expected and
+allowed only under deliberate pool saturation. Neither requirement is a claim that
 physical I/O failures can never return storage_unavailable. A test exceeding its
 read budget fails qualification for that workload; do not call a timeout a pass
 or silently truncate a search job to hit a latency target.
@@ -376,7 +440,8 @@ the tested two-reader default; one reader is supported for resource-constrained
 hosts, still isolated from the writer. Existing state and schema are unchanged.
 Rollback means the previous compatible executable after a clean stop, subject to
 existing compatibility checks; never restore stale state. Pool sizing, deadlines,
-fail-start policy and routing above are proposed choices for this design review.
+and fail-start policy are recorded user decisions above. The revised startup
+checks and remaining implementation details still require design review.
 
 This PR contains documentation only. No builds, new dependency, installation,
 real state, NFS experiment, operational conversion or implementation is performed.
