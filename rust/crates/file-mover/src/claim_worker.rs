@@ -172,10 +172,15 @@ fn request_reported(
         LIMIT as u64,
     )
     .map_err(|_| ClaimError::OutcomeUncertain)?;
-    decode_receipt_with_modes(&bytes, diagnostic,
-        matches!(assignment, Assignment::Discard { .. }), leftovers,
-        matches!(assignment, Assignment::Observe { .. }), directory_modes, matches!(assignment, Assignment::Allocate { .. }))
-
+    decode_receipt_with_modes(
+        &bytes,
+        diagnostic,
+        matches!(assignment, Assignment::Discard { .. }),
+        leftovers,
+        matches!(assignment, Assignment::Observe { .. }),
+        directory_modes,
+        matches!(assignment, Assignment::Allocate { .. }),
+    )
 }
 #[cfg(test)]
 fn decode_receipt(bytes: &[u8]) -> Result<ClaimIntent, ClaimError> {
@@ -195,17 +200,36 @@ fn decode_receipt_reported(
     allow_leftovers: bool,
     leftovers: &mut bool,
 ) -> Result<ClaimIntent, ClaimError> {
-    decode_receipt_with_modes(bytes, diagnostic, allow_leftovers, leftovers, false, &mut None, false)
+    decode_receipt_with_modes(
+        bytes,
+        diagnostic,
+        allow_leftovers,
+        leftovers,
+        false,
+        &mut None,
+        false,
+    )
 }
-fn decode_receipt_with_modes(bytes: &[u8], diagnostic: &mut Option<String>, allow_leftovers: bool,
-    leftovers: &mut bool, observing: bool, directory_modes: &mut Option<[u32; 3]>, allocating: bool) -> Result<ClaimIntent, ClaimError> {
+fn decode_receipt_with_modes(
+    bytes: &[u8],
+    diagnostic: &mut Option<String>,
+    allow_leftovers: bool,
+    leftovers: &mut bool,
+    observing: bool,
+    directory_modes: &mut Option<[u32; 3]>,
+    allocating: bool,
+) -> Result<ClaimIntent, ClaimError> {
     let reply: Receipt = serde_json::from_slice(bytes).map_err(|_| ClaimError::OutcomeUncertain)?;
     if matches!(&reply.error, Some(Failure::ObservationChanged)) && !allocating {
         return Err(ClaimError::OutcomeUncertain);
     }
     if let Some(modes) = reply.directory_modes {
-        if !observing || reply.error.is_some() || reply.claim.is_none() || reply.diagnostic.is_some()
-            || modes.iter().any(|m| *m > 0o7777) {
+        if !observing
+            || reply.error.is_some()
+            || reply.claim.is_none()
+            || reply.diagnostic.is_some()
+            || modes.iter().any(|m| *m > 0o7777)
+        {
             return Err(ClaimError::OutcomeUncertain);
         }
     } else if observing && reply.error.is_none() {
@@ -467,7 +491,14 @@ fn claim_file(
                 .ok_or(ClaimError::Blocked("unknown file"))?;
             let (assignment, name) = observe_assignment(&job, job_id, index, check_sizes)?;
             let mut directory_modes = None;
-            let observed = request_reported(&assignment, guard, stop, diagnostic, &mut false, &mut directory_modes)?;
+            let observed = request_reported(
+                &assignment,
+                guard,
+                stop,
+                diagnostic,
+                &mut false,
+                &mut directory_modes,
+            )?;
             let directory_modes = directory_modes.ok_or(ClaimError::OutcomeUncertain)?;
             // Timer retry: exactly the stable identity, and fresh admission
             // before anything is allocated.
@@ -610,13 +641,26 @@ pub fn worker() -> Result<(), Box<dyn std::error::Error>> {
                 expected_size,
                 ..
             } => {
-                let observation = mover_fs::observe_claim(job_id, file_index, &root_path, &source_name, expected_size)?;
+                let observation = mover_fs::observe_claim(
+                    job_id,
+                    file_index,
+                    &root_path,
+                    &source_name,
+                    expected_size,
+                )?;
                 directory_modes = Some(observation.directory_modes);
                 Ok(observation.intent)
             }
-            Assignment::Allocate { claim, directory_modes, .. } => {
-                claim.decode().and_then(|intent| mover_fs::allocate_claim(&mover_fs::ClaimObservation { intent, directory_modes }))
-            }
+            Assignment::Allocate {
+                claim,
+                directory_modes,
+                ..
+            } => claim.decode().and_then(|intent| {
+                mover_fs::allocate_claim(&mover_fs::ClaimObservation {
+                    intent,
+                    directory_modes,
+                })
+            }),
             Assignment::Apply { claim, .. } => claim.decode().and_then(|c| {
                 mover_fs::apply_claim_effect(&c)?;
                 Ok(c)
@@ -853,11 +897,25 @@ mod tests {
     #[test]
     fn observation_change_is_scoped_to_allocate_and_does_not_record_a_storage_problem() {
         let bytes = br#"{"version":1,"claim":null,"error":"observation_changed","diagnostic":"allocate: claim_observation_changed"}"#;
-        assert!(matches!(decode_receipt_with_modes(bytes, &mut None, false, &mut false, false, &mut None, true), Err(ClaimError::ObservationChanged)));
-        assert!(matches!(decode_receipt_with_modes(bytes, &mut None, false, &mut false, false, &mut None, false), Err(ClaimError::OutcomeUncertain)));
-        assert!(!filesystem_failure(&ClaimError::ObservationChanged, Some("allocate: claim_observation_changed")));
+        assert!(matches!(
+            decode_receipt_with_modes(bytes, &mut None, false, &mut false, false, &mut None, true),
+            Err(ClaimError::ObservationChanged)
+        ));
+        assert!(matches!(
+            decode_receipt_with_modes(bytes, &mut None, false, &mut false, false, &mut None, false),
+            Err(ClaimError::OutcomeUncertain)
+        ));
+        assert!(!filesystem_failure(
+            &ClaimError::ObservationChanged,
+            Some("allocate: claim_observation_changed")
+        ));
         let invalid = br#"{"version":1,"claim":null,"error":"blocked","diagnostic":null,"directory_modes":[448,448,448]}"#;
-        assert!(matches!(decode_receipt_with_modes(invalid, &mut None, false, &mut false, true, &mut None, false), Err(ClaimError::OutcomeUncertain)));
+        assert!(matches!(
+            decode_receipt_with_modes(
+                invalid, &mut None, false, &mut false, true, &mut None, false
+            ),
+            Err(ClaimError::OutcomeUncertain)
+        ));
     }
     #[test]
     fn unusable_receipts_are_pending_but_explicit_unsafe_receipts_block() {

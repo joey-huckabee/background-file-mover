@@ -7824,7 +7824,12 @@ fn retained_copy_deletion_reports_kept_private_folder_without_deleting_extra_fil
 }
 
 #[derive(Clone, Copy)]
-enum AllocationChange { Sibling, Payload, Parent, ParentSymlink }
+enum AllocationChange {
+    Sibling,
+    Payload,
+    Parent,
+    ParentSymlink,
+}
 fn allocation_pause_change(change: AllocationChange) {
     if !cfg!(feature = "nfs-qualification") {
         eprintln!("SKIP: allocation race requires nfs-qualification pause support");
@@ -7833,7 +7838,9 @@ fn allocation_pause_change(change: AllocationChange) {
     use std::os::unix::fs::{MetadataExt, symlink};
     struct ReleasePause(PathBuf);
     impl Drop for ReleasePause {
-        fn drop(&mut self) { let _ = std::fs::write(&self.0, b""); }
+        fn drop(&mut self) {
+            let _ = std::fs::write(&self.0, b"");
+        }
     }
     let mut f = Fixture::new(300);
     f.stop();
@@ -7845,7 +7852,8 @@ fn allocation_pause_change(change: AllocationChange) {
     std::fs::create_dir(&rendezvous).unwrap();
     std::fs::set_permissions(&rendezvous, std::fs::Permissions::from_mode(0o700)).unwrap();
     let mut command = Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap());
-    command.env("FILE_MOVER_QUALIFICATION_PAUSE", "claim_allocate")
+    command
+        .env("FILE_MOVER_QUALIFICATION_PAUSE", "claim_allocate")
         .env("FILE_MOVER_QUALIFICATION_RENDEZVOUS", &rendezvous);
     f.start_command(command);
     let address = f.address;
@@ -7862,25 +7870,58 @@ fn allocation_pause_change(change: AllocationChange) {
         match change {
             AllocationChange::Sibling => f.write("unrelated", b"leave this file alone"),
             AllocationChange::Payload => {
-                std::fs::rename(f.root.join("source/current/data"), f.root.join("original-payload")).unwrap();
+                std::fs::rename(
+                    f.root.join("source/current/data"),
+                    f.root.join("original-payload"),
+                )
+                .unwrap();
                 f.write("data", b"replacement");
             }
             AllocationChange::Parent | AllocationChange::ParentSymlink => {
-                std::fs::rename(f.root.join("source/current"), f.root.join("moved-current")).unwrap();
+                std::fs::rename(f.root.join("source/current"), f.root.join("moved-current"))
+                    .unwrap();
                 if matches!(change, AllocationChange::ParentSymlink) {
                     symlink(f.root.join("moved-current"), f.root.join("source/current")).unwrap();
                 } else {
                     std::fs::create_dir(f.root.join("source/current")).unwrap();
-                    std::fs::set_permissions(f.root.join("source/current"), std::fs::Permissions::from_mode(0o700)).unwrap();
+                    std::fs::set_permissions(
+                        f.root.join("source/current"),
+                        std::fs::Permissions::from_mode(0o700),
+                    )
+                    .unwrap();
                     // Same source inode/bytes, genuinely different parent inode.
-                    std::fs::rename(f.root.join("moved-current/data"), f.root.join("source/current/data")).unwrap();
+                    std::fs::rename(
+                        f.root.join("moved-current/data"),
+                        f.root.join("source/current/data"),
+                    )
+                    .unwrap();
                 }
             }
         }
         if !matches!(change, AllocationChange::Payload) {
             let after = std::fs::metadata(f.root.join("source/current/data")).unwrap();
-            assert_eq!((before.dev(), before.ino(), before.uid(), before.mode(), before.len(), before.mtime(), before.mtime_nsec(), before.nlink()),
-                (after.dev(), after.ino(), after.uid(), after.mode(), after.len(), after.mtime(), after.mtime_nsec(), after.nlink()));
+            assert_eq!(
+                (
+                    before.dev(),
+                    before.ino(),
+                    before.uid(),
+                    before.mode(),
+                    before.len(),
+                    before.mtime(),
+                    before.mtime_nsec(),
+                    before.nlink()
+                ),
+                (
+                    after.dev(),
+                    after.ino(),
+                    after.uid(),
+                    after.mode(),
+                    after.len(),
+                    after.mtime(),
+                    after.mtime_nsec(),
+                    after.nlink()
+                )
+            );
         }
         std::fs::write(rendezvous.join("go"), b"").unwrap();
         posted.join().unwrap()
@@ -7889,14 +7930,32 @@ fn allocation_pause_change(change: AllocationChange) {
         assert_eq!(reply.0, 202, "{}", reply.1);
         assert_accepted(&reply.1, input["recording_id"].as_str().unwrap());
         wait_status(&f, "1", 15, |b| b["state"] == "Committed");
-        assert_eq!(std::fs::read(f.destination("1", "data")).unwrap(), b"original");
-        assert_eq!(std::fs::read(f.root.join("source/current/unrelated")).unwrap(), b"leave this file alone");
+        assert_eq!(
+            std::fs::read(f.destination("1", "data")).unwrap(),
+            b"original"
+        );
+        assert_eq!(
+            std::fs::read(f.root.join("source/current/unrelated")).unwrap(),
+            b"leave this file alone"
+        );
         f.stop();
         return;
     }
     let changed_payload = matches!(change, AllocationChange::Payload);
-    assert_eq!(reply.0, if changed_payload { 503 } else { 409 }, "{}", reply.1);
-    assert_eq!(reply.1["error"], if changed_payload { "handoff_pending" } else { "recording_blocked" });
+    assert_eq!(
+        reply.0,
+        if changed_payload { 503 } else { 409 },
+        "{}",
+        reply.1
+    );
+    assert_eq!(
+        reply.1["error"],
+        if changed_payload {
+            "handoff_pending"
+        } else {
+            "recording_blocked"
+        }
+    );
     assert_eq!(reply.1["retryable"], changed_payload);
     assert_eq!(reply.1["source_paths_released"], false);
     assert!(!f.root.join("source/.file-mover/1-0").exists());
@@ -7914,17 +7973,32 @@ fn allocation_pause_change(change: AllocationChange) {
         assert!(snapshot.manifest_phase.is_none());
     }
     if changed_payload {
-        assert_eq!(std::fs::read(f.root.join("original-payload")).unwrap(), b"original");
-        assert_eq!(std::fs::read(f.root.join("source/current/data")).unwrap(), b"replacement");
+        assert_eq!(
+            std::fs::read(f.root.join("original-payload")).unwrap(),
+            b"original"
+        );
+        assert_eq!(
+            std::fs::read(f.root.join("source/current/data")).unwrap(),
+            b"replacement"
+        );
         // A new stable observation on the identical request needs no reset/resume.
         f.start();
         assert_eq!(f.post(&input).0, 202);
         wait_status(&f, "1", 15, |b| b["state"] == "Committed");
-        assert_eq!(std::fs::read(f.destination("1", "data")).unwrap(), b"replacement");
-        assert_eq!(std::fs::read(f.root.join("original-payload")).unwrap(), b"original");
+        assert_eq!(
+            std::fs::read(f.destination("1", "data")).unwrap(),
+            b"replacement"
+        );
+        assert_eq!(
+            std::fs::read(f.root.join("original-payload")).unwrap(),
+            b"original"
+        );
         f.stop();
     } else {
-        assert_eq!(std::fs::read(f.root.join("source/current/data")).unwrap(), b"original");
+        assert_eq!(
+            std::fs::read(f.root.join("source/current/data")).unwrap(),
+            b"original"
+        );
     }
 }
 #[test]

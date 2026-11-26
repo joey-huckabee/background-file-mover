@@ -681,8 +681,11 @@ fn allocation_tolerates_sibling_and_namespace_churn_without_changing_the_source(
     let f = Fixture::new();
     let store = f.store();
     f.write("a", b"untouched payload");
-    let job = store.accept(&f.input("allocation-churn", &[("a", None)]), &f.context()).unwrap();
-    let observation = mover_fs::observe_claim(job.job_id, 0, f.0.to_str().unwrap(), "recording/a", None).unwrap();
+    let job = store
+        .accept(&f.input("allocation-churn", &[("a", None)]), &f.context())
+        .unwrap();
+    let observation =
+        mover_fs::observe_claim(job.job_id, 0, f.0.to_str().unwrap(), "recording/a", None).unwrap();
     f.write("sibling", b"unrelated file");
     // The namespace is shared by allocation/cleanup of different jobs.
     let unrelated = f.0.join(".file-mover/unrelated");
@@ -690,13 +693,26 @@ fn allocation_tolerates_sibling_and_namespace_churn_without_changing_the_source(
     std::fs::set_permissions(&unrelated, std::fs::Permissions::from_mode(0o700)).unwrap();
     let mut forged = observation.clone();
     forged.intent.private_name = "../not-an-owned-area".into();
-    assert!(matches!(mover_fs::allocate_claim(&forged), Err(mover_fs::ClaimError::Blocked(_))));
+    assert!(matches!(
+        mover_fs::allocate_claim(&forged),
+        Err(mover_fs::ClaimError::Blocked(_))
+    ));
     assert!(!f.0.join("not-an-owned-area").exists());
     let allocated = mover_fs::allocate_claim(&observation).unwrap();
     assert_eq!(allocated.source, observation.intent.source);
-    assert!(f.0.join(".file-mover").join(&allocated.private_name).is_dir());
-    assert_eq!(std::fs::read(f.0.join("recording/a")).unwrap(), b"untouched payload");
-    assert_eq!(std::fs::read(f.0.join("recording/sibling")).unwrap(), b"unrelated file");
+    assert!(
+        f.0.join(".file-mover")
+            .join(&allocated.private_name)
+            .is_dir()
+    );
+    assert_eq!(
+        std::fs::read(f.0.join("recording/a")).unwrap(),
+        b"untouched payload"
+    );
+    assert_eq!(
+        std::fs::read(f.0.join("recording/sibling")).unwrap(),
+        b"unrelated file"
+    );
     assert!(unrelated.is_dir());
     assert!(store.claim_intent(job.job_id, 0).unwrap().is_none());
 }
@@ -705,16 +721,38 @@ fn allocation_refuses_changed_payload_and_changed_parent_mode_before_creating_an
     let f = Fixture::new();
     let store = f.store();
     f.write("a", b"old");
-    let job = store.accept(&f.input("allocation-change", &[("a", None)]), &f.context()).unwrap();
-    let observation = mover_fs::observe_claim(job.job_id, 0, f.0.to_str().unwrap(), "recording/a", None).unwrap();
+    let job = store
+        .accept(&f.input("allocation-change", &[("a", None)]), &f.context())
+        .unwrap();
+    let observation =
+        mover_fs::observe_claim(job.job_id, 0, f.0.to_str().unwrap(), "recording/a", None).unwrap();
     std::fs::rename(f.0.join("recording/a"), f.0.join("recording/old-a")).unwrap();
     f.write("a", b"new size");
-    assert!(matches!(mover_fs::allocate_claim(&observation), Err(mover_fs::ClaimError::ObservationChanged)));
-    assert!(!f.0.join(".file-mover").join(&observation.intent.private_name).exists());
-    let observation = mover_fs::observe_claim(job.job_id, 0, f.0.to_str().unwrap(), "recording/a", None).unwrap();
-    std::fs::set_permissions(f.0.join("recording"), std::fs::Permissions::from_mode(0o750)).unwrap();
-    assert!(matches!(mover_fs::allocate_claim(&observation), Err(mover_fs::ClaimError::Blocked(_))));
-    assert!(!f.0.join(".file-mover").join(&observation.intent.private_name).exists());
+    assert!(matches!(
+        mover_fs::allocate_claim(&observation),
+        Err(mover_fs::ClaimError::ObservationChanged)
+    ));
+    assert!(
+        !f.0.join(".file-mover")
+            .join(&observation.intent.private_name)
+            .exists()
+    );
+    let observation =
+        mover_fs::observe_claim(job.job_id, 0, f.0.to_str().unwrap(), "recording/a", None).unwrap();
+    std::fs::set_permissions(
+        f.0.join("recording"),
+        std::fs::Permissions::from_mode(0o750),
+    )
+    .unwrap();
+    assert!(matches!(
+        mover_fs::allocate_claim(&observation),
+        Err(mover_fs::ClaimError::Blocked(_))
+    ));
+    assert!(
+        !f.0.join(".file-mover")
+            .join(&observation.intent.private_name)
+            .exists()
+    );
     assert_eq!(std::fs::read(f.0.join("recording/old-a")).unwrap(), b"old");
     assert_eq!(std::fs::read(f.0.join("recording/a")).unwrap(), b"new size");
     assert!(store.claim_intent(job.job_id, 0).unwrap().is_none());
