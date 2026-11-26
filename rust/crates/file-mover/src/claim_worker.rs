@@ -249,7 +249,14 @@ fn decode_receipt_with_modes(
         if reply.error.is_none() || reply.claim.is_some() || !super::diagnostic::valid(detail) {
             return Err(ClaimError::OutcomeUncertain);
         }
-        eprintln!("Claim worker: {detail}");
+        crate::logging::diagnostic_line!(
+            Warn,
+            "claim_worker_refused",
+            None,
+            None,
+            crate::logging::Detail::from_diagnostic(detail),
+            eprintln!("Claim worker: {detail}")
+        );
         *diagnostic = Some(detail.clone());
     }
     *leftovers = reply.private_leftovers;
@@ -297,7 +304,14 @@ pub(crate) fn claim(
             Some(index),
             crate::now(),
         ) {
-            eprintln!("Claim {job_id} problem record failed: {e}");
+            crate::logging::diagnostic_line!(
+                Error,
+                "claim_problem_persist_failed",
+                Some(job_id),
+                None,
+                Some(crate::logging::Detail::error(&e)),
+                eprintln!("Claim {job_id} problem record failed: {e}")
+            );
         }
     }
     result
@@ -444,7 +458,14 @@ pub(crate) fn claim_stable(
             Some(index),
             crate::now(),
         ) {
-            eprintln!("Claim {job_id} problem record failed: {e}");
+            crate::logging::diagnostic_line!(
+                Error,
+                "claim_problem_persist_failed",
+                Some(job_id),
+                None,
+                Some(crate::logging::Detail::error(&e)),
+                eprintln!("Claim {job_id} problem record failed: {e}")
+            );
         }
     }
     result.map(Some)
@@ -558,9 +579,16 @@ fn claim_file(
                             guard,
                             stop,
                         ) {
-                            eprintln!(
-                                "Claim {job_id} file {index}: unrecorded allocation kept ({})",
-                                super::diagnostic::describe(&e)
+                            crate::logging::diagnostic_line!(
+                                Warn,
+                                "unrecorded_allocation_kept",
+                                Some(job_id),
+                                Some(index),
+                                Some(crate::logging::Detail::error(&e)),
+                                eprintln!(
+                                    "Claim {job_id} file {index}: unrecorded allocation kept ({})",
+                                    super::diagnostic::describe(&e)
+                                )
                             );
                         }
                         return Err(ClaimError::Blocked("retry claim not admitted"));

@@ -1456,3 +1456,59 @@ Use the same executable version for the daemon and TLS control commands.
 Increment 125 uses private TLS-control wire version 2 for this required field;
 mixed-version TLS status/reload commands refuse before reload activation. The
 lifecycle-control protocol and public REST contract are unchanged.
+
+## Logging
+
+Configurable daemon logging is implemented for qualification; local fmt/Clippy,
+both SLES modes, the actual journal test and the 2% info-mode performance
+comparison are still pending. See [LOGGING-DESIGN.md](LOGGING-DESIGN.md).
+
+Omit `logging` (or set `enabled: false` / `level: "off"`) for exact legacy
+stdout/stderr behavior: readiness remains on stdout, existing stderr messages
+are unchanged, and no logging threads, queues, files or locks are created.
+
+To enable, provision a dedicated local directory owned by the non-root service
+UID and primary GID with mode 0700. It must be disjoint from state, source,
+destination, credential/account and socket directories, including retained
+payload roots. Do not use symlinks, bind aliases or NFS. Then set in config:
+
+```json
+"logging": {
+  "enabled": true,
+  "level": "info",
+  "file": "/var/log/file-mover/service.log",
+  "max_file_bytes": 67108864,
+  "max_files": 16
+}
+```
+
+Restart applies changes. Levels are off/error/warn/info/debug. Enabling needs a
+file; no journal-only mode exists. Enabled events go to stderr with systemd
+`<N>` priority prefixes and to the file. Readiness also retains its original
+stdout line. Foreground commands/JSON and worker IPC are unchanged. Runtime
+logging uses fixed event codes, numeric job/file context and the available
+validated operation diagnostic (at most 240 printable ASCII characters), with
+an optional numeric errno, for example `operation="payload_copy_write errno=28"`
+and `errno=28`. Journal and file carry the same detail. Persistence errors use
+safe typed categories; arbitrary error/config/credential text is excluded.
+At warn/info/debug levels, periodic summaries report queue drops, limiter
+contention, coalescing and limiter evictions independently for each sink. A `delivery_requires_reconciliation` code is a
+diagnostic, not proof that a retry or deletion is safe; use job status.
+
+File and lock modes are 0600. `max_files` includes the active file plus numbered
+archives, defaulting to 16 × 64 MiB = 1 GiB. Rotation removes only validated
+oldest managed archives; unknown files are preserved. No external logrotate is
+needed or supported on this namespace. Open readers can retain unlinked file
+storage; the named-file cap is not a physical quota or reserved space.
+
+Shared disk is allowed. Logger errors/full queues never become delivery errors;
+records can be dropped. A failed file sink is disabled until restart, with one
+safe stderr warning attempt. Never repair permissions/names or delete unknown
+files while the service is active. A bad sink can hide diagnostics; a shared
+full filesystem can still fail real payload/state I/O. Logging is not an audit
+receipt. The shutdown logging drain has one 250 ms total budget; it cannot
+weaken custody-owning worker shutdown or release surviving workers early.
+
+The candidate unit explicitly routes stderr to the journal and enables priority
+prefix parsing. Confirm actual target journal PRIORITY values before deployment.
+No production deployment, host provisioning or release is authorized here.

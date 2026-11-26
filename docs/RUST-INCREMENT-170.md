@@ -605,3 +605,14 @@ status/checker bookkeeping and rollout updates must be reconciled together durin
 implementation after the design PR merges. The approved logging backlog is in addition to the original 21
 D10–D12 backlog IDs. No runtime code, operational files or release gates change
 by recording the decision.
+
+## Follow-up: logging implementation submitted (2026-11-25)
+
+CLI-006 now describes the approved configurable logging and is Partly tested:
+added tests cover OFF output/resources, filtering/redaction, queue saturation,
+file custody/rotation and bounded diagnostic shutdown. Source integration and
+full path/race coverage remain inspected. The coordinator must run fmt/Clippy,
+actual Rust/service tests, both SLES modes, journal priority checks and paired
+info/OFF performance acceptance. This source submission is not a shipping or
+performance pass. The historical D07 no-log-files clause remains superseded;
+the original cohort checker explicitly recognizes this later requirement.

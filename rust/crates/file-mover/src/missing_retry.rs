@@ -148,7 +148,13 @@ impl Retry {
             && let Some(jump) = clock_jump(prev_wall, prev_mono, wall, mono)
         {
             CLOCK_JUMPS.fetch_add(1, Ordering::Relaxed);
-            eprintln!("Wall clock jumped {jump:+} s; missing-file deadlines use wall time");
+            crate::logging::diagnostic_line!(
+                Warn,
+                "wall_clock_jump",
+                None,
+                None,
+                eprintln!("Wall clock jumped {jump:+} s; missing-file deadlines use wall time")
+            );
             let expected = prev_wall + mono.saturating_duration_since(prev_mono).as_secs() as i64;
             let affected = if jump > 0 {
                 store.missing_deadlines_between(expected, wall)
@@ -156,16 +162,29 @@ impl Retry {
                 store.missing_recorded_after(wall)
             };
             match affected {
-                Ok(ids) if !ids.is_empty() => eprintln!(
-                    "Missing-file windows affected by the clock jump: jobs {ids:?} ({})",
-                    if jump > 0 {
-                        "deadline passed early"
-                    } else {
-                        "recorded after the new clock time; expiry is delayed"
-                    }
+                Ok(ids) if !ids.is_empty() => crate::logging::diagnostic_line!(
+                    Warn,
+                    "clock_affected_windows",
+                    None,
+                    None,
+                    eprintln!(
+                        "Missing-file windows affected by the clock jump: jobs {ids:?} ({})",
+                        if jump > 0 {
+                            "deadline passed early"
+                        } else {
+                            "recorded after the new clock time; expiry is delayed"
+                        }
+                    )
                 ),
                 Ok(_) => (),
-                Err(e) => eprintln!("Clock-jump lookup failed: {e}"),
+                Err(e) => crate::logging::diagnostic_line!(
+                    Error,
+                    "clock_lookup_failed",
+                    None,
+                    None,
+                    Some(crate::logging::Detail::error(&e)),
+                    eprintln!("Clock-jump lookup failed: {e}")
+                ),
             }
         }
         self.clock = Some((wall, mono));
@@ -186,7 +205,14 @@ impl Retry {
         let found = match store.missing_retry_jobs() {
             Ok(found) => found,
             Err(e) => {
-                eprintln!("Missing-file retry discovery failed: {e}");
+                crate::logging::diagnostic_line!(
+                    Error,
+                    "missing_retry_discovery_failed",
+                    None,
+                    None,
+                    Some(crate::logging::Detail::error(&e)),
+                    eprintln!("Missing-file retry discovery failed: {e}")
+                );
                 return;
             }
         };
@@ -272,8 +298,17 @@ fn visit(
     budget: &mut u32,
 ) {
     let now = Instant::now();
-    let log = |what: &str, e: &dyn std::fmt::Display| {
-        eprintln!("Missing-file retry of job {id}: {what}: {e}")
+    let log = |what: &str,
+               e: &dyn std::fmt::Display,
+               detail: &dyn Fn() -> Option<crate::logging::Detail>| {
+        crate::logging::diagnostic_line!(
+            Warn,
+            "missing_retry_failed",
+            Some(id),
+            None,
+            detail(),
+            eprintln!("Missing-file retry of job {id}: {what}: {e}")
+        )
     };
     let back_off = |state: &mut JobState| {
         state.backoff = (state.backoff * 2).min(MAX);
@@ -301,7 +336,9 @@ fn visit(
             return;
         }
         Err(e) => {
-            log("size policy", &e);
+            log("size policy", &e, &|| {
+                Some(crate::logging::Detail::error(&e))
+            });
             back_off(state);
             return;
         }
@@ -317,7 +354,9 @@ fn visit(
             *budget -= CLAIM_COST;
             match claim_worker::claim(store, guard, stop, id, index, check) {
                 Ok(_) => progressed = true,
-                Err(e) => log("recovery", &crate::diagnostic::describe(&e)),
+                Err(e) => log("recovery", &crate::diagnostic::describe(&e), &|| {
+                    Some(crate::logging::Detail::error(&e))
+                }),
             }
         }
     }
@@ -351,7 +390,9 @@ fn visit(
             if let Ok(Some((_, true))) = store.claim_intent(id, index) {
                 *budget -= 1;
                 if let Err(e) = claim_worker::validate_one(store, guard, stop, id, index) {
-                    log("custody", &crate::diagnostic::describe(&e));
+                    log("custody", &crate::diagnostic::describe(&e), &|| {
+                        Some(crate::logging::Detail::error(&e))
+                    });
                     state.validate_cursor = 0;
                     back_off(state);
                     return;
@@ -373,7 +414,9 @@ fn visit(
             // Completed: the claim's recorded-size check (no child operation).
             Ok(Some((_, true))) => {
                 if let Err(e) = claim_worker::claim(store, guard, stop, id, index, check) {
-                    log("completed claim", &crate::diagnostic::describe(&e));
+                    log("completed claim", &crate::diagnostic::describe(&e), &|| {
+                        Some(crate::logging::Detail::error(&e))
+                    });
                     break;
                 }
             }
@@ -385,7 +428,9 @@ fn visit(
                     Ok(None) => {
                         // Absent: record its first absence once (deadline starts).
                         if let Err(e) = store.note_missing(id, index, crate::now()) {
-                            log("first absence", &e);
+                            log("first absence", &e, &|| {
+                                Some(crate::logging::Detail::error(&e))
+                            });
                         }
                         state.seen.remove(&index);
                         set_seen(id, index, None);
@@ -407,7 +452,9 @@ fn visit(
                             ) {
                                 Ok(Some(_)) => progressed = true,
                                 Ok(None) => (), // Changed or not admitted: nothing recorded.
-                                Err(e) => log("claim", &crate::diagnostic::describe(&e)),
+                                Err(e) => log("claim", &crate::diagnostic::describe(&e), &|| {
+                                    Some(crate::logging::Detail::error(&e))
+                                }),
                             }
                             state.seen.remove(&index);
                             set_seen(id, index, None);
@@ -431,13 +478,15 @@ fn visit(
                         }
                     }
                     Err(e) => {
-                        log("observe", &crate::diagnostic::describe(&e));
+                        log("observe", &crate::diagnostic::describe(&e), &|| {
+                            Some(crate::logging::Detail::error(&e))
+                        });
                         break;
                     }
                 }
             }
             Err(e) => {
-                log("store", &e);
+                log("store", &e, &|| Some(crate::logging::Detail::error(&e)));
                 break;
             }
         }

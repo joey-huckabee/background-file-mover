@@ -53,11 +53,13 @@ for stuck logging writers, then proceeds to exit under existing custody rules.
 No new crate is approved, and no runtime behavior changes here.
 
 The original 79-ID cohort, D07 answer and index below remain historical audit
-records. CLI-006's existing trace Inspection describes the old implementation,
-not coverage of this newly approved backlog. Its formal requirement/disposition
-and checker bookkeeping must be reconciled together during implementation after
-design-PR merge;
-recording the decision does not claim logging shipped or overwrite evidence.
+records. CLI-006's historical Inspection described the old implementation, not coverage
+of the new logging requirement. The 2026-11-25 implementation submission updates
+its requirement, trace to Partly tested and checker supersession bookkeeping.
+Added tests and source review still require coordinator execution, actual journal
+and 2% performance evidence before shipping; no qualification/release pass is
+claimed here. The original D07 answer remains an audit record, not the current
+no-log-files policy.
 
 ## D01 — Cancellation, deletion and retained partials
 

@@ -192,7 +192,8 @@ These fixed budgets apply **only when logging is enabled**, not in OFF mode:
   suppressed configurable messages. OFF uses the untouched legacy print path
   rather than this event/dispatcher path.
 - Capture a bounded typed event: constant code, level, optional numeric job/file
-  index, numeric errno and allowlisted counters/reason enums. At most 256 bytes;
+  index, numeric errno, validated operation text (at most 240 printable ASCII
+  characters) and allowlisted counters/reason enums. At most 512 bytes;
   no generic `Debug`/`Display` input or stored config/request object.
 - Two independent bounded channels, capacity 1024 events each, with
   `try_send`: one for stderr and one for the file writer.
@@ -211,7 +212,7 @@ These fixed budgets apply **only when logging is enabled**, not in OFF mode:
 - Writer-side bounded formatting produces one escaped line, at most 1024 bytes,
   with epoch timestamp, level, PID and code plus permitted fields. No per-record
   fsync, SQLite write, transfer callback or payload-tree access. Queue payload
-  storage is at most 512 KiB combined, plus bounded formatting buffers and two
+  storage is at most 1 MiB combined, plus bounded formatting buffers and two
   explicitly sized 256 KiB thread stacks; this is not a whole-service RAM cap.
 - Successful sinks emit coalesced drop summaries at most once per second,
   reading counters directly rather than enqueueing their own reports. The file
@@ -371,11 +372,16 @@ SEC-008 and existing credential-redaction obligations remain unconditional.
 
 ## Performance and verification plan
 
-No measured results are claimed. “No blocking sink I/O in transfer loops” is a
+Coordinator local results are recorded below and in [increment 172](RUST-INCREMENT-172.md).
+“No blocking sink I/O in transfer loops” is a
 structural guarantee to test; literally zero performance cost on shared CPU or
 disk is not possible. Suppressed events should reduce to a cheap threshold
 branch. **Decided 2026-11-25:** info logging may make transfers at most **2%
-slower than OFF**, measured using the sustained-load test and delivery benchmark.
+slower than OFF**. **User acceptance decision, 2026-11-25:** the fixed-work
+delivery benchmark supplies #115's performance proof. Record the sustained-load
+comparison as “no slowdown observed; too noisy to bound at 2%”. This supersedes
+the earlier requirement to establish the 2% bound in both comparisons; transfer
+correctness assertions and other qualification requirements stay in place.
 
 1. Unit tests: complete config truth table/ranges/checked budgets; level and
    prefix mapping; below-threshold formatting closure never evaluated; bounded
@@ -418,9 +424,11 @@ slower than OFF**, measured using the sustained-load test and delivery benchmark
    completed work separately from request/back-pressure counts. The delivery
    benchmark measures elapsed time to commit an identical fixed workload.
    Define slowdown as `elapsed_info / elapsed_off - 1`; require at most 0.02
-   in both comparisons (equivalently throughput ratio at least `1 / 1.02` for
-   identical work). Report uncertainty; a confidence interval spanning the
-   limit or uncontrolled host/clock variation is inconclusive, not a pass.
+   in the fixed-work delivery comparison (equivalently throughput ratio at least
+   `1 / 1.02` for identical work). Report uncertainty; a confidence interval
+   spanning the limit or uncontrolled variation is inconclusive, not a pass.
+   Per the user's 2026-11-25 decision, noisy sustained late-claim timing supplies
+   regression evidence and is not a separate quantitative 2% acceptance gate.
    Debug and saturated-sink runs remain diagnostic stress results, not substitutes
    for info acceptance. Do not relax transfer assertions, select only favorable
    pairs or infer speed from raw request rate/an unsaturated workload.
@@ -428,6 +436,26 @@ slower than OFF**, measured using the sustained-load test and delivery benchmark
    systemd PRIORITY observation and independent review follow implementation.
    Fixed-thread isolation is not an OS I/O quota, real-time guarantee, deployment
    approval, production NFS qualification or FR release closure.
+
+### Coordinator local verification results (2026-11-25)
+
+WSL ext4, debug build, gate SQLite flags; full details and local test exceptions
+are in [increment 172](RUST-INCREMENT-172.md#coordinator-local-performance).
+Ten alternating fixed-work OFF/info pairs (eight jobs / eight MiB per run)
+totalled 138.26 s OFF and 136.08 s info. Paired slowdown median −2.0%, mean
+−1.5%, standard deviation 3.2 percentage points, upper 95% slowdown bound about +0.8%:
+this comparison passes the 2% local limit.
+
+Five sustained-load pairs had late-claim seconds OFF
+24.66/20.43/18.50/19.66/19.26 and info
+18.47/17.19/23.32/20.13/21.29; reported paired slowdown median +2.4%, mean −0.4%.
+A second set had mean slowdown +2.6%; standard deviations across the two sets
+were about 9–16 percentage points. **User decision, 2026-11-25:** accept the
+delivery benchmark (ten pairs, upper 95% bound about +0.8%) as #115's performance
+proof, and record sustained load as **“no slowdown observed; too noisy to bound
+at 2%”**. Performance proof is accepted. Debug-level and saturated-sink runs
+were not done; these results do not close the separate claim defect, replace
+SLES/systemd qualification or establish release closure.
 
 ## Requirements, dependencies and settled answers
 

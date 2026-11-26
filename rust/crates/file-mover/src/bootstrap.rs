@@ -162,7 +162,13 @@ fn supervise(
         let deadline = Instant::now() + Duration::from_secs(30);
         loop {
             if stop.load(Ordering::Relaxed) || Instant::now() >= deadline {
-                eprintln!("{label} termination requested; waiting for confirmed child exit");
+                crate::logging::diagnostic_line!(
+                    Warn,
+                    "worker_termination_wait",
+                    None,
+                    None,
+                    eprintln!("{label} termination requested; waiting for confirmed child exit")
+                );
                 return Err(format!("{} stopped or timed out", label.to_lowercase()).into());
             }
             if lock.is_none() {
