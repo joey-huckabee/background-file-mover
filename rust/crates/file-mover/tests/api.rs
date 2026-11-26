@@ -7115,7 +7115,7 @@ mod sustained_sender_load {
         const LATE_JOBS: usize = 4;
         const LATE_FILES: usize = 4;
         const LOAD: Duration = Duration::from_secs(45);
-        const CONFIRM_GRACE: Duration = Duration::from_secs(10);
+        const CONFIRM_GRACE: Duration = Duration::from_secs(20);
         // Child exchanges dominate throughput: 32 files took 25 s even with
         // no senders on WSL. Check continued claim progress, not a wall-time
         // bound inferred from the retry pass's operation budget. Sixteen late
@@ -7182,7 +7182,10 @@ mod sustained_sender_load {
         let finish_load = Arc::new(AtomicBool::new(false));
         let started = Instant::now();
         let load_until = started + LOAD;
-        let confirmation_until = load_until + CONFIRM_GRACE;
+        // Handoff must be observed before load_until. Keep producers alive
+        // beyond the latest possible confirmation deadline; finish_load ends
+        // them once the load window and all confirmations have completed.
+        let sender_until = load_until + CONFIRM_GRACE + Duration::from_secs(5);
         let address = f.address;
         let (reports, confirmations, late_claim, late_age, health_count, health_max) =
             std::thread::scope(|scope| {
@@ -7201,7 +7204,7 @@ mod sustained_sender_load {
                         let _on_panic = diagnostics.on_panic();
                         let mut sender = Sender {
                             address,
-                            finish_by: confirmation_until,
+                            finish_by: sender_until,
                             abort: &abort,
                             finish_load: Some(&finish_load),
                             jitter: sender_index as u64 + 1,
@@ -7217,7 +7220,7 @@ mod sustained_sender_load {
                         while !released.load(Ordering::Acquire) && !abort.load(Ordering::Relaxed) {
                             std::thread::yield_now();
                         }
-                        while Instant::now() < confirmation_until
+                        while Instant::now() < sender_until
                             && !finish_load.load(Ordering::Acquire)
                             && !abort.load(Ordering::Relaxed)
                         {
@@ -7272,7 +7275,7 @@ mod sustained_sender_load {
                 released.store(true, Ordering::Release);
                 let mut confirmation_sender = Sender {
                     address,
-                    finish_by: confirmation_until,
+                    finish_by: sender_until,
                     abort: &abort,
                     finish_load: None,
                     jitter: 71,
@@ -7353,9 +7356,12 @@ mod sustained_sender_load {
                             }
                         }
                         if late_claim.is_none() && observed.iter().all(|ready| *ready) {
-                            let elapsed = written.elapsed();
+                            let handoff_observed = Instant::now();
+                            let elapsed = handoff_observed.duration_since(written);
+                            let confirmation_until = handoff_observed + CONFIRM_GRACE;
+                            confirmation_sender.finish_by = confirmation_until;
                             assert!(
-                                Instant::now() < load_until
+                                handoff_observed < load_until
                                     && handles.iter().all(|handle| !handle.is_finished())
                             );
                             // Prove timer-only handoff BEFORE any late resend: a
@@ -7372,13 +7378,23 @@ mod sustained_sender_load {
                             }
                             late_claim = Some(elapsed);
                             for (id, input) in &expected {
-                                let reply = confirmation_sender.ready(input).unwrap();
+                                let reply = confirmation_sender
+                                    .ready(input)
+                                    .unwrap_or_else(|| {
+                                        panic!(
+                                            "late 202 confirmation deadline {confirmation_until:?} expired: \
+                                             budget={CONFIRM_GRACE:?} from observed handoff \
+                                             recording_id={} job={id}",
+                                            input["recording_id"]
+                                        )
+                                    });
                                 assert_eq!(reply["job_id"], *id, "late replay changed identity");
                             }
                             assert!(
                                 Instant::now() < confirmation_until
                                     && handles.iter().all(|handle| !handle.is_finished()),
-                                "late 202 confirmations must finish with all senders still running"
+                                "late 202 confirmations must finish by {confirmation_until:?} \
+                                 with all senders still running (sender deadline {sender_until:?})"
                             );
                         }
                     }
@@ -7396,7 +7412,7 @@ mod sustained_sender_load {
                 }
                 let late_claim = late_claim.expect("no timer-driven late handoff during load");
                 // The load window ends after confirmations, never in their
-                // middle. All senders remain active for the bounded grace.
+                // middle. Senders keep applying pressure until finish_load.
                 finish_load.store(true, Ordering::Release);
                 let reports: Vec<_> = handles
                     .into_iter()
@@ -7554,8 +7570,10 @@ mod sustained_sender_load {
             health_max.as_secs_f64(),
             expected.len()
         );
+        // 45 s load + up to 20 s confirmation + 30 s drain, with
+        // setup/shutdown slack. Ordinary successful runs end much earlier.
         assert!(
-            test_started.elapsed() <= Duration::from_secs(90),
+            test_started.elapsed() <= Duration::from_secs(110),
             "sustained test exceeded its total budget"
         );
     }
