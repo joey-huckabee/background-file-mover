@@ -2,7 +2,7 @@
 use super::*;
 use std::{
     os::unix::fs::MetadataExt,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::{Mutex, atomic::{AtomicBool, Ordering}},
     time::Instant,
 };
 
@@ -77,6 +77,8 @@ pub enum Query {
         until: i64,
     },
     Retention(Option<i64>),
+    #[cfg(test)]
+    LongSql,
 }
 pub enum Snapshot {
     Status(Option<Box<JobStatus>>),
@@ -96,12 +98,16 @@ pub enum Snapshot {
 pub struct Budget {
     until: Instant,
     cancelled: AtomicBool,
+    phase: Mutex<Phase>,
 }
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Phase { Running, Interrupted, Finishing }
 impl Budget {
     pub fn new(until: Instant) -> Self {
         Self {
             until: until.min(Instant::now() + Duration::from_secs(1)),
             cancelled: AtomicBool::new(false),
+            phase: Mutex::new(Phase::Running),
         }
     }
     pub fn cancel(&self) {
@@ -109,6 +115,17 @@ impl Budget {
     }
     pub fn expired(&self) -> bool {
         self.cancelled.load(Ordering::Acquire) || Instant::now() >= self.until
+    }
+    /// At most one interrupt, serialized with entering transaction cleanup.
+    pub fn interrupt(&self, handle: &Interrupt) {
+        let mut phase = self.phase.lock().unwrap_or_else(|p| p.into_inner());
+        if *phase == Phase::Running {
+            *phase = Phase::Interrupted;
+            handle.interrupt();
+        }
+    }
+    fn finish(&self) {
+        *self.phase.lock().unwrap_or_else(|p| p.into_inner()) = Phase::Finishing;
     }
     fn check(&self) -> Result<()> {
         if self.expired() {
@@ -224,20 +241,48 @@ impl Reader {
             budget.check()?;
             Ok(value)
         })();
+        // All SELECT statements have ended. Synchronize with the monitor so
+        // COMMIT/ROLLBACK cannot receive a new interrupt for this request.
+        budget.finish();
         match outcome {
-            Ok(value) => {
-                tx.commit()?;
-                Ok(value)
-            }
+            Ok(value) => match tx.commit() {
+                Ok(()) => Ok(value),
+                Err(error) => {
+                    self.rollback_cleanly()?;
+                    Err(error.into())
+                }
+            },
             Err(error) => {
                 if let Err(rollback) = tx.rollback() {
-                    self.poisoned = true;
-                    return Err(rollback.into());
+                    if interrupted(&rollback) {
+                        self.rollback_cleanly()?;
+                    } else {
+                        self.poisoned = true;
+                        return Err(rollback.into());
+                    }
                 }
                 Err(error)
             }
         }
     }
+    fn rollback_cleanly(&mut self) -> Result<()> {
+        if self.connection.is_autocommit() { return Ok(()); }
+        let first = self.connection.execute_batch("ROLLBACK");
+        let result = match first {
+            Err(error) if interrupted(&error) => self.connection.execute_batch("ROLLBACK"),
+            other => other,
+        };
+        if let Err(error) = result {
+            self.poisoned = true;
+            return Err(error.into());
+        }
+        Ok(())
+    }
+
+}
+fn interrupted(error: &rusqlite::Error) -> bool {
+    matches!(error, rusqlite::Error::SqliteFailure(error, _)
+        if error.code == rusqlite::ErrorCode::OperationInterrupted)
 }
 fn run(
     tx: &rusqlite::Transaction<'_>,
@@ -248,6 +293,13 @@ fn run(
 ) -> Result<Snapshot> {
     let check = || budget.check();
     match query {
+        #[cfg(test)]
+        Query::LongSql => {
+            // Finite fallback if the interrupt regression breaks; this statement
+            // genuinely executes SQLite work, unlike a pause before BEGIN.
+            tx.query_row::<i64, _, _>("WITH RECURSIVE n(x) AS (VALUES(0) UNION ALL SELECT x+1 FROM n WHERE x<100000000) SELECT sum(x) FROM n", [], |r| r.get(0))?;
+            Ok(Snapshot::Status(None))
+        }
         Query::Status(id) => Ok(Snapshot::Status(status_in(tx, id)?.map(Box::new))),
         Query::Retention(id) => Ok(Snapshot::Retention(
             retention::snapshot_in(tx, limits, id, &check)?.map(Box::new),
@@ -512,4 +564,42 @@ mod tests {
         ));
         assert!(reader.healthy());
     }
+    #[test]
+    fn interrupted_long_sql_rolls_back_and_accepts_the_next_query() {
+        let f = Fixture::new();
+        let writer = Store::open(f.db()).unwrap();
+        let mut reader = Reader::open(&writer.read_context().unwrap()).unwrap();
+        let interrupt = reader.interrupt_handle();
+        let budget = Arc::new(budget());
+        let done = Arc::new(AtomicBool::new(false));
+        std::thread::scope(|scope| {
+            let monitor_budget = budget.clone();
+            let monitor_done = done.clone();
+            let monitor = scope.spawn(move || {
+                while !monitor_done.load(Ordering::Acquire) {
+                    if monitor_budget.expired() {
+                        monitor_budget.cancel();
+                        monitor_budget.interrupt(&interrupt);
+                    }
+                    std::thread::sleep(Duration::from_millis(1));
+                }
+            });
+            struct Done(Arc<AtomicBool>);
+            impl Drop for Done {
+                fn drop(&mut self) { self.0.store(true, Ordering::Release); }
+            }
+            let finished = Done(done.clone());
+            let result = reader.query(Query::LongSql, &budget);
+            drop(finished);
+            monitor.join().unwrap();
+            assert!(matches!(result, Err(StoreError::Sqlite(rusqlite::Error::SqliteFailure(error, _)))
+                if error.code == rusqlite::ErrorCode::OperationInterrupted));
+        });
+        assert!(reader.healthy(), "an interrupted SELECT must not poison cleanup");
+        // Even repeated monitor ticks after finishing must not interrupt reuse.
+        budget.interrupt(&reader.interrupt_handle());
+        assert!(matches!(reader.query(Query::Status(1), &Budget::new(Instant::now() + Duration::from_secs(1))).unwrap(), Snapshot::Status(None)));
+        assert!(reader.healthy());
+    }
+
 }

@@ -133,7 +133,7 @@ impl Handle {
             #[cfg(test)]
             pause,
         };
-        let senders = self.0.senders.try_lock().map_err(|_| Error::Busy)?;
+        let senders = self.0.senders.lock().unwrap_or_else(|p| p.into_inner());
         if self.0.stopped.load(Ordering::Acquire) || self.0.lifecycle.stop.load(Ordering::Acquire) {
             return Err(Error::Stopping);
         }
@@ -246,7 +246,7 @@ impl ReadStore {
                                         || active.budget.expired())
                                 {
                                     active.budget.cancel();
-                                    active.interrupt.interrupt();
+                                    active.budget.interrupt(&active.interrupt);
                                 }
                             }
                             std::thread::sleep(POLL);
