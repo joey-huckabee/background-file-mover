@@ -46,9 +46,9 @@ impl Admin {
         config.resumption = Resumption::disabled();
         let address = std::net::SocketAddr::from(([127, 0, 0, 1], self.port));
         let socket =
-            std::net::TcpStream::connect_timeout(&address, Duration::from_secs(5)).unwrap();
+            std::net::TcpStream::connect_timeout(&address, crate::test_support::client_timeout(Duration::from_secs(5))).unwrap();
         socket
-            .set_read_timeout(Some(Duration::from_secs(20)))
+            .set_read_timeout(Some(crate::test_support::client_timeout(Duration::from_secs(20))))
             .unwrap();
         let connection = rustls::ClientConnection::new(
             Arc::new(config),
@@ -65,7 +65,7 @@ impl Admin {
             .write_all(bytes)
             .and_then(|()| stream.flush())
             .and_then(|()| stream.read_to_end(&mut out).map(|_| ()))
-            .map_err(|e| e.to_string())?;
+            .map_err(crate::test_support::client_error)?;
         let end = out
             .windows(4)
             .position(|b| b == b"\r\n\r\n")
@@ -223,6 +223,7 @@ fn admin_fixture_with(https: bool) -> (Fixture, Admin) {
 
 #[test]
 fn admin_https_login_session_logout_and_boundary_precedence() {
+    let _suite = crate::test_support::enter();
     let (mut f, a) = admin_fixture();
 
     // Fixed offline document with strict headers.
@@ -466,6 +467,7 @@ fn admin_https_login_session_logout_and_boundary_precedence() {
 
 #[test]
 fn invalid_admin_configuration_refuses_before_listening() {
+    let _suite = crate::test_support::enter();
     let (mut f, _) = admin_fixture();
     f.stop();
     let good = f.config["admin_ingress"].clone();
@@ -491,6 +493,7 @@ fn invalid_admin_configuration_refuses_before_listening() {
 
 #[test]
 fn admin_paths_under_retained_payload_roots_refuse_before_credential_io() {
+    let _suite = crate::test_support::enter();
     let (mut f, _) = admin_fixture();
     prepare_payload(&f);
     let input = f.input();
@@ -543,6 +546,7 @@ fn admin_paths_under_retained_payload_roots_refuse_before_credential_io() {
 
 #[test]
 fn admin_connection_flood_does_not_starve_producer_or_operator() {
+    let _suite = crate::test_support::enter();
     let (mut f, a) = admin_fixture();
     /// Stops and joins every flood thread on success or unwind; never detaches.
     struct Flood {
@@ -618,6 +622,7 @@ fn admin_connection_flood_does_not_starve_producer_or_operator() {
 
 #[test]
 fn admin_history_pages_and_detail_match_operator_status() {
+    let _suite = crate::test_support::enter();
     let (mut f, a) = admin_fixture();
     // Two committed jobs with distinct recording UUIDs.
     prepare_payload(&f);
@@ -852,6 +857,7 @@ fn admin_history_pages_and_detail_match_operator_status() {
 
 #[test]
 fn several_admin_connections_are_served_and_the_operator_keeps_its_slot() {
+    let _suite = crate::test_support::enter();
     let (mut f, a) = admin_fixture();
     // Held sessions stay admitted until the server's 5 s request deadline, so
     // every check below runs well inside that window.
@@ -887,6 +893,7 @@ fn several_admin_connections_are_served_and_the_operator_keeps_its_slot() {
 
 #[test]
 fn producer_and_admin_load_cannot_take_the_operator_slot() {
+    let _suite = crate::test_support::enter();
     // Loopback HTTP producers hold only connection permits (no TLS workers), so
     // six producers plus one admin session fill the 7-slot network budget.
     let (mut f, a) = admin_fixture_with(false);
@@ -985,6 +992,7 @@ fn read_until(
 
 #[test]
 fn live_event_stream_signals_changes_and_closes_on_sign_out() {
+    let _suite = crate::test_support::enter();
     let (mut f, a) = admin_fixture();
     // No session: refused before any stream.
     let none = a.call("GET", "/api/v2/admin/events", "", &[]);
@@ -1086,6 +1094,7 @@ fn retry_header(instance: &str, ids: &[i64], epochs: &[Option<u32>], reason: &st
 
 #[test]
 fn admin_retry_delivers_a_reviewed_job_and_replays_its_receipt() {
+    let _suite = crate::test_support::enter();
     let (mut f, a) = admin_fixture();
     // A foreign file at the final destination makes delivery fail for real.
     prepare_payload(&f);
@@ -1261,6 +1270,7 @@ fn admin_retry_delivers_a_reviewed_job_and_replays_its_receipt() {
 
 #[test]
 fn admin_cancel_needs_a_matching_confirmation_and_stops_the_job() {
+    let _suite = crate::test_support::enter();
     let (mut f, a) = admin_fixture();
     // A job waiting for its second file (not yet handed off).
     fs::write(f.root.join("source/current/a"), b"alpha").unwrap();
@@ -1479,6 +1489,7 @@ fn admin_cancel_needs_a_matching_confirmation_and_stops_the_job() {
 
 #[test]
 fn admin_clear_history_forgets_delivered_and_cancelled_jobs_but_keeps_files() {
+    let _suite = crate::test_support::enter();
     let (mut f, a) = admin_fixture();
     prepare_payload(&f);
     assert_eq!(f.https("POST", "/api/v2/jobs", "", &f.input()).0, 202);
@@ -1588,6 +1599,7 @@ fn admin_clear_history_forgets_delivered_and_cancelled_jobs_but_keeps_files() {
 
 #[test]
 fn admin_delete_data_is_off_by_default_and_removes_only_retained_copies() {
+    let _suite = crate::test_support::enter();
     let (mut f, a) = admin_fixture();
     prepare_payload(&f);
     assert_eq!(f.https("POST", "/api/v2/jobs", "", &f.input()).0, 202);
@@ -1870,6 +1882,7 @@ fn account_socket(socket: &std::path::Path, request: &[u8]) -> Option<Value> {
 
 #[test]
 fn live_password_change_activates_without_restart() {
+    let _suite = crate::test_support::enter();
     // Without the dashboard there is no account control endpoint.
     let mut plain = Fixture::new(true);
     plain.initialize();
@@ -2053,6 +2066,7 @@ fn live_password_change_activates_without_restart() {
 
 #[test]
 fn admin_file_name_search_matches_nested_paths_in_bounded_chunks() {
+    let _suite = crate::test_support::enter();
     let (mut f, a) = admin_fixture();
     // Job 1 through the producer route: its files have not arrived, so it is
     // recorded with its names and waits.

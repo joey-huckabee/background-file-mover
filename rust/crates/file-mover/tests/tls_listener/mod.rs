@@ -168,7 +168,7 @@ impl Fixture {
     }
     fn operator(&self, path: &str) -> (u16, Value) {
         let mut s = UnixStream::connect(self.root.join("operator/api.sock")).unwrap();
-        s.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+        s.set_read_timeout(Some(crate::test_support::client_timeout(Duration::from_secs(5)))).unwrap();
         s.write_all(&request("GET", path, "localhost", "", &[]))
             .unwrap();
         let mut b = Vec::new();
@@ -206,12 +206,12 @@ impl Fixture {
         config.alpn_protocols = vec![b"http/1.1".to_vec()];
         config.resumption = Resumption::disabled();
         let socket =
-            std::net::TcpStream::connect_timeout(&address, Duration::from_secs(5)).unwrap();
+            std::net::TcpStream::connect_timeout(&address, crate::test_support::client_timeout(Duration::from_secs(5))).unwrap();
         socket
-            .set_read_timeout(Some(Duration::from_secs(5)))
+            .set_read_timeout(Some(crate::test_support::client_timeout(Duration::from_secs(5))))
             .unwrap();
         socket
-            .set_write_timeout(Some(Duration::from_secs(5)))
+            .set_write_timeout(Some(crate::test_support::client_timeout(Duration::from_secs(5))))
             .unwrap();
         let connection = rustls::ClientConnection::new(
             Arc::new(config),
@@ -230,14 +230,7 @@ impl Fixture {
             Ok(out) if out.starts_with(b"HTTP/1.1 ") => Ok(response(&out)),
             Ok(_) => Err("connection closed before HTTP response".into()),
             Err(e) => {
-                assert!(
-                    !matches!(
-                        e.kind(),
-                        std::io::ErrorKind::TimedOut | std::io::ErrorKind::WouldBlock
-                    ),
-                    "timeout is not refusal evidence: {e}"
-                );
-                Err(e.to_string())
+                Err(crate::test_support::client_error(e))
             }
         }
     }
@@ -318,6 +311,7 @@ impl Drop for Fixture {
 
 #[test]
 fn native_https_submission_denials_replay_and_restart_preserve_original_bytes() {
+    let _suite = crate::test_support::enter();
     let mut f = Fixture::new(true);
     f.initialize();
     f.start();
@@ -485,12 +479,13 @@ fn native_https_submission_denials_replay_and_restart_preserve_original_bytes() 
 
 #[test]
 fn explicit_native_http_needs_no_credentials_and_never_exposes_operator_routes() {
+    let _suite = crate::test_support::enter();
     let mut f = Fixture::new(false);
     f.initialize();
     f.start();
     let mut stream = std::net::TcpStream::connect(f.address).unwrap();
     stream
-        .set_read_timeout(Some(Duration::from_secs(5)))
+        .set_read_timeout(Some(crate::test_support::client_timeout(Duration::from_secs(5))))
         .unwrap();
     stream
         .write_all(&request("GET", "/healthz", "localhost", "", &[]))
@@ -525,6 +520,7 @@ fn explicit_native_http_needs_no_credentials_and_never_exposes_operator_routes()
 
 #[test]
 fn native_tls_startup_refuses_invalid_credentials_before_source_bootstrap() {
+    let _suite = crate::test_support::enter();
     let mut f = Fixture::new(true);
     f.initialize();
     let config = f.config.clone();
@@ -587,6 +583,7 @@ fn native_tls_startup_refuses_invalid_credentials_before_source_bootstrap() {
 
 #[test]
 fn native_handshake_slots_do_not_block_private_operator_or_local_stop() {
+    let _suite = crate::test_support::enter();
     let mut f = Fixture::new(true);
     f.initialize();
     f.start();
@@ -604,6 +601,7 @@ fn native_handshake_slots_do_not_block_private_operator_or_local_stop() {
 
 #[test]
 fn invalid_native_transport_configurations_refuse_before_state_or_endpoint_creation() {
+    let _suite = crate::test_support::enter();
     let mut f = Fixture::new(true);
     let original = f.config.clone();
     for case in 0..9 {
@@ -692,10 +690,10 @@ fn warm_tls(f: &Fixture) -> rustls::StreamOwned<rustls::ClientConnection, std::n
     c.resumption = Resumption::disabled();
     let socket = std::net::TcpStream::connect(f.address).unwrap();
     socket
-        .set_read_timeout(Some(Duration::from_secs(5)))
+        .set_read_timeout(Some(crate::test_support::client_timeout(Duration::from_secs(5))))
         .unwrap();
     socket
-        .set_write_timeout(Some(Duration::from_secs(5)))
+        .set_write_timeout(Some(crate::test_support::client_timeout(Duration::from_secs(5))))
         .unwrap();
     let mut s = rustls::StreamOwned::new(
         rustls::ClientConnection::new(Arc::new(c), ServerName::try_from("localhost").unwrap())
@@ -749,6 +747,7 @@ fn wait_commit(f: &Fixture) {
 
 #[test]
 fn live_tls_rotation_revokes_old_connections_changes_trust_and_preserves_uuid_replay() {
+    let _suite = crate::test_support::enter();
     let mut f = Fixture::new(true);
     f.initialize();
     f.start();
@@ -838,6 +837,7 @@ fn live_tls_rotation_revokes_old_connections_changes_trust_and_preserves_uuid_re
 
 #[test]
 fn invalid_live_reloads_preserve_the_working_policy_and_existing_tls_connection() {
+    let _suite = crate::test_support::enter();
     let mut f = Fixture::new(true);
     f.initialize();
     f.start();
@@ -893,6 +893,7 @@ fn invalid_live_reloads_preserve_the_working_policy_and_existing_tls_connection(
 
 #[test]
 fn reload_excludes_queued_work_without_waiting_for_an_admitted_claim() {
+    let _suite = crate::test_support::enter();
     if !cfg!(feature = "nfs-qualification") {
         return;
     }
@@ -962,6 +963,7 @@ fn reload_excludes_queued_work_without_waiting_for_an_admitted_claim() {
 
 #[test]
 fn loader_pause_keeps_status_and_stop_available_and_stop_wins_before_activation() {
+    let _suite = crate::test_support::enter();
     if !cfg!(feature = "nfs-qualification") {
         return;
     }
@@ -1040,12 +1042,12 @@ fn hello_only(f: &Fixture) -> ProbeTls {
         .unwrap();
     c.alpn_protocols = vec![b"http/1.1".to_vec()];
     c.resumption = Resumption::disabled();
-    let socket = std::net::TcpStream::connect_timeout(&f.address, Duration::from_secs(5)).unwrap();
+    let socket = std::net::TcpStream::connect_timeout(&f.address, crate::test_support::client_timeout(Duration::from_secs(5))).unwrap();
     socket
-        .set_read_timeout(Some(Duration::from_secs(5)))
+        .set_read_timeout(Some(crate::test_support::client_timeout(Duration::from_secs(5))))
         .unwrap();
     socket
-        .set_write_timeout(Some(Duration::from_secs(5)))
+        .set_write_timeout(Some(crate::test_support::client_timeout(Duration::from_secs(5))))
         .unwrap();
     let mut s = rustls::StreamOwned::new(
         rustls::ClientConnection::new(Arc::new(c), ServerName::try_from("localhost").unwrap())
@@ -1192,6 +1194,7 @@ fn responsive_controls(f: &Fixture) {
 
 #[test]
 fn busy_tls_workers_preserve_controls_and_expired_queued_jobs_never_handshake() {
+    let _suite = crate::test_support::enter();
     if !cfg!(feature = "nfs-qualification") {
         return;
     }
@@ -1244,6 +1247,7 @@ fn busy_tls_workers_preserve_controls_and_expired_queued_jobs_never_handshake() 
 
 #[test]
 fn reload_waits_for_stalled_registered_sessions_and_raw_queue_uses_new_policy() {
+    let _suite = crate::test_support::enter();
     if !cfg!(feature = "nfs-qualification") {
         return;
     }
@@ -1322,6 +1326,7 @@ fn reload_waits_for_stalled_registered_sessions_and_raw_queue_uses_new_policy() 
 
 #[test]
 fn shutdown_deadline_does_not_release_ownership_of_non_yielding_tls_workers() {
+    let _suite = crate::test_support::enter();
     if !cfg!(feature = "nfs-qualification") {
         return;
     }
@@ -1396,6 +1401,7 @@ fn shutdown_deadline_does_not_release_ownership_of_non_yielding_tls_workers() {
 
 #[test]
 fn mixed_tls_load_and_full_json_budget_preserve_measured_payloads() {
+    let _suite = crate::test_support::enter();
     let mut f = Fixture::new(true);
     f.initialize();
     prepare_payload(&f);
@@ -1495,6 +1501,7 @@ fn mixed_tls_load_and_full_json_budget_preserve_measured_payloads() {
 
 #[test]
 fn fragmented_oversized_handshakes_and_slow_nonreading_peers_are_bounded() {
+    let _suite = crate::test_support::enter();
     let mut f = Fixture::new(true);
     f.initialize();
     f.start();

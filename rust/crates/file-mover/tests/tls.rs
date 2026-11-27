@@ -14,6 +14,9 @@ use tokio::{
 };
 use tokio_rustls::{TlsAcceptor, TlsConnector};
 
+#[path = "support/tls_harness.rs"]
+mod test_support;
+
 const MESSAGE: &[u8] = b"SLES12SP5 native TLS dependency proof";
 const DEADLINE: Duration = Duration::from_secs(5);
 
@@ -95,11 +98,12 @@ fn handshake(case: Case) -> (Result<Proof, String>, Result<Proof, String>) {
         .enable_all()
         .build()
         .unwrap();
+    let deadline = test_support::client_timeout(DEADLINE);
     runtime.block_on(async move {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address = listener.local_addr().unwrap();
         let server_task = tokio::spawn(async move {
-            timeout(DEADLINE, async move {
+            timeout(deadline, async move {
                 let (socket, _) = listener.accept().await.map_err(|e| e.to_string())?;
                 let mut stream = TlsAcceptor::from(Arc::new(server))
                     .accept(socket)
@@ -136,7 +140,7 @@ fn handshake(case: Case) -> (Result<Proof, String>, Result<Proof, String>) {
             .await
             .expect("server deadline is not certificate-refusal evidence")
         });
-        let client_result = timeout(DEADLINE, async move {
+        let client_result = timeout(deadline, async move {
             let socket = TcpStream::connect(address)
                 .await
                 .map_err(|e| e.to_string())?;
@@ -173,7 +177,7 @@ fn handshake(case: Case) -> (Result<Proof, String>, Result<Proof, String>) {
         })
         .await
         .expect("client deadline is not certificate-refusal evidence");
-        let server_result = timeout(DEADLINE, server_task)
+        let server_result = timeout(deadline, server_task)
             .await
             .expect("server task finishes")
             .expect("server task does not panic");
@@ -183,6 +187,7 @@ fn handshake(case: Case) -> (Result<Proof, String>, Result<Proof, String>) {
 
 #[test]
 fn native_tls12_and_tls13_authenticate_both_peers_and_exchange_bytes() {
+    let _suite = crate::test_support::enter();
     tls::check_platform().unwrap();
     for (version, expected) in [
         (&rustls::version::TLS12, ProtocolVersion::TLSv1_2),
@@ -200,6 +205,7 @@ fn native_tls12_and_tls13_authenticate_both_peers_and_exchange_bytes() {
 
 #[test]
 fn missing_untrusted_expired_and_wrong_usage_clients_cannot_exchange_application_data() {
+    let _suite = crate::test_support::enter();
     for version in [&rustls::version::TLS12, &rustls::version::TLS13] {
         for client in [
             None,
@@ -227,6 +233,7 @@ fn missing_untrusted_expired_and_wrong_usage_clients_cannot_exchange_application
 
 #[test]
 fn wrong_server_name_untrusted_server_and_expired_server_cannot_exchange_application_data() {
+    let _suite = crate::test_support::enter();
     for version in [&rustls::version::TLS12, &rustls::version::TLS13] {
         for case in [
             Case {
@@ -256,6 +263,7 @@ fn wrong_server_name_untrusted_server_and_expired_server_cannot_exchange_applica
 
 #[test]
 fn malformed_empty_mismatched_credentials_and_empty_trust_refuse_policy_construction() {
+    let _suite = crate::test_support::enter();
     assert!(tls::proof_server_config(vec![], key("server.key.der"), roots("ca.der")).is_err());
     assert!(
         tls::proof_server_config(
