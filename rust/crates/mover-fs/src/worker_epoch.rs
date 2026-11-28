@@ -303,6 +303,12 @@ pub(crate) fn prepare(guard: &InstanceGuard) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    mod isolation {
+        include!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../test-support/isolation.rs"
+        ));
+    }
     #[test]
     fn process_parser_uses_group_start_and_terminal_state_not_descriptor_presence() {
         for state in ["R", "D", "S", "Z", "X", "x"] {
@@ -342,13 +348,20 @@ mod tests {
     }
     #[test]
     fn live_group_member_blocks_reacquisition_without_any_inherited_guard() {
+        if isolation::run(
+            "worker_epoch::tests::live_group_member_blocks_reacquisition_without_any_inherited_guard",
+        ) {
+            return;
+        }
         let f = Fixture::new();
         let guard = InstanceGuard::for_database(&f.database()).unwrap();
         guard.prepare_workers().unwrap();
-        let mut child = std::process::Command::new("/bin/sleep")
-            .arg("30")
-            .spawn()
-            .unwrap();
+        let mut child = isolation::OwnedChild::new(
+            std::process::Command::new("/bin/sleep")
+                .arg("30")
+                .spawn()
+                .unwrap(),
+        );
         drop(guard);
         let dir = crate::instance::local_parent_for_epoch(f.0.to_str().unwrap()).unwrap();
         let fd = fs::openat(
@@ -369,6 +382,46 @@ mod tests {
         child.wait().unwrap();
         let next = InstanceGuard::for_database(&f.database()).unwrap();
         next.prepare_workers().unwrap();
+    }
+    #[test]
+    fn unrelated_private_group_does_not_block_synthetic_epoch_retirement() {
+        if isolation::run(
+            "worker_epoch::tests::unrelated_private_group_does_not_block_synthetic_epoch_retirement",
+        ) {
+            return;
+        }
+        use std::os::unix::process::CommandExt;
+        let f = Fixture::new();
+        let guard = InstanceGuard::for_database(&f.database()).unwrap();
+        guard.prepare_workers().unwrap();
+        let mut unrelated = isolation::OwnedChild::new(
+            std::process::Command::new("/bin/sleep")
+                .arg("30")
+                .process_group(0)
+                .spawn()
+                .unwrap(),
+        );
+        let stat = std::fs::read_to_string(format!("/proc/{}/stat", unrelated.id())).unwrap();
+        let group: u32 = stat
+            .rsplit_once(") ")
+            .unwrap()
+            .1
+            .split_whitespace()
+            .nth(2)
+            .unwrap()
+            .parse()
+            .unwrap();
+        assert_eq!(group, unrelated.id());
+        assert_ne!(group, std::process::id());
+        drop(guard);
+        let next = InstanceGuard::for_database(&f.database()).unwrap();
+        assert!(
+            unrelated.try_wait().unwrap().is_none(),
+            "foreign group must still be alive"
+        );
+        unrelated.kill().unwrap();
+        unrelated.wait().unwrap();
+        drop(next);
     }
     #[test]
     fn unsafe_or_corrupt_epoch_refuses_without_repair_or_database_creation() {
