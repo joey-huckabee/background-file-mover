@@ -48,6 +48,15 @@ def run(args: list[str], log: Path | None = None, timeout: int = 900, *, stdout_
     return result.stdout if stdout_only else output
 
 
+def qualified_test_counts(output: str) -> list[tuple[str, str]]:
+    if "SKIP_FIXTURE" in output:
+        raise ValueError("local fixture skips are not qualification evidence")
+    counts = re.findall(r"test result: ok\. (\d+) passed; (\d+) failed", output)
+    if not counts or any(int(failed) for _, failed in counts):
+        raise ValueError("missing successful test result")
+    return counts
+
+
 def audit(text: str) -> dict:
     if not re.search(r"Machine:\s+Advanced Micro Devices X86-64", text):
         raise ValueError("wrong ELF architecture")
@@ -366,6 +375,9 @@ def main() -> int:
                 if received != digest:
                     raise ValueError("runtime artifact hash mismatch")
                 runtime_exec = ["podman", "exec", "--user", "1000:1000", "--env", "LD_BIND_NOW=1", runtime]
+                if is_test:
+                    runtime_exec.insert(-1, "--env")
+                    runtime_exec.insert(-1, "FILE_MOVER_TEST_REQUIRE_FIXTURES=1")
                 if is_test and Path(path).name.startswith(("tls-", "file_mover-")):
                     runtime_exec.insert(-1, "--env")
                     runtime_exec.insert(-1, f"FILE_MOVER_TLS_FIXTURES={fixture_root}")
@@ -386,9 +398,7 @@ def main() -> int:
                     if test_timeout != 900:
                         profile_report["api_suite_timeout_seconds"] = test_timeout
                     test_output = run(runtime_exec + ["/usr/bin/setsid", "--wait", remote, "--test-threads=1"], results / f"{name}.test", timeout=test_timeout)
-                    counts = re.findall(r"test result: ok\. (\d+) passed; (\d+) failed", test_output)
-                    if not counts or any(int(failed) for _, failed in counts):
-                        raise ValueError("missing successful test result")
+                    counts = qualified_test_counts(test_output)
                     profile_report["tests_passed"] += sum(int(passed) for passed, _ in counts)
                 else:
                     smoke = run(runtime_exec + ["/usr/bin/setsid", "--wait", remote, "--check-platform"], results / f"{name}.smoke")

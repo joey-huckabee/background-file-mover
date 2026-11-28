@@ -278,6 +278,7 @@ fn fault(_stage: &str) -> BackupResult<()> {
 
 #[cfg(test)]
 mod tests {
+    mod prerequisites { include!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../test-support/prerequisites.rs")); }
     use super::*;
     use std::os::unix::fs::{PermissionsExt, symlink};
     static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
@@ -422,6 +423,7 @@ mod tests {
     }
     #[test]
     fn migration_cli_previews_converts_once_and_preserves_original_job_without_payload_roots() {
+        if !prerequisites::ready("backup::tests::migration_cli_previews_converts_once_and_preserves_original_job_without_payload_roots", &["FILE_MOVER_TEST_EXECUTABLE"]) { return; }
         let f = Fixture::new();
         migration_fixture(&f);
         let original = std::fs::read(f.path("state/jobs.sqlite")).unwrap();
@@ -479,6 +481,7 @@ mod tests {
     }
     #[test]
     fn migration_cli_requires_fresh_verified_backup_and_ignores_fault_controls_in_production() {
+        if !prerequisites::ready("backup::tests::migration_cli_requires_fresh_verified_backup_and_ignores_fault_controls_in_production", &["FILE_MOVER_TEST_EXECUTABLE"]) { return; }
         for stage in [
             "copy",
             "copy_enospc",
@@ -513,6 +516,7 @@ mod tests {
     #[cfg(feature = "nfs-qualification")]
     #[test]
     fn migration_cli_kill_reopens_original_or_committed_state_without_restore() {
+        if !prerequisites::ready("backup::tests::migration_cli_kill_reopens_original_or_committed_state_without_restore", &["FILE_MOVER_TEST_EXECUTABLE"]) { return; }
         use std::time::{Duration, Instant};
         for stage in [
             "before_create",

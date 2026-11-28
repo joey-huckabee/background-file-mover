@@ -419,6 +419,7 @@ impl Drop for Session {
 
 #[cfg(test)]
 mod tests {
+    mod prerequisites { include!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../test-support/prerequisites.rs")); }
     use super::*;
     use std::{os::unix::fs::PermissionsExt, path::Path, sync::atomic::AtomicU64, time::Instant};
     static NEXT: AtomicU64 = AtomicU64::new(0);
@@ -479,6 +480,7 @@ mod tests {
     }
     #[test]
     fn cancelled_session_registry_is_independent_of_stale_queued_work() {
+        if !prerequisites::ready("reload::tests::cancelled_session_registry_is_independent_of_stale_queued_work", &["FILE_MOVER_TLS_FIXTURES"]) { return; }
         let f = Fixture::new();
         let session = f.session();
         let queued = session.lease();
@@ -491,6 +493,7 @@ mod tests {
     }
     #[test]
     fn activation_before_first_future_poll_still_drains_the_registered_connection() {
+        if !prerequisites::ready("reload::tests::activation_before_first_future_poll_still_drains_the_registered_connection", &["FILE_MOVER_TLS_FIXTURES"]) { return; }
         let f = Fixture::new();
         let session = f.session();
         let manager = f.manager.clone();
@@ -517,6 +520,7 @@ mod tests {
     }
     #[test]
     fn admitted_work_may_finish_but_deferral_cannot_authorize_a_later_attempt() {
+        if !prerequisites::ready("reload::tests::admitted_work_may_finish_but_deferral_cannot_authorize_a_later_attempt", &["FILE_MOVER_TLS_FIXTURES"]) { return; }
         let f = Fixture::new();
         let session = f.session();
         let lease = session.lease();
@@ -539,6 +543,7 @@ mod tests {
     }
     #[test]
     fn certificate_expiry_is_rechecked_at_actual_admission_without_changing_host_time() {
+        if !prerequisites::ready("reload::tests::certificate_expiry_is_rechecked_at_actual_admission_without_changing_host_time", &["FILE_MOVER_TLS_FIXTURES"]) { return; }
         let f = Fixture::new();
         let session = f.session();
         let lease = session.lease();
@@ -555,6 +560,7 @@ mod tests {
     }
     #[test]
     fn rejected_replacement_and_shutdown_preserve_the_active_policy() {
+        if !prerequisites::ready("reload::tests::rejected_replacement_and_shutdown_preserve_the_active_policy", &["FILE_MOVER_TLS_FIXTURES"]) { return; }
         let f = Fixture::new();
         let before = f.manager.snapshot();
         let mut c = f.c.clone();
