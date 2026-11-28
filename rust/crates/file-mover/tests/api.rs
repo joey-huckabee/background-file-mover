@@ -1,4 +1,9 @@
-mod isolation { include!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../test-support/isolation.rs")); }
+mod isolation {
+    include!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../test-support/isolation.rs"
+    ));
+}
 use serde_json::{Value, json};
 #[path = "support/account_cli.rs"]
 mod account_tests;
@@ -694,7 +699,9 @@ fn live_source_lock_replacement_blocks_claim_without_releasing_paths() {
 }
 #[test]
 fn claim_worker_rejects_directory_and_readonly_lock_descriptors() {
-    if isolation::run("claim_worker_rejects_directory_and_readonly_lock_descriptors") { return; }
+    if isolation::run("claim_worker_rejects_directory_and_readonly_lock_descriptors") {
+        return;
+    }
     use std::os::fd::AsFd;
     let mut f = Fixture::new(300);
     f.stop();
@@ -707,15 +714,17 @@ fn claim_worker_rejects_directory_and_readonly_lock_descriptors() {
         )
         .unwrap();
         instance.prepare_workers().unwrap();
-        let mut child = isolation::OwnedChild::new(Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
-            .arg("--internal-claim-worker")
-            .stdin(Stdio::from(
-                descriptor.as_fd().try_clone_to_owned().unwrap(),
-            ))
-            .stdout(Stdio::from(descriptor))
-            .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
-            .spawn()
-            .unwrap());
+        let mut child = isolation::OwnedChild::new(
+            Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
+                .arg("--internal-claim-worker")
+                .stdin(Stdio::from(
+                    descriptor.as_fd().try_clone_to_owned().unwrap(),
+                ))
+                .stdout(Stdio::from(descriptor))
+                .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
+                .spawn()
+                .unwrap(),
+        );
         channel
             .set_read_timeout(Some(Duration::from_secs(3)))
             .unwrap();
@@ -736,7 +745,9 @@ fn claim_worker_rejects_directory_and_readonly_lock_descriptors() {
 }
 #[test]
 fn delivery_worker_refuses_replaced_destination_lock_before_payload() {
-    if isolation::run("delivery_worker_refuses_replaced_destination_lock_before_payload") { return; }
+    if isolation::run("delivery_worker_refuses_replaced_destination_lock_before_payload") {
+        return;
+    }
     let mut f = Fixture::new(300);
     f.write("data", b"retained");
     assert_eq!(f.post(&f.input("lock-session", json!(["data"]))).0, 202);
@@ -1087,7 +1098,10 @@ fn stopped_startup_exits_cleanly_without_source_or_database_access() {
     assert!(!source.exists());
     assert!(!database.exists());
 }
-fn bootstrap_child(f: &Fixture, body: &Value) -> (isolation::OwnedChild, std::os::unix::net::UnixStream) {
+fn bootstrap_child(
+    f: &Fixture,
+    body: &Value,
+) -> (isolation::OwnedChild, std::os::unix::net::UnixStream) {
     let mut body = body.clone();
     body["source_binding"] = json!(binding());
     let (mut channel, worker) = std::os::unix::net::UnixStream::pair().unwrap();
@@ -1098,13 +1112,15 @@ fn bootstrap_child(f: &Fixture, body: &Value) -> (isolation::OwnedChild, std::os
         .set_read_timeout(Some(Duration::from_secs(3)))
         .unwrap();
     guard.prepare_workers().unwrap();
-    let child = isolation::OwnedChild::new(Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
-        .arg("--internal-bootstrap-worker")
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
-        .spawn()
-        .unwrap());
+    let child = isolation::OwnedChild::new(
+        Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
+            .arg("--internal-bootstrap-worker")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
+            .spawn()
+            .unwrap(),
+    );
     guard.send(&mut channel).unwrap();
     channel
         .write_all(&serde_json::to_vec(&body).unwrap())
@@ -1114,7 +1130,9 @@ fn bootstrap_child(f: &Fixture, body: &Value) -> (isolation::OwnedChild, std::os
 }
 #[test]
 fn bootstrap_transfers_the_locked_description_without_reopening_source() {
-    if isolation::run("bootstrap_transfers_the_locked_description_without_reopening_source") { return; }
+    if isolation::run("bootstrap_transfers_the_locked_description_without_reopening_source") {
+        return;
+    }
     let mut f = Fixture::new(300);
     f.stop();
     let path = f.root.join("source").to_str().unwrap().to_owned();
@@ -1142,7 +1160,9 @@ fn bootstrap_transfers_the_locked_description_without_reopening_source() {
 }
 #[test]
 fn bootstrap_rejects_wrong_scope_and_invalid_requests() {
-    if isolation::run("bootstrap_rejects_wrong_scope_and_invalid_requests") { return; }
+    if isolation::run("bootstrap_rejects_wrong_scope_and_invalid_requests") {
+        return;
+    }
     let mut f = Fixture::new(300);
     f.stop();
     let path = f.root.join("source").to_str().unwrap().to_owned();
@@ -1292,7 +1312,9 @@ fn session_authorized_reply(
 }
 #[test]
 fn delivery_session_validates_the_copy_buffer_it_is_given() {
-    if isolation::run("delivery_session_validates_the_copy_buffer_it_is_given") { return; }
+    if isolation::run("delivery_session_validates_the_copy_buffer_it_is_given") {
+        return;
+    }
     let mut f = Fixture::new(300);
     f.write("data", b"buffer checked");
     assert_eq!(f.post(&f.input("session-buffer", json!(["data"]))).0, 202);
@@ -1347,7 +1369,10 @@ fn small_copy_buffer_delivers_identical_files() {
 }
 #[test]
 fn delivery_session_checks_source_binding_and_rejects_authorization_downgrade() {
-    if isolation::run("delivery_session_checks_source_binding_and_rejects_authorization_downgrade") { return; }
+    if isolation::run("delivery_session_checks_source_binding_and_rejects_authorization_downgrade")
+    {
+        return;
+    }
     let mut f = Fixture::new(300);
     f.write("data", b"source retained");
     assert_eq!(f.post(&f.input("session-binding", json!(["data"]))).0, 202);
@@ -1409,7 +1434,9 @@ fn delivery_session_checks_source_binding_and_rejects_authorization_downgrade() 
 }
 #[test]
 fn source_removal_requires_the_full_set_verified_in_the_same_session() {
-    if isolation::run("source_removal_requires_the_full_set_verified_in_the_same_session") { return; }
+    if isolation::run("source_removal_requires_the_full_set_verified_in_the_same_session") {
+        return;
+    }
     let mut f = Fixture::new(300);
     f.stop();
     provision_destination(&f);
@@ -1510,7 +1537,11 @@ fn transfer_from_wire(t: &Value) -> mover_core::Transfer {
 }
 #[test]
 fn delivery_session_allocates_restarts_and_commits_manifest_between_parent_receipts() {
-    if isolation::run("delivery_session_allocates_restarts_and_commits_manifest_between_parent_receipts") { return; }
+    if isolation::run(
+        "delivery_session_allocates_restarts_and_commits_manifest_between_parent_receipts",
+    ) {
+        return;
+    }
     let mut f = Fixture::new(300);
     f.write("data", b"abcdefgh");
     assert_eq!(f.post(&f.input("session", json!(["data"]))).0, 202);
@@ -1624,7 +1655,11 @@ fn delivery_session_allocates_restarts_and_commits_manifest_between_parent_recei
 }
 #[test]
 fn delivery_session_keeps_both_locks_after_parent_closes_and_rejects_stale_sequence_or_version() {
-    if isolation::run("delivery_session_keeps_both_locks_after_parent_closes_and_rejects_stale_sequence_or_version") { return; }
+    if isolation::run(
+        "delivery_session_keeps_both_locks_after_parent_closes_and_rejects_stale_sequence_or_version",
+    ) {
+        return;
+    }
     for version in [2, 1] {
         let mut f = Fixture::new(300);
         f.stop();
@@ -1659,7 +1694,9 @@ fn delivery_session_keeps_both_locks_after_parent_closes_and_rejects_stale_seque
 
 #[test]
 fn delivery_session_refuses_oversized_frame_before_any_allocation() {
-    if isolation::run("delivery_session_refuses_oversized_frame_before_any_allocation") { return; }
+    if isolation::run("delivery_session_refuses_oversized_frame_before_any_allocation") {
+        return;
+    }
     let mut f = Fixture::new(300);
     f.stop();
     provision_destination(&f);
@@ -1691,13 +1728,15 @@ fn effect_child(
         .join("state/jobs.sqlite");
     let instance = mover_fs::InstanceGuard::for_database(database.to_str().unwrap()).unwrap();
     instance.prepare_workers().unwrap();
-    let child = isolation::OwnedChild::new(Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
-        .arg(mode)
-        .stdin(Stdio::from(source.inherit().unwrap()))
-        .stdout(Stdio::from(destination.inherit().unwrap()))
-        .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
-        .spawn()
-        .unwrap());
+    let child = isolation::OwnedChild::new(
+        Command::new(std::env::var("FILE_MOVER_TEST_EXECUTABLE").unwrap())
+            .arg(mode)
+            .stdin(Stdio::from(source.inherit().unwrap()))
+            .stdout(Stdio::from(destination.inherit().unwrap()))
+            .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
+            .spawn()
+            .unwrap(),
+    );
     instance.send(&mut channel).unwrap();
     if mode == "--internal-delivery-worker" {
         // As the coordinator does: the advisory progress channel follows the
@@ -1745,7 +1784,9 @@ fn claim_from_wire(c: &Value) -> mover_core::ClaimIntent {
 }
 #[test]
 fn claim_children_preserve_intent_receipt_order_and_reconcile_lost_reply() {
-    if isolation::run("claim_children_preserve_intent_receipt_order_and_reconcile_lost_reply") { return; }
+    if isolation::run("claim_children_preserve_intent_receipt_order_and_reconcile_lost_reply") {
+        return;
+    }
     let mut f = Fixture::new(300);
     let input = f.input("child-claim", json!(["data"]));
     assert_eq!(f.post(&input).0, 409);
@@ -1810,7 +1851,11 @@ fn claim_children_preserve_intent_receipt_order_and_reconcile_lost_reply() {
 }
 #[test]
 fn claim_child_reports_missing_and_refuses_changed_observation_before_allocation() {
-    if isolation::run("claim_child_reports_missing_and_refuses_changed_observation_before_allocation") { return; }
+    if isolation::run(
+        "claim_child_reports_missing_and_refuses_changed_observation_before_allocation",
+    ) {
+        return;
+    }
     let mut f = Fixture::new(300);
     f.stop();
     let guard = mover_fs::LocalClaimLock::acquire(f.root.join("source").to_str().unwrap()).unwrap();
@@ -1835,7 +1880,11 @@ fn claim_child_reports_missing_and_refuses_changed_observation_before_allocation
 }
 #[test]
 fn publication_child_reconciles_file_and_manifest_effects_without_database_receipts() {
-    if isolation::run("publication_child_reconciles_file_and_manifest_effects_without_database_receipts") { return; }
+    if isolation::run(
+        "publication_child_reconciles_file_and_manifest_effects_without_database_receipts",
+    ) {
+        return;
+    }
     let mut f = Fixture::new(300);
     f.write("data", b"publication");
     assert_eq!(f.post(&f.input("publish-child", json!(["data"]))).0, 202);
@@ -1908,7 +1957,9 @@ fn payload_assignment(t: &mover_core::Transfer, c: &mover_core::ClaimIntent) -> 
 }
 #[test]
 fn payload_children_copy_verify_without_database_access_or_publication() {
-    if isolation::run("payload_children_copy_verify_without_database_access_or_publication") { return; }
+    if isolation::run("payload_children_copy_verify_without_database_access_or_publication") {
+        return;
+    }
     let mut f = Fixture::new(300);
     f.write("data", b"child payload");
     assert_eq!(f.post(&f.input("payload", json!(["data"]))).0, 202);
@@ -1956,7 +2007,9 @@ fn payload_children_copy_verify_without_database_access_or_publication() {
 }
 #[test]
 fn live_payload_child_retains_both_locks_after_parent_descriptors_close() {
-    if isolation::run("live_payload_child_retains_both_locks_after_parent_descriptors_close") { return; }
+    if isolation::run("live_payload_child_retains_both_locks_after_parent_descriptors_close") {
+        return;
+    }
     let mut f = Fixture::new(300);
     f.stop();
     provision_destination(&f);
@@ -1978,7 +2031,9 @@ fn live_payload_child_retains_both_locks_after_parent_descriptors_close() {
 }
 #[test]
 fn malformed_payload_assignments_preserve_stage_and_source() {
-    if isolation::run("malformed_payload_assignments_preserve_stage_and_source") { return; }
+    if isolation::run("malformed_payload_assignments_preserve_stage_and_source") {
+        return;
+    }
     let mut f = Fixture::new(300);
     f.write("data", b"protected");
     assert_eq!(f.post(&f.input("invalid-payload", json!(["data"]))).0, 202);
@@ -4390,7 +4445,9 @@ fn destination_root_replacement_is_refused_before_first_allocation() {
 }
 #[test]
 fn delivery_session_rechecks_destination_marker_before_payload() {
-    if isolation::run("delivery_session_rechecks_destination_marker_before_payload") { return; }
+    if isolation::run("delivery_session_rechecks_destination_marker_before_payload") {
+        return;
+    }
     let mut f = Fixture::new(300);
     f.write("data", b"retained");
     assert_eq!(
@@ -4781,7 +4838,9 @@ fn local_instance_refuses_all_effect_entry_points_before_bootstrap_or_sqlite() {
 }
 #[test]
 fn every_worker_mode_retains_explicit_local_ownership_without_parent_holder() {
-    if isolation::run("every_worker_mode_retains_explicit_local_ownership_without_parent_holder") { return; }
+    if isolation::run("every_worker_mode_retains_explicit_local_ownership_without_parent_holder") {
+        return;
+    }
     use std::os::unix::net::UnixStream;
     let f = Fixture::uninitialized(300);
     let db = f.root.join("state/jobs.sqlite");
@@ -4804,13 +4863,15 @@ fn every_worker_mode_retains_explicit_local_ownership_without_parent_holder() {
             .set_write_timeout(Some(Duration::from_secs(3)))
             .unwrap();
         guard.prepare_workers().unwrap();
-        let mut child = isolation::OwnedChild::new(Command::new(&exe)
-            .arg(format!("--internal-{mode}-worker"))
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
-            .spawn()
-            .unwrap());
+        let mut child = isolation::OwnedChild::new(
+            Command::new(&exe)
+                .arg(format!("--internal-{mode}-worker"))
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
+                .spawn()
+                .unwrap(),
+        );
         guard.send(&mut channel).unwrap(); // ACK proves child validation, not just a queued fd.
         drop(guard);
         assert!(child.try_wait().unwrap().is_none(), "{mode}");
@@ -4825,13 +4886,15 @@ fn every_worker_mode_retains_explicit_local_ownership_without_parent_holder() {
         assert!(!db.exists());
         // Same internal mode without the descriptor prefix cannot reach effects.
         let (mut channel, worker) = UnixStream::pair().unwrap();
-        let mut child = isolation::OwnedChild::new(Command::new(&exe)
-            .arg(format!("--internal-{mode}-worker"))
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
-            .spawn()
-            .unwrap());
+        let mut child = isolation::OwnedChild::new(
+            Command::new(&exe)
+                .arg(format!("--internal-{mode}-worker"))
+                .stdin(Stdio::null())
+                .stdout(Stdio::null())
+                .stderr(Stdio::from(std::os::fd::OwnedFd::from(worker)))
+                .spawn()
+                .unwrap(),
+        );
         channel.write_all(b"I").unwrap();
         channel.shutdown(std::net::Shutdown::Write).unwrap();
         assert!(!child.wait().unwrap().success());
@@ -6000,7 +6063,11 @@ fn seed_legacy(f: &Fixture, legacy_id: &str, claim: bool) -> i64 {
 
 #[test]
 fn seeded_uuid_looking_legacy_job_recovers_numeric_destination_and_v1_after_restart() {
-    if isolation::run("seeded_uuid_looking_legacy_job_recovers_numeric_destination_and_v1_after_restart") { return; }
+    if isolation::run(
+        "seeded_uuid_looking_legacy_job_recovers_numeric_destination_and_v1_after_restart",
+    ) {
+        return;
+    }
     let mut f = Fixture::new(300);
     f.stop();
     f.write("data", b"original legacy payload");
@@ -6330,7 +6397,11 @@ fn uuid_identity_conflicts_globally_after_configured_generator_changes() {
 
 #[test]
 fn partial_legacy_refuses_before_payload_bootstrap_and_preserves_original_custody() {
-    if isolation::run("partial_legacy_refuses_before_payload_bootstrap_and_preserves_original_custody") { return; }
+    if isolation::run(
+        "partial_legacy_refuses_before_payload_bootstrap_and_preserves_original_custody",
+    ) {
+        return;
+    }
     let mut f = Fixture::new(300);
     f.stop();
     f.write("data", b"legacy producer still owns this");
