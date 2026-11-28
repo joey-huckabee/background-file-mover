@@ -168,7 +168,10 @@ impl Fixture {
     }
     fn operator(&self, path: &str) -> (u16, Value) {
         let mut s = UnixStream::connect(self.root.join("operator/api.sock")).unwrap();
-        s.set_read_timeout(Some(crate::test_support::client_timeout(Duration::from_secs(5)))).unwrap();
+        s.set_read_timeout(Some(crate::test_support::client_timeout(
+            Duration::from_secs(5),
+        )))
+        .unwrap();
         s.write_all(&request("GET", path, "localhost", "", &[]))
             .unwrap();
         let mut b = Vec::new();
@@ -205,13 +208,20 @@ impl Fixture {
         };
         config.alpn_protocols = vec![b"http/1.1".to_vec()];
         config.resumption = Resumption::disabled();
-        let socket =
-            std::net::TcpStream::connect_timeout(&address, crate::test_support::client_timeout(Duration::from_secs(5))).unwrap();
+        let socket = std::net::TcpStream::connect_timeout(
+            &address,
+            crate::test_support::client_timeout(Duration::from_secs(5)),
+        )
+        .unwrap();
         socket
-            .set_read_timeout(Some(crate::test_support::client_timeout(Duration::from_secs(5))))
+            .set_read_timeout(Some(crate::test_support::client_timeout(
+                Duration::from_secs(5),
+            )))
             .unwrap();
         socket
-            .set_write_timeout(Some(crate::test_support::client_timeout(Duration::from_secs(5))))
+            .set_write_timeout(Some(crate::test_support::client_timeout(
+                Duration::from_secs(5),
+            )))
             .unwrap();
         let connection = rustls::ClientConnection::new(
             Arc::new(config),
@@ -229,9 +239,7 @@ impl Fixture {
         match result {
             Ok(out) if out.starts_with(b"HTTP/1.1 ") => Ok(response(&out)),
             Ok(_) => Err("connection closed before HTTP response".into()),
-            Err(e) => {
-                Err(crate::test_support::client_error(e))
-            }
+            Err(e) => Err(crate::test_support::client_error(e)),
         }
     }
     fn https(&self, method: &str, path: &str, headers: &str, body: &Value) -> (u16, Value) {
@@ -485,7 +493,9 @@ fn explicit_native_http_needs_no_credentials_and_never_exposes_operator_routes()
     f.start();
     let mut stream = std::net::TcpStream::connect(f.address).unwrap();
     stream
-        .set_read_timeout(Some(crate::test_support::client_timeout(Duration::from_secs(5))))
+        .set_read_timeout(Some(crate::test_support::client_timeout(
+            Duration::from_secs(5),
+        )))
         .unwrap();
     stream
         .write_all(&request("GET", "/healthz", "localhost", "", &[]))
@@ -690,10 +700,14 @@ fn warm_tls(f: &Fixture) -> rustls::StreamOwned<rustls::ClientConnection, std::n
     c.resumption = Resumption::disabled();
     let socket = std::net::TcpStream::connect(f.address).unwrap();
     socket
-        .set_read_timeout(Some(crate::test_support::client_timeout(Duration::from_secs(5))))
+        .set_read_timeout(Some(crate::test_support::client_timeout(
+            Duration::from_secs(5),
+        )))
         .unwrap();
     socket
-        .set_write_timeout(Some(crate::test_support::client_timeout(Duration::from_secs(5))))
+        .set_write_timeout(Some(crate::test_support::client_timeout(
+            Duration::from_secs(5),
+        )))
         .unwrap();
     let mut s = rustls::StreamOwned::new(
         rustls::ClientConnection::new(Arc::new(c), ServerName::try_from("localhost").unwrap())
@@ -1042,12 +1056,20 @@ fn hello_only(f: &Fixture) -> ProbeTls {
         .unwrap();
     c.alpn_protocols = vec![b"http/1.1".to_vec()];
     c.resumption = Resumption::disabled();
-    let socket = std::net::TcpStream::connect_timeout(&f.address, crate::test_support::client_timeout(Duration::from_secs(5))).unwrap();
+    let socket = std::net::TcpStream::connect_timeout(
+        &f.address,
+        crate::test_support::client_timeout(Duration::from_secs(5)),
+    )
+    .unwrap();
     socket
-        .set_read_timeout(Some(crate::test_support::client_timeout(Duration::from_secs(5))))
+        .set_read_timeout(Some(crate::test_support::client_timeout(
+            Duration::from_secs(5),
+        )))
         .unwrap();
     socket
-        .set_write_timeout(Some(crate::test_support::client_timeout(Duration::from_secs(5))))
+        .set_write_timeout(Some(crate::test_support::client_timeout(
+            Duration::from_secs(5),
+        )))
         .unwrap();
     let mut s = rustls::StreamOwned::new(
         rustls::ClientConnection::new(Arc::new(c), ServerName::try_from("localhost").unwrap())

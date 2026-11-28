@@ -45,10 +45,15 @@ impl Admin {
         config.alpn_protocols = vec![b"http/1.1".to_vec()];
         config.resumption = Resumption::disabled();
         let address = std::net::SocketAddr::from(([127, 0, 0, 1], self.port));
-        let socket =
-            std::net::TcpStream::connect_timeout(&address, crate::test_support::client_timeout(Duration::from_secs(5))).unwrap();
+        let socket = std::net::TcpStream::connect_timeout(
+            &address,
+            crate::test_support::client_timeout(Duration::from_secs(5)),
+        )
+        .unwrap();
         socket
-            .set_read_timeout(Some(crate::test_support::client_timeout(Duration::from_secs(20))))
+            .set_read_timeout(Some(crate::test_support::client_timeout(
+                Duration::from_secs(20),
+            )))
             .unwrap();
         let connection = rustls::ClientConnection::new(
             Arc::new(config),
