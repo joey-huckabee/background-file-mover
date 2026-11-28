@@ -228,6 +228,9 @@ impl Drop for LocalSocket {
 
 #[cfg(test)]
 mod tests {
+    mod prerequisites {
+        include!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../test-support/prerequisites.rs"));
+    }
     use super::*;
     use std::os::fd::AsRawFd;
     use std::os::unix::fs::PermissionsExt;
@@ -253,18 +256,64 @@ mod tests {
             std::fs::remove_dir_all(&self.0).unwrap();
         }
     }
+    // mountinfo escapes whitespace and backslashes using octal sequences.
+    fn mount_point(field: &str) -> Option<String> {
+        let bytes = field.as_bytes();
+        let mut decoded = Vec::with_capacity(bytes.len());
+        let mut index = 0;
+        while index < bytes.len() {
+            if bytes[index] == b'\\' {
+                let digits = bytes.get(index + 1..index + 4)?;
+                if !digits.iter().all(|digit| (b'0'..=b'7').contains(digit)) {
+                    return None;
+                }
+                let value = (u16::from(digits[0] - b'0') << 6)
+                    | (u16::from(digits[1] - b'0') << 3)
+                    | u16::from(digits[2] - b'0');
+                decoded.push(u8::try_from(value).ok()?);
+                index += 4;
+            } else {
+                decoded.push(bytes[index]);
+                index += 1;
+            }
+        }
+        String::from_utf8(decoded).ok()
+    }
     #[test]
     fn individually_mounted_endpoint_refuses_before_named_io() {
-        // The pinned OCI target mounts hosts as a file, independently of /etc.
-        // No extra mount capability or remote filesystem is needed for this case.
+        // OCI commonly supplies /etc/hosts, hostname or resolv.conf, but WSL
+        // need not mount any of those names separately. Inspect metadata only.
         let mounts = std::fs::read_to_string("/proc/self/mountinfo").unwrap();
-        assert!(
-            mounts
-                .lines()
-                .any(|line| line.split_whitespace().nth(4) == Some("/etc/hosts"))
-        );
+        let mounted_file = mounts.lines().filter_map(|line| {
+            let path = mount_point(line.split_whitespace().nth(4)?)?;
+            // Refusal must exercise mounted-leaf protection, not path syntax.
+            if parts(&path).is_ok()
+                && std::fs::symlink_metadata(&path).is_ok_and(|m| m.is_file())
+            {
+                Some(path)
+            } else {
+                None
+            }
+        }).next();
         assert!(validate_endpoint_path("/etc/file-mover-absent.sock").is_ok());
-        assert!(validate_endpoint_path("/etc/hosts").is_err());
+        if !prerequisites::available(
+            "ingress::tests::individually_mounted_endpoint_refuses_before_named_io",
+            "regular-file mount point in /proc/self/mountinfo with a canonical endpoint path",
+            mounted_file.is_some(),
+        ) {
+            return;
+        }
+        let mounted_file = mounted_file.expect("prerequisite requires a mounted regular file");
+        assert!(validate_endpoint_path(&mounted_file).is_err(), "mounted file endpoint accepted: {mounted_file}");
+    }
+    #[test]
+    fn mount_point_decodes_kernel_escapes_without_double_decoding() {
+        assert_eq!(mount_point("/etc/hosts").as_deref(), Some("/etc/hosts"));
+        assert_eq!(mount_point(r"/tmp/file\040name").as_deref(), Some("/tmp/file name"));
+        assert_eq!(mount_point(r"/tmp/\134040").as_deref(), Some(r"/tmp/\040"));
+        for bad in [r"/tmp/\", r"/tmp/\08x", r"/tmp/\777"] {
+            assert!(mount_point(bad).is_none());
+        }
     }
     #[test]
     fn existing_and_symlink_names_are_preserved() {
