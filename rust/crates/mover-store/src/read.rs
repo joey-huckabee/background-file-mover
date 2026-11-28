@@ -2,7 +2,10 @@
 use super::*;
 use std::{
     os::unix::fs::MetadataExt,
-    sync::{Mutex, atomic::{AtomicBool, Ordering}},
+    sync::{
+        Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
     time::Instant,
 };
 
@@ -101,7 +104,11 @@ pub struct Budget {
     phase: Mutex<Phase>,
 }
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum Phase { Running, Interrupted, Finishing }
+enum Phase {
+    Running,
+    Interrupted,
+    Finishing,
+}
 impl Budget {
     pub fn new(until: Instant) -> Self {
         Self {
@@ -266,7 +273,9 @@ impl Reader {
         }
     }
     fn rollback_cleanly(&mut self) -> Result<()> {
-        if self.connection.is_autocommit() { return Ok(()); }
+        if self.connection.is_autocommit() {
+            return Ok(());
+        }
         let first = self.connection.execute_batch("ROLLBACK");
         let result = match first {
             Err(error) if interrupted(&error) => self.connection.execute_batch("ROLLBACK"),
@@ -278,7 +287,6 @@ impl Reader {
         }
         Ok(())
     }
-
 }
 fn interrupted(error: &rusqlite::Error) -> bool {
     matches!(error, rusqlite::Error::SqliteFailure(error, _)
@@ -586,20 +594,34 @@ mod tests {
             });
             struct Done(Arc<AtomicBool>);
             impl Drop for Done {
-                fn drop(&mut self) { self.0.store(true, Ordering::Release); }
+                fn drop(&mut self) {
+                    self.0.store(true, Ordering::Release);
+                }
             }
             let finished = Done(done.clone());
             let result = reader.query(Query::LongSql, &budget);
             drop(finished);
             monitor.join().unwrap();
-            assert!(matches!(result, Err(StoreError::Sqlite(rusqlite::Error::SqliteFailure(error, _)))
-                if error.code == rusqlite::ErrorCode::OperationInterrupted));
+            assert!(
+                matches!(result, Err(StoreError::Sqlite(rusqlite::Error::SqliteFailure(error, _)))
+                if error.code == rusqlite::ErrorCode::OperationInterrupted)
+            );
         });
-        assert!(reader.healthy(), "an interrupted SELECT must not poison cleanup");
+        assert!(
+            reader.healthy(),
+            "an interrupted SELECT must not poison cleanup"
+        );
         // Even repeated monitor ticks after finishing must not interrupt reuse.
         budget.interrupt(&reader.interrupt_handle());
-        assert!(matches!(reader.query(Query::Status(1), &Budget::new(Instant::now() + Duration::from_secs(1))).unwrap(), Snapshot::Status(None)));
+        assert!(matches!(
+            reader
+                .query(
+                    Query::Status(1),
+                    &Budget::new(Instant::now() + Duration::from_secs(1))
+                )
+                .unwrap(),
+            Snapshot::Status(None)
+        ));
         assert!(reader.healthy());
     }
-
 }
