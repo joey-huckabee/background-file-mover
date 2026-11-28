@@ -229,7 +229,10 @@ impl Drop for LocalSocket {
 #[cfg(test)]
 mod tests {
     mod prerequisites {
-        include!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../test-support/prerequisites.rs"));
+        include!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../test-support/prerequisites.rs"
+        ));
     }
     use super::*;
     use std::os::fd::AsRawFd;
@@ -284,17 +287,20 @@ mod tests {
         // OCI commonly supplies /etc/hosts, hostname or resolv.conf, but WSL
         // need not mount any of those names separately. Inspect metadata only.
         let mounts = std::fs::read_to_string("/proc/self/mountinfo").unwrap();
-        let mounted_file = mounts.lines().filter_map(|line| {
-            let path = mount_point(line.split_whitespace().nth(4)?)?;
-            // Refusal must exercise mounted-leaf protection, not path syntax.
-            if parts(&path).is_ok()
-                && std::fs::symlink_metadata(&path).is_ok_and(|m| m.is_file())
-            {
-                Some(path)
-            } else {
-                None
-            }
-        }).next();
+        let mounted_file = mounts
+            .lines()
+            .filter_map(|line| {
+                let path = mount_point(line.split_whitespace().nth(4)?)?;
+                // Refusal must exercise mounted-leaf protection, not path syntax.
+                if parts(&path).is_ok()
+                    && std::fs::symlink_metadata(&path).is_ok_and(|m| m.is_file())
+                {
+                    Some(path)
+                } else {
+                    None
+                }
+            })
+            .next();
         assert!(validate_endpoint_path("/etc/file-mover-absent.sock").is_ok());
         if !prerequisites::available(
             "ingress::tests::individually_mounted_endpoint_refuses_before_named_io",
@@ -304,12 +310,18 @@ mod tests {
             return;
         }
         let mounted_file = mounted_file.expect("prerequisite requires a mounted regular file");
-        assert!(validate_endpoint_path(&mounted_file).is_err(), "mounted file endpoint accepted: {mounted_file}");
+        assert!(
+            validate_endpoint_path(&mounted_file).is_err(),
+            "mounted file endpoint accepted: {mounted_file}"
+        );
     }
     #[test]
     fn mount_point_decodes_kernel_escapes_without_double_decoding() {
         assert_eq!(mount_point("/etc/hosts").as_deref(), Some("/etc/hosts"));
-        assert_eq!(mount_point(r"/tmp/file\040name").as_deref(), Some("/tmp/file name"));
+        assert_eq!(
+            mount_point(r"/tmp/file\040name").as_deref(),
+            Some("/tmp/file name")
+        );
         assert_eq!(mount_point(r"/tmp/\134040").as_deref(), Some(r"/tmp/\040"));
         for bad in [r"/tmp/\", r"/tmp/\08x", r"/tmp/\777"] {
             assert!(mount_point(bad).is_none());
