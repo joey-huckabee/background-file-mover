@@ -14,6 +14,19 @@ gate = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(gate)
 
 
+class QualifiedTestAccountingTests(unittest.TestCase):
+    def test_successful_libtest_footer_cannot_hide_local_fixture_skips(self):
+        footer = "test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out\n"
+        self.assertEqual(gate.qualified_test_counts(footer), [("42", "0")])
+        with self.assertRaisesRegex(ValueError, "not qualification evidence"):
+            gate.qualified_test_counts("SKIP_FIXTURE test=local NOT_QUALIFICATION\n" + footer)
+
+    def test_missing_or_failed_test_results_refuse(self):
+        for output in ("", "test result: FAILED. 1 passed; 1 failed", "test result: ok. 1 passed; 1 failed"):
+            with self.assertRaises(ValueError):
+                gate.qualified_test_counts(output)
+
+
 class DependencyPinTests(unittest.TestCase):
     def test_dependency_pins_are_locked_and_integrity_checksums_match(self):
         root = Path(__file__).resolve().parent.parent
