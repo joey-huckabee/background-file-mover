@@ -199,6 +199,14 @@ impl InstanceGuard {
     /// Inspect every SQLite recovery name before SQLite or source bootstrap.
     /// Cooperative fixed-state profile: excludes concurrent same-UID/root mutation.
     pub fn validate_database(&self, database: &str) -> Result<()> {
+        self.validate_database_inner(database, true)
+    }
+    /// Quiescent reader startup only. Do not open/close raw database file
+    /// descriptors alongside SQLite: that can release process-wide POSIX locks.
+    pub fn validate_reader_database(&self, database: &str) -> Result<()> {
+        self.validate_database_inner(database, false)
+    }
+    fn validate_database_inner(&self, database: &str, open_files: bool) -> Result<()> {
         self.validate()?;
         let path = Path::new(database);
         if path.parent() != Some(Path::new(&self.directory)) {
@@ -245,20 +253,25 @@ impl InstanceGuard {
             {
                 return Err(ClaimError::Blocked("unsafe SQLite state file"));
             }
-            let fd = fs::openat(
-                &dir,
-                file.as_str(),
-                OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::NONBLOCK | OFlags::CLOEXEC,
-                Mode::empty(),
-            )?;
-            let actual = fs::fstat(&fd)?;
-            if observation(&actual) != observation(&named)
-                || actual.st_dev != fs::fstat(&dir)?.st_dev
-                || ![0xef53, 0x01021994, 0x794c7630].contains(&fs::fstatfs(&fd)?.f_type)
-            {
-                return Err(ClaimError::Blocked(
-                    "SQLite state file identity or locality changed",
-                ));
+            if !open_files && named.st_dev != fs::fstat(&dir)?.st_dev {
+                return Err(ClaimError::Blocked("SQLite state device changed"));
+            }
+            if open_files {
+                let fd = fs::openat(
+                    &dir,
+                    file.as_str(),
+                    OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::NONBLOCK | OFlags::CLOEXEC,
+                    Mode::empty(),
+                )?;
+                let actual = fs::fstat(&fd)?;
+                if observation(&actual) != observation(&named)
+                    || actual.st_dev != fs::fstat(&dir)?.st_dev
+                    || ![0xef53, 0x01021994, 0x794c7630].contains(&fs::fstatfs(&fd)?.f_type)
+                {
+                    return Err(ClaimError::Blocked(
+                        "SQLite state file identity or locality changed",
+                    ));
+                }
             }
             if suffix.is_empty() {
                 database_exists = true;
@@ -786,6 +799,36 @@ mod tests {
                 if !suffix.is_empty() {
                     assert_eq!(std::fs::read(&database).unwrap(), b"original database");
                 }
+            }
+        }
+    }
+    #[test]
+    fn reader_startup_name_checks_refuse_unsafe_sidecars_without_mutation() {
+        use std::os::unix::fs::symlink;
+        for suffix in ["-wal", "-shm", "-journal"] {
+            for case in ["symlink", "hardlink", "writable"] {
+                let f = Fixture::new();
+                let db = f.database();
+                let guard = InstanceGuard::for_database(&db).unwrap();
+                guard.prepare_database(&db).unwrap();
+                let sidecar = format!("{db}{suffix}");
+                let target = f.0.join("preserved");
+                std::fs::write(&target, b"preserved bytes").unwrap();
+                match case {
+                    "symlink" => symlink(&target, &sidecar).unwrap(),
+                    "hardlink" => std::fs::hard_link(&target, &sidecar).unwrap(),
+                    _ => {
+                        std::fs::write(&sidecar, b"unsafe sidecar").unwrap();
+                        std::fs::set_permissions(&sidecar, std::fs::Permissions::from_mode(0o622))
+                            .unwrap();
+                    }
+                }
+                assert!(
+                    guard.validate_reader_database(&db).is_err(),
+                    "{suffix} {case}"
+                );
+                assert_eq!(std::fs::read(&target).unwrap(), b"preserved bytes");
+                assert!(std::fs::symlink_metadata(&sidecar).is_ok());
             }
         }
     }

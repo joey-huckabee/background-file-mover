@@ -40,6 +40,7 @@ mod missing_retry;
 mod search;
 pub use search::{FileSearchChunk, SEARCH_CHUNK_BYTES, SEARCH_CHUNK_ROWS};
 mod operators;
+pub mod read;
 mod retention;
 mod source_ownership;
 pub use missing_resets::{MissingResetAudit, MissingResetReceipt, MissingResetRequest};
@@ -967,7 +968,13 @@ fn validate_job_sequence(connection: &Connection) -> Result<()> {
     Ok(())
 }
 
+#[cfg(test)]
+std::thread_local! {
+    static CONTENT_VALIDATIONS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
 fn validate_contents(connection: &Connection, version: i64) -> Result<String> {
+    #[cfg(test)]
+    CONTENT_VALIDATIONS.with(|count| count.set(count.get() + 1));
     let damaged: bool = connection.query_row("SELECT EXISTS(SELECT 1 FROM jobs j WHERE j.file_count != (SELECT count(*) FROM files f WHERE f.job_id=j.job_id) OR (SELECT count(*) FROM reservations r WHERE r.job_id=j.job_id) != CASE WHEN j.file_count=(SELECT count(*) FROM claims c WHERE c.job_id=j.job_id AND c.done=1) THEN 0 ELSE j.file_count END) OR EXISTS(SELECT 1 FROM reservations r JOIN jobs j ON j.job_id=r.job_id JOIN files f ON f.job_id=r.job_id AND f.file_index=r.file_index WHERE r.source_root_id != j.source_root_id OR r.source_relative_path != CASE WHEN j.source_relative_directory='' THEN f.relative_path ELSE j.source_relative_directory || '/' || f.relative_path END)", [], |r| r.get(0))?;
     let foreign_key_errors: i64 =
         connection.query_row("SELECT count(*) FROM pragma_foreign_key_check", [], |r| {
@@ -1022,6 +1029,7 @@ fn check_sqlite_options(connection: &Connection) -> Result<()> {
 }
 
 struct Database {
+    path: PathBuf,
     connection: Connection,
     limits: Option<(u64, u64)>,
     history_clear: bool,
@@ -1114,6 +1122,7 @@ impl Database {
         }
         validate_contents(&connection, SCHEMA_VERSION)?;
         Ok(Self {
+            path: path.to_owned(),
             connection,
             limits: None,
             pending: Default::default(),
